@@ -1,0 +1,273 @@
+// MG Work — Prisma schema (source of truth: docs/roadmap.md §5)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  STAFF_FOLLOWUP
+  STAFF_DOCUMENTS
+  ENTERPRISE
+  CANDIDATE
+}
+
+enum DocumentType {
+  PASSPORT
+  MEDICAL_AUTHORIZATION
+  WORK_PERMIT
+  VISA
+  INCORPORATION_CERTIFICATE
+  OTHER
+}
+
+enum DocumentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
+enum ApplicationStatus {
+  APPLIED
+  SHORTLISTED
+  INTERVIEW_SCHEDULED
+  INTERVIEW_DONE
+  OFFER_MADE
+  DEPLOYED
+  COMPLETED
+  REJECTED
+}
+
+enum OfferStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  CLOSED
+}
+
+enum CheckpointStatus {
+  OK
+  ALERT
+  INTERVENTION_REQUIRED
+}
+
+enum SocialPlatform {
+  WHATSAPP
+  MESSENGER
+  INSTAGRAM
+  TIKTOK
+  IN_APP
+}
+
+enum Language {
+  FR
+  EN
+  MG
+}
+
+model User {
+  id        String   @id @default(cuid())
+  clerkId   String   @unique
+  email     String   @unique
+  role      Role
+  lang      Language @default(FR)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  candidate  Candidate?
+  enterprise Enterprise?
+  auditLogs  AuditLog[]
+  staffNotes StaffNote[]
+}
+
+model Candidate {
+  id           String    @id @default(cuid())
+  userId       String    @unique
+  user         User      @relation(fields: [userId], references: [id])
+  firstName    String
+  lastName     String
+  dateOfBirth  DateTime?
+  nationality  String    @default("MG")
+  phone        String?
+  city         String?
+  profileScore Int       @default(0)
+  langScoreFR  Int?
+  langScoreEN  Int?
+  cvFileUrl    String?
+  bio          String?
+  skills       String[]
+  sectors      String[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  documents     Document[]
+  applications  Application[]
+  conversations Conversation[]
+  checkpoints   Checkpoint[]
+}
+
+model Enterprise {
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  user               User     @relation(fields: [userId], references: [id])
+  companyName        String
+  registrationNumber String?
+  sector             String?
+  address            String?
+  contactName        String?
+  contactPhone       String?
+  verified           Boolean  @default(false)
+  plan               String   @default("FREE")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  jobOffers JobOffer[]
+  documents Document[]
+  invoices  Invoice[]
+}
+
+model Document {
+  id            String         @id @default(cuid())
+  type          DocumentType
+  fileUrl       String
+  status        DocumentStatus @default(PENDING)
+  expiresAt     DateTime?
+  rejectionNote String?
+  verifiedAt    DateTime?
+  verifiedById  String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  candidateId  String?
+  candidate    Candidate?  @relation(fields: [candidateId], references: [id])
+  enterpriseId String?
+  enterprise   Enterprise? @relation(fields: [enterpriseId], references: [id])
+}
+
+model JobOffer {
+  id           String      @id @default(cuid())
+  enterpriseId String
+  enterprise   Enterprise  @relation(fields: [enterpriseId], references: [id])
+  title        String
+  description  String
+  sector       String
+  location     String      @default("Mauritius")
+  slots        Int         @default(1)
+  status       OfferStatus @default(DRAFT)
+  requirements String[]
+  langRequired String[]
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  applications Application[]
+  matchings    Matching[]
+}
+
+model Application {
+  id          String            @id @default(cuid())
+  candidateId String
+  candidate   Candidate         @relation(fields: [candidateId], references: [id])
+  jobOfferId  String
+  jobOffer    JobOffer          @relation(fields: [jobOfferId], references: [id])
+  status      ApplicationStatus @default(APPLIED)
+  aiScore     Int?
+  notes       String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  interviews  Interview[]
+  checkpoints Checkpoint[]
+}
+
+model Matching {
+  id          String   @id @default(cuid())
+  candidateId String
+  jobOfferId  String
+  jobOffer    JobOffer @relation(fields: [jobOfferId], references: [id])
+  score       Int
+  criteria    Json
+  createdAt   DateTime @default(now())
+}
+
+model Interview {
+  id              String      @id @default(cuid())
+  applicationId   String
+  application     Application @relation(fields: [applicationId], references: [id])
+  scheduledAt     DateTime
+  type            String
+  videoUrl        String?
+  status          String      @default("SCHEDULED")
+  enterpriseNotes String?
+  candidateNotes  String?
+  createdAt       DateTime    @default(now())
+}
+
+model Checkpoint {
+  id              String           @id @default(cuid())
+  applicationId   String
+  application     Application      @relation(fields: [applicationId], references: [id])
+  candidateId     String
+  candidate       Candidate        @relation(fields: [candidateId], references: [id])
+  staffId         String?
+  date            DateTime         @default(now())
+  status          CheckpointStatus @default(OK)
+  notes           String?
+  interventionLog String?
+}
+
+model StaffNote {
+  id           String   @id @default(cuid())
+  staffId      String
+  staff        User     @relation(fields: [staffId], references: [id])
+  resourceType String
+  resourceId   String
+  note         String
+  createdAt    DateTime @default(now())
+}
+
+model Conversation {
+  id          String         @id @default(cuid())
+  candidateId String
+  candidate   Candidate      @relation(fields: [candidateId], references: [id])
+  platform    SocialPlatform
+  externalId  String?
+  history     Json
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@unique([candidateId, platform])
+}
+
+model Invoice {
+  id            String     @id @default(cuid())
+  enterpriseId  String
+  enterprise    Enterprise @relation(fields: [enterpriseId], references: [id])
+  amount        Float
+  currency      String     @default("MUR")
+  paymentMethod String
+  reference     String?
+  status        String     @default("PENDING")
+  issuedAt      DateTime   @default(now())
+  paidAt        DateTime?
+  notes         String?
+}
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  action       String
+  resourceType String
+  resourceId   String?
+  ipAddress    String?
+  metadata     Json?
+  createdAt    DateTime @default(now())
+}
