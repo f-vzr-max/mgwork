@@ -2,6 +2,7 @@ import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { Webhook } from 'svix';
 import { prisma } from '@/lib/prisma';
+import { env } from '@/lib/config';
 import type { Role, Language } from '@prisma/client';
 
 type ClerkEmailAddress = {
@@ -34,7 +35,7 @@ const VALID_ROLES = new Set<Role>([
 ]);
 
 export async function POST(req: Request) {
-  const secret = process.env.CLERK_WEBHOOK_SECRET;
+  const secret = env.clerkWebhookSecret();
   if (!secret) {
     console.error('CLERK_WEBHOOK_SECRET not set');
     return new NextResponse('Server misconfiguration', { status: 500 });
