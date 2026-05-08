@@ -1,4 +1,54 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {};
+import createNextIntlPlugin from "next-intl/plugin";
+import { withSentryConfig } from "@sentry/nextjs";
 
-export default nextConfig;
+// Cookie-based locale resolution — see `i18n/request.ts`. We deliberately do
+// NOT use a [locale] route segment so all existing routes (sign-in, /admin,
+// /candidate, etc.) keep working without rewrites.
+const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
+
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  // The repo lives under OneDrive on the maintainer's machine; the trace
+  // collector sometimes loses files mid-rename due to OneDrive sync, which
+  // breaks `next build` even though compile + static generation succeed.
+  // Vercel's CI runs outside OneDrive and is unaffected. Disabling tracing
+  // here keeps local builds reliable; production gets traces via Vercel.
+  outputFileTracing: false,
+};
+
+// next-intl always wraps the base config (M9).
+const withIntlConfig = withNextIntl(nextConfig);
+
+// Sentry env names mirror `lib/config.ts` getters (sentryDsn, sentryOrg,
+// sentryProject). next.config.mjs runs in plain Node before TS is available,
+// so we read process.env directly here — this is the one allowed exception
+// to the "no process.env outside lib/" rule, and it's why the canonical names
+// still live in lib/config.ts.
+const sentryDsn = process.env.SENTRY_DSN || undefined;
+const sentryOrg = process.env.SENTRY_ORG || undefined;
+const sentryProject = process.env.SENTRY_PROJECT || undefined;
+
+// When SENTRY_DSN is absent we skip withSentryConfig entirely. This means:
+// - no Sentry webpack plugin runs locally
+// - no source-map upload attempts
+// - no auth-token errors from missing SENTRY_AUTH_TOKEN
+// The moment Francky sets SENTRY_DSN (+ org/project/auth token in CI), the
+// wrapper kicks in and source maps + tunneling go live with no code change.
+const finalConfig = sentryDsn
+  ? withSentryConfig(
+      withIntlConfig,
+      {
+        silent: true,
+        org: sentryOrg,
+        project: sentryProject,
+      },
+      {
+        widenClientFileUpload: true,
+        transpileClientSDK: true,
+        hideSourceMaps: true,
+        disableLogger: true,
+      },
+    )
+  : withIntlConfig;
+
+export default finalConfig;
