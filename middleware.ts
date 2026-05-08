@@ -1,5 +1,6 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 import type { Role } from "@/lib/roles";
 import { canAccess } from "@/lib/roles";
 
@@ -15,8 +16,49 @@ const isEnterpriseArea = createRouteMatcher(["/enterprise(.*)"]);
 const isStaffArea = createRouteMatcher(["/staff(.*)"]);
 const isAdminArea = createRouteMatcher(["/admin(.*)"]);
 
-export default clerkMiddleware(async (auth, req) => {
-  if (isPublic(req)) return;
+// Security headers — applied to every response that this middleware returns or passes through.
+// CSP is intentionally permissive for Clerk + Next.js dev tooling; tighten as we lock down
+// remote origins. unsafe-inline / unsafe-eval are required by Next 14 dev runtime + Clerk.
+function buildSecurityHeaders(): Record<string, string> {
+  const csp = [
+    "default-src 'self'",
+    // Clerk loads JS from clerk.accounts.dev / *.clerk.accounts.dev / *.clerk.com
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.clerk.accounts.dev https://*.clerk.com https://clerk.com https://challenges.cloudflare.com",
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob: https://*.clerk.com https://img.clerk.com https://*.supabase.co",
+    "font-src 'self' data:",
+    "connect-src 'self' https://*.clerk.accounts.dev https://*.clerk.com https://clerk.com https://*.supabase.co wss://*.supabase.co https://api.anthropic.com",
+    "frame-src 'self' https://*.clerk.accounts.dev https://challenges.cloudflare.com",
+    "worker-src 'self' blob:",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+    "upgrade-insecure-requests",
+  ].join("; ");
+
+  return {
+    "Content-Security-Policy": csp,
+    "Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload",
+    "X-Frame-Options": "DENY",
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+  };
+}
+
+function withSecurityHeaders(res: NextResponse): NextResponse {
+  const headers = buildSecurityHeaders();
+  for (const [k, v] of Object.entries(headers)) {
+    res.headers.set(k, v);
+  }
+  return res;
+}
+
+export default clerkMiddleware(async (auth, req: NextRequest) => {
+  if (isPublic(req)) {
+    return withSecurityHeaders(NextResponse.next());
+  }
 
   const { userId, sessionClaims, redirectToSignIn } = await auth();
   if (!userId) return redirectToSignIn({ returnBackUrl: req.url });
@@ -27,23 +69,25 @@ export default clerkMiddleware(async (auth, req) => {
 
   if (!role) {
     if (req.nextUrl.pathname !== "/onboarding") {
-      return NextResponse.redirect(new URL("/onboarding", req.url));
+      return withSecurityHeaders(NextResponse.redirect(new URL("/onboarding", req.url)));
     }
-    return;
+    return withSecurityHeaders(NextResponse.next());
   }
 
   if (isCandidateArea(req) && !canAccess(role, "candidate")) {
-    return NextResponse.redirect(new URL("/", req.url));
+    return withSecurityHeaders(NextResponse.redirect(new URL("/", req.url)));
   }
   if (isEnterpriseArea(req) && !canAccess(role, "enterprise")) {
-    return NextResponse.redirect(new URL("/", req.url));
+    return withSecurityHeaders(NextResponse.redirect(new URL("/", req.url)));
   }
   if (isStaffArea(req) && !canAccess(role, "staff")) {
-    return NextResponse.redirect(new URL("/", req.url));
+    return withSecurityHeaders(NextResponse.redirect(new URL("/", req.url)));
   }
   if (isAdminArea(req) && !canAccess(role, "admin")) {
-    return NextResponse.redirect(new URL("/", req.url));
+    return withSecurityHeaders(NextResponse.redirect(new URL("/", req.url)));
   }
+
+  return withSecurityHeaders(NextResponse.next());
 });
 
 export const config = {
