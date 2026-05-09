@@ -6,12 +6,14 @@
 // Each step is its own component (components/onboarding/CandidateStep*.tsx).
 // Submission posts to /api/candidates and redirects to /candidate.
 //
-// We validate per-step using a slice of candidateCreateSchema so users get
-// localized errors as they go. On final submit we re-parse the full payload
-// to catch anything the UI let through.
+// Drafts are persisted server-side via /api/onboarding/draft so the user can
+// resume on another browser or device. The draft is dropped after a successful
+// final submit.
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import { useClerk } from "@clerk/nextjs";
+import { useTranslations } from "next-intl";
 import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -34,24 +36,38 @@ import {
   type CandidateFormValues,
 } from "@/components/onboarding/candidate-form-values";
 
+// Reject DOBs less than 18 years before today. The same check runs server-side
+// in lib/validation/candidate.ts; this client mirror just gives faster errors.
+const isAtLeast18Iso = (v: string): boolean => {
+  if (!v) return true;
+  const d = new Date(v);
+  if (Number.isNaN(d.getTime())) return false;
+  const cutoff = new Date();
+  cutoff.setFullYear(cutoff.getFullYear() - 18);
+  return d.getTime() <= cutoff.getTime();
+};
+
+const PHONE_INPUT_RE = /^(\+261|0)?[\s.\-()]*[0-9](?:[\s.\-()]*[0-9]){5,12}$/;
+
 // Per-step validation schema. The full server-side schema lives in
 // lib/validation/candidate.ts; here we only validate fields the user can see.
 const stepSchemas = [
   // Step 1: identity
   z
     .object({
-      firstName: z.string().trim().min(1, "Required").max(120),
-      lastName: z.string().trim().min(1, "Required").max(120),
-      dateOfBirth: z.string().optional().or(z.literal("")),
-      nationality: z
+      firstName: z.string().trim().min(1, "Champ requis").max(120),
+      lastName: z.string().trim().min(1, "Champ requis").max(120),
+      dateOfBirth: z
         .string()
-        .trim()
-        .length(2, "Use a 2-letter country code")
-        .transform((v) => v.toUpperCase()),
+        .optional()
+        .or(z.literal(""))
+        .refine((v) => !v || isAtLeast18Iso(v), {
+          message: "Vous devez avoir au moins 18 ans",
+        }),
       phone: z
         .string()
         .trim()
-        .regex(/^\+?[0-9 .\-()]{6,30}$/, "Invalid phone")
+        .regex(PHONE_INPUT_RE, "Numéro invalide")
         .optional()
         .or(z.literal("")),
       city: z.string().trim().max(120).optional().or(z.literal("")),
@@ -85,19 +101,39 @@ const stepSchemas = [
     .passthrough(),
 ];
 
-const STEPS = [
-  { key: "identity", label: "Identity" },
-  { key: "languages", label: "Languages" },
-  { key: "skills", label: "Skills" },
-  { key: "sectors", label: "Sectors" },
-  { key: "cv", label: "CV" },
-] as const;
+type DraftEnvelope =
+  | {
+      ok: true;
+      data: {
+        draft:
+          | {
+              stepIndex: number;
+              data: Partial<CandidateFormValues>;
+              role: "CANDIDATE" | "ENTERPRISE";
+              updatedAt: string;
+            }
+          | null;
+      };
+    }
+  | { ok: false };
 
 export default function CandidateOnboardingPage() {
   const router = useRouter();
+  const { session } = useClerk();
+  const t = useTranslations();
   const [stepIndex, setStepIndex] = React.useState(0);
   const [submitting, setSubmitting] = React.useState(false);
   const [submitError, setSubmitError] = React.useState<string | null>(null);
+  const [restored, setRestored] = React.useState(false);
+  const [hydrated, setHydrated] = React.useState(false);
+
+  const STEPS = [
+    { key: "identity", label: t("onboarding.candidate.identity") },
+    { key: "languages", label: t("onboarding.candidate.languages") },
+    { key: "skills", label: t("onboarding.candidate.skills") },
+    { key: "sectors", label: t("onboarding.candidate.sectors") },
+    { key: "cv", label: t("onboarding.candidate.cv") },
+  ] as const;
 
   // The per-step resolver is intentionally a partial schema; we cast to the
   // full form's resolver type so RHF's generic stays consistent across steps.
@@ -113,14 +149,89 @@ export default function CandidateOnboardingPage() {
 
   const isLast = stepIndex === STEPS.length - 1;
 
+  // --- Draft restore on mount ----------------------------------------------
+  React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/onboarding/draft", { method: "GET" });
+        if (!res.ok) return;
+        const json = (await res.json()) as DraftEnvelope;
+        if (!json.ok || cancelled) return;
+        const draft = json.data.draft;
+        if (!draft || draft.role !== "CANDIDATE") return;
+        form.reset({ ...CANDIDATE_FORM_DEFAULTS, ...draft.data });
+        setStepIndex(Math.min(draft.stepIndex, STEPS.length - 1));
+        setRestored(true);
+      } catch {
+        // best-effort
+      } finally {
+        if (!cancelled) setHydrated(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // We only want this to run on mount; form is stable.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // --- Save helpers --------------------------------------------------------
+  const saveDraft = React.useCallback(
+    async (idx: number) => {
+      try {
+        const data = form.getValues();
+        await fetch("/api/onboarding/draft", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ stepIndex: idx, data }),
+        });
+      } catch {
+        // non-blocking: drafts are convenience, not correctness.
+      }
+    },
+    [form],
+  );
+
+  // Debounced auto-save on form change (post-hydration only).
+  React.useEffect(() => {
+    if (!hydrated) return;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const sub = form.watch(() => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        void saveDraft(stepIndex);
+      }, 1200);
+    });
+    return () => {
+      if (timer) clearTimeout(timer);
+      sub.unsubscribe();
+    };
+  }, [form, hydrated, stepIndex, saveDraft]);
+
   async function next() {
     const valid = await form.trigger();
     if (!valid) return;
-    setStepIndex((i) => Math.min(i + 1, STEPS.length - 1));
+    const newIdx = Math.min(stepIndex + 1, STEPS.length - 1);
+    setStepIndex(newIdx);
+    void saveDraft(newIdx);
   }
 
   function back() {
-    setStepIndex((i) => Math.max(i - 1, 0));
+    const newIdx = Math.max(stepIndex - 1, 0);
+    setStepIndex(newIdx);
+    void saveDraft(newIdx);
+  }
+
+  async function restart() {
+    try {
+      await fetch("/api/onboarding/draft", { method: "DELETE" });
+    } catch {
+      // ignore
+    }
+    form.reset(CANDIDATE_FORM_DEFAULTS);
+    setStepIndex(0);
+    setRestored(false);
   }
 
   async function submit() {
@@ -132,7 +243,6 @@ export default function CandidateOnboardingPage() {
     const payload: Record<string, unknown> = {
       firstName: v.firstName,
       lastName: v.lastName,
-      nationality: (v.nationality || "MG").toUpperCase(),
       skills: v.skills ?? [],
       sectors: v.sectors ?? [],
     };
@@ -156,14 +266,23 @@ export default function CandidateOnboardingPage() {
           | { ok: false; error: { message?: string } }
           | null;
         setSubmitError(
-          body?.error?.message ?? `Submission failed (${res.status})`,
+          body?.error?.message ??
+            t("onboarding.errors.submitFailedFmt", { status: res.status }),
         );
         setSubmitting(false);
         return;
       }
+      // Drop the draft now that we've persisted the real Candidate row.
+      void fetch("/api/onboarding/draft", { method: "DELETE" });
+      // Reload the Clerk session so the middleware sees the fresh role in JWT
+      // claims before we navigate; without this the middleware bounces /candidate
+      // back to /onboarding because the JWT still carries the pre-onboarding state.
+      await session?.reload();
       router.push("/candidate");
     } catch (e) {
-      setSubmitError(e instanceof Error ? e.message : "Network error");
+      setSubmitError(
+        e instanceof Error ? e.message : t("onboarding.errors.networkError"),
+      );
       setSubmitting(false);
     }
   }
@@ -173,12 +292,24 @@ export default function CandidateOnboardingPage() {
       <Card className="w-full max-w-3xl">
         <CardHeader className="space-y-4">
           <div>
-            <CardTitle>Candidate onboarding</CardTitle>
+            <CardTitle>{t("onboarding.candidate.cardTitle")}</CardTitle>
             <CardDescription>
-              Tell us about you so we can match you to the right offers.
+              {t("onboarding.candidate.cardDescription")}
             </CardDescription>
           </div>
           <Stepper steps={[...STEPS]} currentIndex={stepIndex} />
+          {restored && (
+            <div className="flex items-start justify-between gap-3 rounded-md border border-brand-blue/30 bg-brand-blue/5 p-3 text-xs text-foreground">
+              <span>{t("onboarding.banner.restored")}</span>
+              <button
+                type="button"
+                onClick={restart}
+                className="shrink-0 underline hover:text-brand-blue"
+              >
+                {t("onboarding.banner.restart")}
+              </button>
+            </div>
+          )}
         </CardHeader>
         <CardContent className="space-y-6">
           {stepIndex === 0 && <CandidateStepIdentity form={form} />}
@@ -200,15 +331,17 @@ export default function CandidateOnboardingPage() {
               onClick={back}
               disabled={stepIndex === 0 || submitting}
             >
-              Back
+              {t("onboarding.buttons.previous")}
             </Button>
             {isLast ? (
               <Button type="button" onClick={submit} disabled={submitting}>
-                {submitting ? "Saving..." : "Finish"}
+                {submitting
+                  ? t("onboarding.buttons.saving")
+                  : t("onboarding.buttons.finish")}
               </Button>
             ) : (
               <Button type="button" onClick={next} disabled={submitting}>
-                Next
+                {t("onboarding.buttons.next")}
               </Button>
             )}
           </div>

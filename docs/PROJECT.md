@@ -29,7 +29,3 @@ Next.js 14 · TypeScript · Tailwind + shadcn/ui · Supabase (PostgreSQL + Stora
 
 - [`roadmap.md`](roadmap.md) — full technical spec (source of truth)
 - [`tasks/phase-1.md`](tasks/phase-1.md) — immediate next actions + Phase 1 checklist
-
-## Ruflo Config
-
-Standard ruflo-core + ruflo-swarm. Phases run sequentially; within each phase, parallel tasks dispatched via swarm.

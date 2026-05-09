@@ -7,6 +7,7 @@
 
 import * as React from "react";
 import type { UseFormReturn } from "react-hook-form";
+import { useTranslations } from "next-intl";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import type { CandidateFormValues } from "./candidate-form-values";
@@ -18,6 +19,7 @@ export type CandidateStepSkillsProps = {
 };
 
 export function CandidateStepSkills({ form }: CandidateStepSkillsProps) {
+  const t = useTranslations();
   const skills = form.watch("skills") ?? [];
   const [input, setInput] = React.useState("");
   const error = form.formState.errors.skills?.message;
@@ -46,7 +48,7 @@ export function CandidateStepSkills({ form }: CandidateStepSkillsProps) {
   return (
     <div className="space-y-3">
       <p className="text-sm text-muted-foreground">
-        Add the skills that best describe what you can do. Press Enter to add.
+        {t("onboarding.skills.intro")}
       </p>
 
       <div className="flex gap-2">
@@ -59,16 +61,16 @@ export function CandidateStepSkills({ form }: CandidateStepSkillsProps) {
               add();
             }
           }}
-          placeholder="e.g. Customer service"
-          aria-label="Add a skill"
+          placeholder={t("onboarding.skills.placeholder")}
+          aria-label={t("onboarding.skills.addAria")}
         />
         <Button type="button" onClick={add} variant="secondary">
-          Add
+          {t("onboarding.skills.add")}
         </Button>
       </div>
 
       {skills.length === 0 ? (
-        <p className="text-xs text-muted-foreground">No skills added yet.</p>
+        <p className="text-xs text-muted-foreground">{t("onboarding.skills.empty")}</p>
       ) : (
         <ul className="flex flex-wrap gap-2">
           {skills.map((s, i) => (
@@ -81,7 +83,7 @@ export function CandidateStepSkills({ form }: CandidateStepSkillsProps) {
                 type="button"
                 onClick={() => remove(i)}
                 className="text-muted-foreground hover:text-destructive"
-                aria-label={`Remove ${s}`}
+                aria-label={`${t("onboarding.skills.removeAria")} ${s}`}
               >
                 ×
               </button>
@@ -91,7 +93,7 @@ export function CandidateStepSkills({ form }: CandidateStepSkillsProps) {
       )}
 
       <p className="text-xs text-muted-foreground">
-        {skills.length} / {MAX_SKILLS}
+        {`${skills.length} / ${MAX_SKILLS} ${t("onboarding.skills.count")}`}
       </p>
       {error && <p className="text-xs text-destructive">{String(error)}</p>}
     </div>

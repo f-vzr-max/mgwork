@@ -9,7 +9,6 @@ export type CandidateFormValues = {
   firstName: string;
   lastName: string;
   dateOfBirth?: string;
-  nationality: string;
   phone?: string;
   city?: string;
   bio?: string;
@@ -24,7 +23,6 @@ export const CANDIDATE_FORM_DEFAULTS: CandidateFormValues = {
   firstName: "",
   lastName: "",
   dateOfBirth: "",
-  nationality: "MG",
   phone: "",
   city: "",
   bio: "",

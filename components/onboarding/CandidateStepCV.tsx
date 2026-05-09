@@ -13,6 +13,7 @@
 
 import * as React from "react";
 import type { UseFormReturn } from "react-hook-form";
+import { useTranslations } from "next-intl";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import type { CandidateFormValues } from "./candidate-form-values";
@@ -54,6 +55,7 @@ async function tryExtract(file: File): Promise<CvExtractResult | null> {
 }
 
 export function CandidateStepCV({ form }: CandidateStepCVProps) {
+  const t = useTranslations();
   const [status, setStatus] = React.useState<Status>({ kind: "idle" });
   const [file, setFile] = React.useState<File | null>(null);
 
@@ -64,18 +66,18 @@ export function CandidateStepCV({ form }: CandidateStepCVProps) {
       return;
     }
     if (!ACCEPTED_TYPES.includes(f.type)) {
-      setStatus({ kind: "skipped", reason: "Unsupported file type" });
+      setStatus({ kind: "skipped", reason: t("onboarding.cv.unsupportedType") });
       return;
     }
     if (f.size > MAX_FILE_SIZE_BYTES) {
-      setStatus({ kind: "skipped", reason: "File too large (max 10 MB)" });
+      setStatus({ kind: "skipped", reason: t("onboarding.cv.tooLarge") });
       return;
     }
 
     setStatus({ kind: "extracting" });
     const fields = await tryExtract(f);
     if (!fields) {
-      setStatus({ kind: "skipped", reason: "AI extract unavailable; you can still finish without it" });
+      setStatus({ kind: "skipped", reason: t("onboarding.cv.aiUnavailable") });
       return;
     }
 
@@ -109,11 +111,10 @@ export function CandidateStepCV({ form }: CandidateStepCVProps) {
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
-        Upload your CV (optional). PDF, PNG, JPG or WEBP — up to 10 MB. We&apos;ll
-        try to pre-fill your profile from it.
+        {t("onboarding.cv.intro")}
       </p>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+      <div className="rounded-md border-2 border-dashed border-input bg-muted/20 p-4 transition-colors hover:bg-muted/40">
         <Input
           type="file"
           accept={ACCEPTED_TYPES.join(",")}
@@ -121,30 +122,37 @@ export function CandidateStepCV({ form }: CandidateStepCVProps) {
             const f = e.target.files?.[0] ?? null;
             void onFile(f);
           }}
+          className="cursor-pointer"
         />
         {file && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              setFile(null);
-              setStatus({ kind: "idle" });
-            }}
-          >
-            Remove
-          </Button>
+          <div className="mt-3 flex items-center justify-between gap-2 border-t border-input/60 pt-3 text-sm">
+            <span className="truncate font-medium" title={file.name}>
+              {file.name}
+            </span>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setFile(null);
+                setStatus({ kind: "idle" });
+              }}
+            >
+              {t("onboarding.cv.remove")}
+            </Button>
+          </div>
         )}
       </div>
 
       {status.kind === "extracting" && (
-        <p className="text-xs text-muted-foreground">Reading your CV…</p>
+        <p className="text-xs text-muted-foreground">{t("onboarding.cv.extracting")}</p>
       )}
       {status.kind === "extracted" && (
         <p className="text-xs text-brand-green">
-          Pre-filled {status.fields.skills?.length ?? 0} skills and{" "}
-          {status.fields.sectors?.length ?? 0} sectors from your CV. Review the
-          earlier steps before submitting.
+          {t("onboarding.cv.extractedFmt", {
+            skills: status.fields.skills?.length ?? 0,
+            sectors: status.fields.sectors?.length ?? 0,
+          })}
         </p>
       )}
       {status.kind === "skipped" && (

@@ -69,6 +69,41 @@ export function tFor(lang: Locale): TranslationFn {
 
 // next-intl integration shim — exported so `i18n/request.ts` can import it.
 // We keep this in `lib/i18n.ts` so all locale logic stays in one place.
-export function messagesFor(lang: Locale): Messages {
-  return MESSAGES[lang] ?? MESSAGES[DEFAULT_LOCALE];
+//
+// Our JSON files use flat dotted keys (e.g. "home.signIn") because the legacy
+// `tFor` translator does direct `dict[key]` lookup. next-intl, however, treats
+// `t("home.signIn")` as a path traversal (messages.home.signIn). We expand the
+// flat dictionary to a nested object here so both translators stay correct
+// against the same source files.
+type NestedMessages = { [key: string]: string | NestedMessages };
+
+function expandFlatToNested(flat: Messages): NestedMessages {
+  const out: NestedMessages = {};
+  for (const [key, value] of Object.entries(flat)) {
+    const parts = key.split(".");
+    let cursor: NestedMessages = out;
+    for (let i = 0; i < parts.length - 1; i++) {
+      const part = parts[i]!;
+      const existing = cursor[part];
+      if (typeof existing !== "object" || existing === null) {
+        const node: NestedMessages = {};
+        cursor[part] = node;
+        cursor = node;
+      } else {
+        cursor = existing;
+      }
+    }
+    cursor[parts[parts.length - 1]!] = value;
+  }
+  return out;
+}
+
+const NESTED_MESSAGES: Record<Locale, NestedMessages> = {
+  FR: expandFlatToNested(MESSAGES.FR),
+  EN: expandFlatToNested(MESSAGES.EN),
+  MG: expandFlatToNested(MESSAGES.MG),
+};
+
+export function messagesFor(lang: Locale): NestedMessages {
+  return NESTED_MESSAGES[lang] ?? NESTED_MESSAGES[DEFAULT_LOCALE];
 }

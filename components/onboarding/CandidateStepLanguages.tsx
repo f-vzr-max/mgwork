@@ -8,6 +8,7 @@
 
 import * as React from "react";
 import type { UseFormReturn } from "react-hook-form";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import type { CandidateFormValues } from "./candidate-form-values";
 
@@ -16,11 +17,6 @@ export type CandidateStepLanguagesProps = {
 };
 
 type Lang = "FR" | "EN";
-
-const LANG_LABELS: Record<Lang, string> = {
-  FR: "French",
-  EN: "English",
-};
 
 async function tryLangTest(lang: Lang): Promise<number | null> {
   // Best-effort — endpoint may not be deployed yet (M5).
@@ -44,10 +40,13 @@ async function tryLangTest(lang: Lang): Promise<number | null> {
 function ScoreSlider({
   lang,
   form,
+  langLabels,
 }: {
   lang: Lang;
   form: UseFormReturn<CandidateFormValues>;
+  langLabels: Record<Lang, string>;
 }) {
+  const t = useTranslations();
   const [busy, setBusy] = React.useState(false);
   const fieldName = lang === "FR" ? "langScoreFR" : "langScoreEN";
   const value = form.watch(fieldName) ?? 50;
@@ -55,7 +54,7 @@ function ScoreSlider({
   return (
     <div className="space-y-2 rounded-lg border bg-card p-4">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-sm font-medium">{LANG_LABELS[lang]}</span>
+        <span className="text-sm font-medium">{langLabels[lang]}</span>
         <span className="text-sm tabular-nums text-muted-foreground">
           {value} / 100
         </span>
@@ -72,7 +71,7 @@ function ScoreSlider({
           })
         }
         className="w-full accent-brand-blue"
-        aria-label={`${LANG_LABELS[lang]} self-assessed level`}
+        aria-label={`${t("onboarding.languages.selfAssessAria")} ${langLabels[lang]}`}
       />
       <div className="flex items-center justify-end">
         <Button
@@ -88,7 +87,7 @@ function ScoreSlider({
             form.setValue(fieldName, score, { shouldDirty: true });
           }}
         >
-          {busy ? "Testing..." : "Take quick test"}
+          {busy ? t("onboarding.languages.testing") : t("onboarding.languages.takeTest")}
         </Button>
       </div>
     </div>
@@ -96,15 +95,20 @@ function ScoreSlider({
 }
 
 export function CandidateStepLanguages({ form }: CandidateStepLanguagesProps) {
+  const t = useTranslations();
+  const LANG_LABELS: Record<Lang, string> = {
+    FR: t("onboarding.languages.fr"),
+    EN: t("onboarding.languages.en"),
+  };
+
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
-        Self-assess your level. You can also take a quick AI test which will
-        update the score for you.
+        {t("onboarding.languages.intro")}
       </p>
       <div className="grid gap-4 md:grid-cols-2">
-        <ScoreSlider lang="FR" form={form} />
-        <ScoreSlider lang="EN" form={form} />
+        <ScoreSlider lang="FR" form={form} langLabels={LANG_LABELS} />
+        <ScoreSlider lang="EN" form={form} langLabels={LANG_LABELS} />
       </div>
     </div>
   );

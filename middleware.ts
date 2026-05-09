@@ -9,6 +9,9 @@ const isPublic = createRouteMatcher([
   "/sign-in(.*)",
   "/sign-up(.*)",
   "/api/webhooks(.*)",
+  // Locale toggle must work pre-sign-up. The route handler still applies its
+  // own CSRF (assertSameOrigin) + per-IP rate limit + zod enum.
+  "/api/locale",
 ]);
 
 const isCandidateArea = createRouteMatcher(["/candidate(.*)"]);
@@ -19,8 +22,12 @@ const isAdminArea = createRouteMatcher(["/admin(.*)"]);
 // Security headers — applied to every response that this middleware returns or passes through.
 // CSP is intentionally permissive for Clerk + Next.js dev tooling; tighten as we lock down
 // remote origins. unsafe-inline / unsafe-eval are required by Next 14 dev runtime + Clerk.
+// upgrade-insecure-requests and HSTS are production-only: in dev the server is plain HTTP and
+// those headers would cause the browser to rewrite all fetches to https://, breaking everything.
+const isProd = process.env.NODE_ENV === "production";
+
 function buildSecurityHeaders(): Record<string, string> {
-  const csp = [
+  const cspDirectives = [
     "default-src 'self'",
     // Clerk loads JS from clerk.accounts.dev / *.clerk.accounts.dev / *.clerk.com
     "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.clerk.accounts.dev https://*.clerk.com https://clerk.com https://challenges.cloudflare.com",
@@ -34,17 +41,22 @@ function buildSecurityHeaders(): Record<string, string> {
     "base-uri 'self'",
     "form-action 'self'",
     "frame-ancestors 'none'",
-    "upgrade-insecure-requests",
-  ].join("; ");
+    ...(isProd ? ["upgrade-insecure-requests"] : []),
+  ];
 
-  return {
-    "Content-Security-Policy": csp,
-    "Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload",
+  const headers: Record<string, string> = {
+    "Content-Security-Policy": cspDirectives.join("; "),
     "X-Frame-Options": "DENY",
     "X-Content-Type-Options": "nosniff",
     "Referrer-Policy": "strict-origin-when-cross-origin",
     "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
   };
+
+  if (isProd) {
+    headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains; preload";
+  }
+
+  return headers;
 }
 
 function withSecurityHeaders(res: NextResponse): NextResponse {
@@ -68,7 +80,7 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
   const role = (sessionClaims?.metadata as { role?: Role } | undefined)?.role;
 
   if (!role) {
-    if (req.nextUrl.pathname !== "/onboarding") {
+    if (!req.nextUrl.pathname.startsWith("/onboarding")) {
       return withSecurityHeaders(NextResponse.redirect(new URL("/onboarding", req.url)));
     }
     return withSecurityHeaders(NextResponse.next());

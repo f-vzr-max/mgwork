@@ -82,10 +82,22 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  candidate  Candidate?
-  enterprise Enterprise?
-  auditLogs  AuditLog[]
-  staffNotes StaffNote[]
+  candidate        Candidate?
+  enterprise       Enterprise?
+  auditLogs        AuditLog[]
+  staffNotes       StaffNote[]
+  onboardingDraft  OnboardingDraft?
+}
+
+model OnboardingDraft {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  role      Role
+  stepIndex Int      @default(0)
+  data      Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Candidate {
