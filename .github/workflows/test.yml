@@ -1,0 +1,96 @@
+name: Test
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Unit tests
+        env:
+          # CI-only stub values — same shape as ci.yml so any code that reads
+          # these at module load doesn't blow up.
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_ci_stub
+          CLERK_SECRET_KEY: sk_test_ci_stub
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci_stub_anon
+          DATABASE_URL: postgresql://postgres:ci_stub@localhost:5432/postgres
+          DIRECT_URL: postgresql://postgres:ci_stub@localhost:5432/postgres
+        run: npm test -- --ci --reporters=default
+
+  e2e:
+    # Gated: only runs on push to main. PRs and develop pushes skip e2e because
+    # the suite needs Clerk test users + a live Postgres + Supabase storage and
+    # we don't have those provisioned in PR runners yet.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    needs: unit
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Build
+        env:
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_ci_stub
+          CLERK_SECRET_KEY: sk_test_ci_stub
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci_stub_anon
+          DATABASE_URL: postgresql://postgres:ci_stub@localhost:5432/postgres
+          DIRECT_URL: postgresql://postgres:ci_stub@localhost:5432/postgres
+        run: npm run build
+
+      - name: E2E tests
+        env:
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_ci_stub
+          CLERK_SECRET_KEY: sk_test_ci_stub
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci_stub_anon
+          DATABASE_URL: postgresql://postgres:ci_stub@localhost:5432/postgres
+          DIRECT_URL: postgresql://postgres:ci_stub@localhost:5432/postgres
+        run: npm run test:e2e
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14

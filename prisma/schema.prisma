@@ -82,31 +82,44 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  candidate  Candidate?
-  enterprise Enterprise?
-  auditLogs  AuditLog[]
-  staffNotes StaffNote[]
+  candidate        Candidate?
+  enterprise       Enterprise?
+  auditLogs        AuditLog[]
+  staffNotes       StaffNote[]
+  onboardingDraft  OnboardingDraft?
+}
+
+model OnboardingDraft {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  role      Role
+  stepIndex Int      @default(0)
+  data      Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Candidate {
-  id           String    @id @default(cuid())
-  userId       String    @unique
-  user         User      @relation(fields: [userId], references: [id])
-  firstName    String
-  lastName     String
-  dateOfBirth  DateTime?
-  nationality  String    @default("MG")
-  phone        String?
-  city         String?
-  profileScore Int       @default(0)
-  langScoreFR  Int?
-  langScoreEN  Int?
-  cvFileUrl    String?
-  bio          String?
-  skills       String[]
-  sectors      String[]
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id                 String    @id @default(cuid())
+  userId             String    @unique
+  user               User      @relation(fields: [userId], references: [id])
+  firstName          String
+  lastName           String
+  dateOfBirth        DateTime?
+  nationality        String    @default("MG")
+  phone              String?
+  city               String?
+  profileScore       Int       @default(0)
+  langScoreFR        Int?
+  langScoreEN        Int?
+  cvFileUrl          String?
+  bio                String?
+  skills             String[]
+  sectors            String[]
+  departureChecklist Json?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   documents     Document[]
   applications  Application[]
@@ -183,8 +196,9 @@ model Application {
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
 
-  interviews  Interview[]
-  checkpoints Checkpoint[]
+  interviews   Interview[]
+  checkpoints  Checkpoint[]
+  checkinPings CheckinPing[]
 }
 
 model Matching {
@@ -270,4 +284,36 @@ model AuditLog {
   ipAddress    String?
   metadata     Json?
   createdAt    DateTime @default(now())
+}
+
+model MatchingConfig {
+  id          String   @id @default(cuid())
+  weights     Json
+  updatedAt   DateTime @updatedAt
+  updatedById String?
+}
+
+model FeatureFlag {
+  key       String   @id
+  enabled   Boolean  @default(false)
+  metadata  Json?
+  updatedAt DateTime @updatedAt
+}
+
+model Translation {
+  id    String   @id @default(cuid())
+  lang  Language
+  key   String
+  value String
+
+  @@unique([lang, key])
+}
+
+model CheckinPing {
+  id            String      @id @default(cuid())
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id])
+  sentAt        DateTime    @default(now())
+  respondedAt   DateTime?
+  response      String?
 }

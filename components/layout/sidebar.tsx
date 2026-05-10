@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
+import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
 import {
   Activity,
   AlertTriangle,
@@ -48,9 +49,11 @@ export type NavItem = {
 export function Sidebar({
   brandLabel,
   items,
+  currentLang,
 }: {
   brandLabel: string;
   items: NavItem[];
+  currentLang?: "FR" | "EN" | "MG";
 }) {
   const pathname = usePathname();
 
@@ -85,7 +88,8 @@ export function Sidebar({
           );
         })}
       </nav>
-      <div className="border-t p-4">
+      <div className="space-y-3 border-t p-4">
+        <LanguageSwitcher current={currentLang} />
         <UserButton afterSignOutUrl="/" />
       </div>
     </aside>
