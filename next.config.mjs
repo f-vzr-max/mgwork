@@ -11,9 +11,13 @@ const nextConfig = {
   // The repo lives under OneDrive on the maintainer's machine; the trace
   // collector sometimes loses files mid-rename due to OneDrive sync, which
   // breaks `next build` even though compile + static generation succeed.
-  // Vercel's CI runs outside OneDrive and is unaffected. Disabling tracing
-  // here keeps local builds reliable; production gets traces via Vercel.
-  outputFileTracing: false,
+  //
+  // We MUST keep tracing enabled on Vercel — otherwise the serverless lambda
+  // ships without the client-reference-manifest files, and every page render
+  // crashes with `Cannot read properties of undefined (reading 'clientModules')`
+  // in app-page.runtime.prod.js. Disabling it unconditionally was the root
+  // cause of the 2026-05-20 outage (see docs/audits/).
+  outputFileTracing: process.env.VERCEL ? undefined : false,
 };
 
 // next-intl always wraps the base config (M9).
