@@ -7,6 +7,16 @@
    Colors are stored as HSL channel triplets so Tailwind utilities like
    `bg-primary/50` can apply alpha via `hsl(var(--primary) / <alpha-value>)`. */
 
+/* Defense-in-depth against horizontal overflow. Individual sections still
+   need real responsive layouts (see _components.tsx + page.tsx hero), but
+   this stops a stray wide element from breaking the entire viewport. Audit
+   F-001 follow-up. */
+html,
+body {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
 @layer base {
   :root {
     /* Surfaces */

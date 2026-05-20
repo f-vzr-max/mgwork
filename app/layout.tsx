@@ -61,7 +61,7 @@ export default async function RootLayout({
     <ClerkProvider localization={clerkLocalization} appearance={clerkAppearance}>
       <html lang={htmlLang} suppressHydrationWarning>
         <body
-          className={`${inter.variable} ${jetBrainsMono.variable} font-sans antialiased`}
+          className={`${inter.variable} ${jetBrainsMono.variable} font-sans antialiased overflow-x-hidden`}
         >
           <ThemeProvider
             attribute="class"
