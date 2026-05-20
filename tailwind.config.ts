@@ -15,14 +15,14 @@ const config: Config = {
     },
     extend: {
       colors: {
-        // Brand tokens (roadmap §design system)
+        // Raw brand hex tokens (legacy)
         brand: {
           blue: "#1A3C6E",
           green: "#007B55",
           red: "#C0392B",
           white: "#FFFFFF",
         },
-        // shadcn/ui semantic tokens, mapped to CSS vars set in globals.css
+        // Semantic tokens — map to CSS vars (HSL channels) in globals.css
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -40,6 +40,18 @@ const config: Config = {
           DEFAULT: "hsl(var(--destructive))",
           foreground: "hsl(var(--destructive-foreground))",
         },
+        success: {
+          DEFAULT: "hsl(var(--success))",
+          foreground: "hsl(var(--success-foreground))",
+        },
+        warning: {
+          DEFAULT: "hsl(var(--warning))",
+          foreground: "hsl(var(--warning-foreground))",
+        },
+        info: {
+          DEFAULT: "hsl(var(--info))",
+          foreground: "hsl(var(--info-foreground))",
+        },
         muted: {
           DEFAULT: "hsl(var(--muted))",
           foreground: "hsl(var(--muted-foreground))",
@@ -56,10 +68,19 @@ const config: Config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        success: {
-          DEFAULT: "hsl(var(--success))",
-          foreground: "hsl(var(--success-foreground))",
+        surface: {
+          1: "hsl(var(--surface-1))",
+          2: "hsl(var(--surface-2))",
+          3: "hsl(var(--surface-3))",
         },
+      },
+      backgroundColor: {
+        "primary-tinted": "var(--primary-bg)",
+        "success-tinted": "var(--success-bg)",
+        "warning-tinted": "var(--warning-bg)",
+        "destructive-tinted": "var(--destructive-bg)",
+        "info-tinted": "var(--info-bg)",
+        "neutral-tinted": "var(--neutral-bg)",
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -68,6 +89,13 @@ const config: Config = {
       },
       fontFamily: {
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],
+        mono: ["var(--font-mono)", "ui-monospace", "monospace"],
+      },
+      boxShadow: {
+        "mg-sm": "var(--shadow-sm)",
+        "mg-md": "var(--shadow-md)",
+        "mg-lg": "var(--shadow-lg)",
+        "mg-inner": "var(--shadow-inner)",
       },
       keyframes: {
         "accordion-down": {
@@ -78,10 +106,15 @@ const config: Config = {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
+        "mg-shimmer": {
+          "0%": { backgroundPosition: "-200px 0" },
+          "100%": { backgroundPosition: "calc(200px + 100%) 0" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "mg-shimmer": "mg-shimmer 1.5s ease-in-out infinite",
       },
     },
   },

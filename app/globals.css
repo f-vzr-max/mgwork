@@ -2,70 +2,116 @@
 @tailwind components;
 @tailwind utilities;
 
+/* MG Work — design tokens. Single source of truth.
+   Light palette is the canonical theme; dark palette mirrors it.
+   Colors are stored as HSL channel triplets so Tailwind utilities like
+   `bg-primary/50` can apply alpha via `hsl(var(--primary) / <alpha-value>)`. */
+
+/* Defense-in-depth against horizontal overflow. Individual sections still
+   need real responsive layouts (see _components.tsx + page.tsx hero), but
+   this stops a stray wide element from breaking the entire viewport. Audit
+   F-001 follow-up. */
+html,
+body {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
 @layer base {
   :root {
-    /* Brand palette
-       --primary    = #1A3C6E (blue)
-       --success    = #007B55 (green)
-       --destructive= #C0392B (red)
-       --background = #FFFFFF (white)
-    */
+    /* Surfaces */
     --background: 0 0% 100%;
     --foreground: 222 47% 11%;
-
     --card: 0 0% 100%;
     --card-foreground: 222 47% 11%;
-
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
+    --surface-1: 0 0% 100%;
+    --surface-2: 210 40% 98%;
+    --surface-3: 213 28% 95%;
 
+    /* Brand tones */
     --primary: 213 62% 27%;
     --primary-foreground: 0 0% 100%;
-
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222 47% 11%;
-
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
-
-    --accent: 210 40% 96%;
-    --accent-foreground: 222 47% 11%;
-
     --success: 163 100% 24%;
     --success-foreground: 0 0% 100%;
-
     --destructive: 6 64% 46%;
     --destructive-foreground: 0 0% 100%;
+    --warning: 35 84% 47%;
+    --warning-foreground: 35 72% 14%;
+    --info: 203 80% 38%;
+    --info-foreground: 0 0% 100%;
 
+    /* Neutral utility */
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+    --secondary: 210 40% 98%;
+    --secondary-foreground: 222 47% 11%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222 47% 11%;
     --border: 214 32% 91%;
     --input: 214 32% 91%;
     --ring: 213 62% 27%;
 
     --radius: 0.5rem;
+
+    /* Tinted backgrounds (~10–12%) for status pills + soft chrome */
+    --success-bg: rgba(0, 123, 85, 0.10);
+    --destructive-bg: rgba(192, 57, 43, 0.10);
+    --warning-bg: rgba(220, 138, 18, 0.12);
+    --info-bg: rgba(19, 115, 176, 0.10);
+    --primary-bg: rgba(26, 60, 110, 0.08);
+    --neutral-bg: rgba(15, 23, 42, 0.06);
+
+    /* Type stack */
+    --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --font-mono: ui-monospace, "JetBrains Mono", Menlo, Consolas, monospace;
+
+    /* Elevations */
+    --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05), 0 1px 3px rgba(15, 23, 42, 0.04);
+    --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08), 0 2px 4px rgba(15, 23, 42, 0.04);
+    --shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.14), 0 4px 8px rgba(15, 23, 42, 0.06);
+    --shadow-inner: inset 0 1px 2px rgba(15, 23, 42, 0.04);
   }
 
   .dark {
-    --background: 222 47% 8%;
-    --foreground: 0 0% 100%;
-    --card: 222 47% 11%;
-    --card-foreground: 0 0% 100%;
-    --popover: 222 47% 11%;
-    --popover-foreground: 0 0% 100%;
-    --primary: 213 62% 50%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 217 33% 18%;
-    --secondary-foreground: 0 0% 100%;
-    --muted: 217 33% 18%;
+    --background: 222 60% 5%;
+    --foreground: 210 40% 96%;
+    --card: 220 50% 10%;
+    --card-foreground: 210 40% 96%;
+    --popover: 220 50% 10%;
+    --popover-foreground: 210 40% 96%;
+    --surface-1: 220 50% 10%;
+    --surface-2: 220 38% 12%;
+    --surface-3: 220 32% 16%;
+
+    --primary: 213 65% 57%;
+    --primary-foreground: 222 60% 5%;
+    --success: 163 60% 45%;
+    --success-foreground: 222 60% 5%;
+    --destructive: 8 65% 62%;
+    --destructive-foreground: 222 60% 5%;
+    --warning: 38 78% 60%;
+    --warning-foreground: 222 60% 5%;
+    --info: 204 65% 58%;
+    --info-foreground: 222 60% 5%;
+
+    --muted: 220 38% 14%;
     --muted-foreground: 215 20% 65%;
-    --accent: 217 33% 18%;
-    --accent-foreground: 0 0% 100%;
-    --success: 163 100% 35%;
-    --success-foreground: 0 0% 100%;
-    --destructive: 6 64% 55%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 217 33% 18%;
-    --input: 217 33% 18%;
-    --ring: 213 62% 50%;
+    --secondary: 220 38% 12%;
+    --secondary-foreground: 210 40% 96%;
+    --accent: 222 35% 17%;
+    --accent-foreground: 210 40% 96%;
+    --border: 220 30% 21%;
+    --input: 220 30% 21%;
+    --ring: 213 65% 57%;
+
+    --success-bg: rgba(46, 181, 138, 0.14);
+    --destructive-bg: rgba(220, 110, 95, 0.14);
+    --warning-bg: rgba(232, 174, 74, 0.14);
+    --info-bg: rgba(77, 161, 217, 0.14);
+    --primary-bg: rgba(74, 139, 217, 0.14);
+    --neutral-bg: rgba(241, 245, 249, 0.06);
   }
 }
 
@@ -75,6 +121,50 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-feature-settings: "rlig" 1, "calt" 1;
+    font-family: var(--font-sans);
+    font-feature-settings: "rlig" 1, "calt" 1, "cv11", "ss01";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
+}
+
+/* MG Work — typographic ladder. Desktop-tuned; pages are responsive otherwise. */
+@layer utilities {
+  .mg-display { font-size: 48px; line-height: 56px; font-weight: 600; letter-spacing: -0.02em; }
+  .mg-h1 { font-size: 32px; line-height: 40px; font-weight: 600; letter-spacing: -0.015em; }
+  .mg-h2 { font-size: 24px; line-height: 32px; font-weight: 600; letter-spacing: -0.01em; }
+  .mg-h3 { font-size: 20px; line-height: 28px; font-weight: 600; letter-spacing: -0.005em; }
+  .mg-h4 { font-size: 16px; line-height: 24px; font-weight: 600; }
+  .mg-body-lg { font-size: 17px; line-height: 28px; font-weight: 400; }
+  .mg-body { font-size: 15px; line-height: 24px; font-weight: 400; }
+  .mg-body-sm { font-size: 14px; line-height: 20px; font-weight: 400; }
+  .mg-caption { font-size: 13px; line-height: 18px; font-weight: 500; letter-spacing: 0.005em; }
+  .mg-micro { font-size: 11px; line-height: 14px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+  .mg-tabular { font-variant-numeric: tabular-nums; }
+  .mg-mono { font-family: var(--font-mono); }
+
+  .mg-hairline { background: hsl(var(--border)); height: 1px; width: 100%; }
+  .mg-vhairline { background: hsl(var(--border)); width: 1px; align-self: stretch; }
+}
+
+/* Focus ring — applies everywhere inside the app */
+:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Animations */
+@keyframes mg-shimmer {
+  0% { background-position: -200px 0; }
+  100% { background-position: calc(200px + 100%) 0; }
+}
+@keyframes mg-pulse-soft {
+  0% { box-shadow: 0 0 0 0 hsl(var(--primary) / 0.35); }
+  100% { box-shadow: 0 0 0 12px hsl(var(--primary) / 0); }
+}
+.mg-pulse-soft { animation: mg-pulse-soft 1200ms cubic-bezier(.4,0,.2,1) 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .mg-pulse-soft { animation-duration: 0.01ms; }
 }

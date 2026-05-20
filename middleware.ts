@@ -6,18 +6,44 @@ import { canAccess } from "@/lib/roles";
 
 const isPublic = createRouteMatcher([
   "/",
+  "/candidats",
+  "/entreprises",
+  "/conformite",
+  "/tarifs",
   "/sign-in(.*)",
   "/sign-up(.*)",
   "/api/webhooks(.*)",
   // Locale toggle must work pre-sign-up. The route handler still applies its
   // own CSRF (assertSameOrigin) + per-IP rate limit + zod enum.
   "/api/locale",
+  // Marketing + legal pages authored in PR #3 (audit F-007 follow-up).
+  "/legal(.*)",
+  "/guides(.*)",
+  "/aide",
+  "/contact",
 ]);
 
 const isCandidateArea = createRouteMatcher(["/candidate(.*)"]);
 const isEnterpriseArea = createRouteMatcher(["/enterprise(.*)"]);
 const isStaffArea = createRouteMatcher(["/staff(.*)"]);
 const isAdminArea = createRouteMatcher(["/admin(.*)"]);
+
+// Anything that's not in the known-protected prefixes (and not in isPublic) is
+// either a typo, a deep link to a removed page, or something new we haven't
+// gated. For unauthenticated users we want Next.js to render `app/not-found.tsx`
+// instead of bouncing them through Clerk sign-in -- otherwise post-login they
+// land back on the broken URL and 404 there (audit F-003).
+const isKnownProtected = createRouteMatcher([
+  "/dashboard(.*)",
+  "/onboarding(.*)",
+  "/candidate(.*)",
+  "/enterprise(.*)",
+  "/staff(.*)",
+  "/admin(.*)",
+  // API routes that aren't in isPublic stay protected — leaking their existence
+  // to anonymous clients is fine (404 == 401 from an attacker's POV).
+  "/api(.*)",
+]);
 
 // Security headers — applied to every response that this middleware returns or passes through.
 // CSP is intentionally permissive for Clerk + Next.js dev tooling; tighten as we lock down
@@ -26,16 +52,48 @@ const isAdminArea = createRouteMatcher(["/admin(.*)"]);
 // those headers would cause the browser to rewrite all fetches to https://, breaking everything.
 const isProd = process.env.NODE_ENV === "production";
 
+// VERCEL_ENV is set by Vercel: "production" | "preview" | "development".
+// We loosen CSP for the vercel.live feedback toolbar only on previews — it
+// would needlessly expand the production attack surface (audit F-006).
+const isVercelPreview = process.env.VERCEL_ENV === "preview";
+
 function buildSecurityHeaders(): Record<string, string> {
+  const scriptSrc = [
+    "'self'",
+    "'unsafe-inline'",
+    "'unsafe-eval'",
+    "https://*.clerk.accounts.dev",
+    "https://*.clerk.com",
+    "https://clerk.com",
+    "https://challenges.cloudflare.com",
+    ...(isVercelPreview ? ["https://vercel.live"] : []),
+  ];
+  const connectSrc = [
+    "'self'",
+    "https://*.clerk.accounts.dev",
+    "https://*.clerk.com",
+    "https://clerk.com",
+    // Clerk telemetry — without this the SDK can't report errors to Clerk.
+    "https://clerk-telemetry.com",
+    "https://*.supabase.co",
+    "wss://*.supabase.co",
+    "https://api.anthropic.com",
+    ...(isVercelPreview ? ["https://vercel.live"] : []),
+  ];
+  const frameSrc = [
+    "'self'",
+    "https://*.clerk.accounts.dev",
+    "https://challenges.cloudflare.com",
+    ...(isVercelPreview ? ["https://vercel.live"] : []),
+  ];
   const cspDirectives = [
     "default-src 'self'",
-    // Clerk loads JS from clerk.accounts.dev / *.clerk.accounts.dev / *.clerk.com
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.clerk.accounts.dev https://*.clerk.com https://clerk.com https://challenges.cloudflare.com",
+    `script-src ${scriptSrc.join(" ")}`,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https://*.clerk.com https://img.clerk.com https://*.supabase.co",
     "font-src 'self' data:",
-    "connect-src 'self' https://*.clerk.accounts.dev https://*.clerk.com https://clerk.com https://*.supabase.co wss://*.supabase.co https://api.anthropic.com",
-    "frame-src 'self' https://*.clerk.accounts.dev https://challenges.cloudflare.com",
+    `connect-src ${connectSrc.join(" ")}`,
+    `frame-src ${frameSrc.join(" ")}`,
     "worker-src 'self' blob:",
     "object-src 'none'",
     "base-uri 'self'",
@@ -69,6 +127,12 @@ function withSecurityHeaders(res: NextResponse): NextResponse {
 
 export default clerkMiddleware(async (auth, req: NextRequest) => {
   if (isPublic(req)) {
+    return withSecurityHeaders(NextResponse.next());
+  }
+
+  // If the path isn't a known protected area, let Next.js serve `not-found.tsx`
+  // for unknown routes instead of bouncing anonymous users to sign-in (F-003).
+  if (!isKnownProtected(req)) {
     return withSecurityHeaders(NextResponse.next());
   }
 

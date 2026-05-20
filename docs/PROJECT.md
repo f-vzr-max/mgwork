@@ -4,7 +4,7 @@
 
 ## Status
 
-**Active** — Phase 1 in progress (started 2026-04-30)
+**Active** — entering Phase 3 (AI Matching). Phases 1–2 done. Hi-Fi design system live as of 2026-05-20 — see [`progress/2026-05-20-hifi-design-system.md`](progress/2026-05-20-hifi-design-system.md). PR [#2](https://github.com/f-vzr-max/mgwork/pull/2) pending merge to `main`.
 
 ## Goal
 
@@ -28,4 +28,5 @@ Next.js 14 · TypeScript · Tailwind + shadcn/ui · Supabase (PostgreSQL + Stora
 ## Files
 
 - [`roadmap.md`](roadmap.md) — full technical spec (source of truth)
-- [`tasks/phase-1.md`](tasks/phase-1.md) — immediate next actions + Phase 1 checklist
+- [`tasks/phase-1.md`](tasks/phase-1.md) — Phase 1 checklist (mostly complete)
+- [`progress/`](progress/) — dated progress logs per shipped milestone

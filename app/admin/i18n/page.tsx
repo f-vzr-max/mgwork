@@ -1,8 +1,7 @@
 // Admin i18n / translations page — view & edit Translation rows. Filterable
-// by language. Data is pulled at request time so edits show up after save.
+// by language. Business logic preserved; chrome restyled with MG primitives.
 
-import { PageHeader } from "@/components/layout/page-header";
-import { Card, CardContent } from "@/components/ui/card";
+import { PageHeader, Card } from "@/components/mg";
 import { prisma } from "@/lib/prisma";
 import { TranslationsManager } from "@/components/admin/TranslationsManager";
 import type { Language } from "@prisma/client";
@@ -32,23 +31,21 @@ export default async function AdminI18nPage({
   return (
     <>
       <PageHeader
-        title="Translations"
-        description="Override or extend the JSON dictionaries via DB. DB values take priority at lookup time."
+        title="Traductions"
+        subtitle="Surcharger ou compléter les dictionnaires JSON via la base. La valeur en base prime à la lecture."
       />
-      <div className="p-6">
-        <Card>
-          <CardContent className="p-6">
-            <TranslationsManager
-              selectedLang={selectedLang}
-              languages={LANGS}
-              initial={translations.map((t) => ({
-                id: t.id,
-                lang: t.lang,
-                key: t.key,
-                value: t.value,
-              }))}
-            />
-          </CardContent>
+      <div style={{ padding: "0 32px 32px" }}>
+        <Card padding={24}>
+          <TranslationsManager
+            selectedLang={selectedLang}
+            languages={LANGS}
+            initial={translations.map((t) => ({
+              id: t.id,
+              lang: t.lang,
+              key: t.key,
+              value: t.value,
+            }))}
+          />
         </Card>
       </div>
     </>
