@@ -30,21 +30,14 @@ export const metadata = {
 function HomeHero() {
   return (
     <div
+      className="px-4 md:px-8 py-12 md:py-16"
       style={{
         background:
           "linear-gradient(180deg, rgba(26,60,110,0.06) 0%, hsl(var(--background)) 100%)",
-        padding: "64px 32px 64px",
       }}
     >
       <div
-        style={{
-          maxWidth: 1120,
-          margin: "0 auto",
-          display: "grid",
-          gridTemplateColumns: "1.1fr 0.9fr",
-          gap: 56,
-          alignItems: "center",
-        }}
+        className="mx-auto grid w-full max-w-[1120px] grid-cols-1 items-center gap-10 md:grid-cols-[1.1fr_0.9fr] md:gap-14"
       >
         <div>
           <Badge tone="primary" size="md" icon="shield-check" style={{ marginBottom: 20 }}>
@@ -129,7 +122,7 @@ function HomeHero() {
             </div>
           </div>
         </div>
-        <div style={{ position: "relative", height: 360 }}>
+        <div className="relative hidden md:block" style={{ height: 360 }}>
           <Card
             elevation={2}
             style={{ position: "absolute", top: 36, left: 0, right: 24, transform: "rotate(-2deg)" }}
