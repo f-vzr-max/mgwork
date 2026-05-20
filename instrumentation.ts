@@ -21,6 +21,18 @@ export async function register() {
   if (process.env.NEXT_RUNTIME === "edge") {
     await import("./sentry.edge.config");
   }
+  // Runtime belt for the build-time check in next.config.mjs — if production
+  // somehow runs with dev Clerk keys (env injected after build, mistake on the
+  // dashboard) we log loudly so it shows up in Vercel logs immediately.
+  if (
+    process.env.VERCEL_ENV === "production" &&
+    process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.startsWith("pk_test_")
+  ) {
+    console.error(
+      "[mgwork] Production runtime is using Clerk development keys " +
+        "(pk_test_*). Auth will hit the 100-user dev cap. Update Vercel env.",
+    );
+  }
 }
 
 export const onRequestError = Sentry.captureRequestError;

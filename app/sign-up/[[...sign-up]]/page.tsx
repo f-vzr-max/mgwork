@@ -132,8 +132,8 @@ export default function SignUpPage() {
           <Card padding={24} surface={1} elevation={2}>
             <SignUp
               unsafeMetadata={{ role: choice }}
-              afterSignUpUrl="/onboarding"
-              afterSignInUrl="/onboarding"
+              fallbackRedirectUrl="/onboarding"
+              signInFallbackRedirectUrl="/onboarding"
             />
           </Card>
         </div>

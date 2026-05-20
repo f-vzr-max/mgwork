@@ -23,6 +23,22 @@ const nextConfig = {
 // next-intl always wraps the base config (M9).
 const withIntlConfig = withNextIntl(nextConfig);
 
+// Hard build-time guard: refuse to build the production deploy with Clerk
+// development keys. Dev instances have a 100-user cap and bypass-able test
+// mode — shipping them to prod = silent quota exhaustion (audit F-005).
+// VERCEL_ENV is "production" only for the prod alias; previews/dev keep
+// pk_test_* freely.
+if (
+  process.env.VERCEL_ENV === "production" &&
+  process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.startsWith("pk_test_")
+) {
+  throw new Error(
+    "[mgwork] Refusing production build with Clerk development keys " +
+      "(NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY starts with pk_test_). " +
+      "Set pk_live_*/sk_live_* in Vercel Production env before redeploying.",
+  );
+}
+
 // Sentry env names mirror `lib/config.ts` getters (sentryDsn, sentryOrg,
 // sentryProject). next.config.mjs runs in plain Node before TS is available,
 // so we read process.env directly here — this is the one allowed exception

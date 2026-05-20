@@ -1,5 +1,11 @@
+import type { Metadata } from "next";
 import { SignIn } from "@clerk/nextjs";
 import { PublicHeader, Card } from "@/components/mg";
+
+export const metadata: Metadata = {
+  title: "MG·Work — Se connecter",
+  description: "Connectez-vous à votre compte MG·Work.",
+};
 
 // Wrap the Clerk-hosted sign-in widget in the MG public shell so it shares
 // the marketing chrome (header, surface colors). No active nav link — sign-in

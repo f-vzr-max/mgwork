@@ -14,7 +14,16 @@
 const APP_URL_ENV_KEYS = [
   "NEXT_PUBLIC_APP_URL",
   "APP_URL",
-  "VERCEL_URL", // set by Vercel — bare host, no scheme
+  // Vercel sets all three; we need all three:
+  //   VERCEL_URL                    — unique deployment URL (mgwork-abc123.vercel.app)
+  //   VERCEL_BRANCH_URL             — git-branch alias       (mgwork-git-<branch>-<team>.vercel.app)
+  //   VERCEL_PROJECT_PRODUCTION_URL — production alias       (mgwork-seven.vercel.app)
+  // Users hit the branch alias on preview deploys, not VERCEL_URL — without
+  // these two the same-origin POST from the page lands in a different host
+  // than what the lambda sees in env, and assertSameOrigin fails (audit F-002).
+  "VERCEL_URL",
+  "VERCEL_BRANCH_URL",
+  "VERCEL_PROJECT_PRODUCTION_URL",
 ] as const;
 
 function getAllowedOrigins(): string[] {
