@@ -1,35 +1,81 @@
 "use client";
 
+// Candidate-side advisor chat panel, redesigned to match
+// `CandidateChatArtboard`. Reuses the existing `/api/chat` SSE stream + the
+// transcript shape from `lib/social/llm-bridge`. Quick-prompt chips push text
+// straight into the composer; Enter sends, Shift+Enter inserts a newline.
+//
+// We deliberately do NOT reuse `components/chat/Thread.tsx` here because the
+// mobile artboard uses asymmetric bubble corners + an advisor header — the
+// shared Thread component would visually drift from the design. The send
+// pipeline (SSE chunks → assistant bubble) mirrors `chat-panel.tsx` from the
+// previous iteration.
+
 import * as React from "react";
-import { Thread, type ThreadMessage } from "@/components/chat/Thread";
-import { Composer } from "@/components/chat/Composer";
+import {
+  Avatar,
+  Button,
+  Icon,
+  Stack,
+} from "@/components/mg";
+
+const MAX_LENGTH = 4000;
 
 type ChatLang = "FR" | "EN" | "MG";
 
-export function ChatPanel({
+export type ChatMessage = {
+  role: "user" | "assistant";
+  text: string;
+  at: string;
+};
+
+const QUICK_PROMPTS = [
+  "Préparer entretien",
+  "Suivi documents",
+  "Conditions de voyage",
+  "Logement à Maurice",
+];
+
+export function CandChatPanel({
   initialMessages,
   lang,
 }: {
-  initialMessages: ThreadMessage[];
+  initialMessages: ChatMessage[];
   lang: ChatLang;
 }) {
-  const [messages, setMessages] = React.useState<ThreadMessage[]>(initialMessages);
+  const [messages, setMessages] = React.useState<ChatMessage[]>(initialMessages);
+  const [text, setText] = React.useState("");
+  const [pending, setPending] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const taRef = React.useRef<HTMLTextAreaElement | null>(null);
+  const endRef = React.useRef<HTMLDivElement | null>(null);
 
-  const send = async (text: string) => {
+  React.useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [messages.length]);
+
+  const overLimit = text.length > MAX_LENGTH;
+  const canSubmit = !pending && text.trim().length > 0 && !overLimit;
+
+  async function send() {
+    if (!canSubmit) return;
+    const value = text.trim();
     setError(null);
+    setPending(true);
     const now = new Date().toISOString();
-    setMessages((prev) => [...prev, { role: "user", text, at: now }]);
+    setMessages((prev) => [...prev, { role: "user", text: value, at: now }]);
+    setText("");
 
     let res: Response;
     try {
       res = await fetch("/api/chat", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ text, lang }),
+        body: JSON.stringify({ text: value, lang }),
       });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Network error");
+      setPending(false);
       return;
     }
 
@@ -42,11 +88,13 @@ export function ChatPanel({
         /* ignore */
       }
       setError(detail);
+      setPending(false);
       return;
     }
 
     if (!res.body) {
       setError("No response stream");
+      setPending(false);
       return;
     }
 
@@ -57,11 +105,10 @@ export function ChatPanel({
     let replyText = "";
     let appended = false;
 
-    // SSE parser — accumulate until \n\n boundary.
     while (true) {
-      const { value, done } = await reader.read();
+      const { value: chunk, done } = await reader.read();
       if (done) break;
-      buffer += decoder.decode(value, { stream: true });
+      buffer += decoder.decode(chunk, { stream: true });
       let idx;
       while ((idx = buffer.indexOf("\n\n")) >= 0) {
         const block = buffer.slice(0, idx);
@@ -89,23 +136,227 @@ export function ChatPanel({
           }
         } else if (evt.event === "error") {
           setError(evt.data?.message ?? "Stream error");
-        } else if (evt.event === "done") {
-          // nothing
         }
       }
     }
-  };
+    setPending(false);
+    requestAnimationFrame(() => taRef.current?.focus());
+  }
+
+  function onKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      void send();
+    }
+  }
+
+  function applyQuickPrompt(p: string) {
+    setText((prev) => (prev ? `${prev} ${p}` : p));
+    requestAnimationFrame(() => taRef.current?.focus());
+  }
 
   return (
-    <>
-      {error ? (
-        <div className="mx-4 mt-3 rounded-md border border-destructive bg-destructive/10 px-3 py-2 text-sm text-destructive">
+    <div
+      style={{
+        position: "relative",
+        display: "flex",
+        flexDirection: "column",
+        // Reserve space for the sticky composer (chips + textarea + send btn).
+        minHeight: "calc(100dvh - 56px - 64px)",
+      }}
+    >
+      {/* Advisor header --------------------------------------------------- */}
+      <div style={{ padding: "16px 16px 0" }}>
+        <Stack dir="row" gap={12} align="center" style={{ marginBottom: 14 }}>
+          <Avatar name="Aina V" size={36} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="mg-body-sm" style={{ fontWeight: 600 }}>Aina Volazara</div>
+            <div className="mg-caption" style={{ color: "hsl(var(--success))" }}>
+              ● En ligne · répond en ~2h
+            </div>
+          </div>
+          <button
+            type="button"
+            aria-label="Plus"
+            style={{
+              border: 0,
+              background: "transparent",
+              color: "hsl(var(--muted-foreground))",
+              padding: 4,
+              cursor: "pointer",
+            }}
+          >
+            <Icon name="more-vertical" size={18} />
+          </button>
+        </Stack>
+      </div>
+
+      {error && (
+        <div
+          style={{
+            margin: "0 16px 8px",
+            borderRadius: 6,
+            border: "1px solid hsl(var(--destructive))",
+            background: "var(--destructive-bg)",
+            color: "hsl(var(--destructive))",
+            padding: "8px 12px",
+            fontSize: 13,
+          }}
+        >
           {error}
         </div>
-      ) : null}
-      <Thread messages={messages} />
-      <Composer onSubmit={send} />
-    </>
+      )}
+
+      {/* Bubble thread --------------------------------------------------- */}
+      <div
+        style={{
+          flex: 1,
+          padding: "0 16px 200px",
+          display: "flex",
+          flexDirection: "column",
+          gap: 10,
+        }}
+      >
+        {messages.length === 0 ? (
+          <div
+            className="mg-body-sm"
+            style={{
+              color: "hsl(var(--muted-foreground))",
+              textAlign: "center",
+              padding: "24px 0",
+            }}
+          >
+            Posez votre première question au conseiller MG Work.
+          </div>
+        ) : (
+          messages.map((m, i) => <ChatBubble key={i} message={m} />)
+        )}
+        <div ref={endRef} />
+      </div>
+
+      {/* Composer (quick prompts + textarea + send) --------------------- */}
+      <div
+        style={{
+          position: "fixed",
+          left: 0,
+          right: 0,
+          bottom: 64,
+          background: "hsl(var(--background))",
+          borderTop: "1px solid hsl(var(--border))",
+          zIndex: 9,
+        }}
+        className="lg:static lg:border-t-0 lg:mt-4"
+      >
+        <div
+          style={{
+            display: "flex",
+            gap: 6,
+            overflowX: "auto",
+            padding: "10px 16px 0",
+          }}
+        >
+          {QUICK_PROMPTS.map((p) => (
+            <button
+              key={p}
+              type="button"
+              onClick={() => applyQuickPrompt(p)}
+              style={{
+                flex: "0 0 auto",
+                padding: "6px 12px",
+                borderRadius: 9999,
+                border: "1px solid hsl(var(--border))",
+                background: "hsl(var(--surface-2))",
+                color: "hsl(var(--foreground))",
+                fontSize: 12,
+                fontWeight: 500,
+                whiteSpace: "nowrap",
+                cursor: "pointer",
+              }}
+            >
+              {p}
+            </button>
+          ))}
+        </div>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            void send();
+          }}
+          style={{ display: "flex", alignItems: "center", gap: 8, padding: 12 }}
+        >
+          <button
+            type="button"
+            aria-label="Joindre un fichier"
+            style={{
+              border: 0,
+              background: "transparent",
+              color: "hsl(var(--muted-foreground))",
+              padding: 8,
+              cursor: "pointer",
+            }}
+          >
+            <Icon name="paperclip" size={20} />
+          </button>
+          <textarea
+            ref={taRef}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={onKeyDown}
+            placeholder="Écrire un message…"
+            rows={1}
+            maxLength={MAX_LENGTH + 100}
+            disabled={pending}
+            style={{
+              flex: 1,
+              minHeight: 40,
+              maxHeight: 120,
+              padding: "10px 14px",
+              background: "hsl(var(--surface-2))",
+              borderRadius: 20,
+              border: "1px solid hsl(var(--border))",
+              color: "hsl(var(--foreground))",
+              fontSize: 14,
+              fontFamily: "inherit",
+              outline: "none",
+              resize: "none",
+            }}
+          />
+          <Button
+            type="submit"
+            size="icon"
+            iconLeft="send"
+            aria-label="Envoyer"
+            disabled={!canSubmit}
+          />
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function ChatBubble({ message }: { message: ChatMessage }) {
+  const isMe = message.role === "user";
+  return (
+    <div style={{ display: "flex", justifyContent: isMe ? "flex-end" : "flex-start" }}>
+      <div
+        style={{
+          maxWidth: "78%",
+          padding: "10px 14px",
+          borderRadius: 16,
+          borderBottomRightRadius: isMe ? 4 : 16,
+          borderBottomLeftRadius: isMe ? 16 : 4,
+          background: isMe ? "hsl(var(--primary))" : "hsl(var(--surface-2))",
+          color: isMe ? "hsl(var(--primary-foreground))" : "hsl(var(--foreground))",
+          fontSize: 14,
+          lineHeight: "20px",
+          border: isMe ? "none" : "1px solid hsl(var(--border))",
+          whiteSpace: "pre-wrap",
+          wordBreak: "break-word",
+        }}
+      >
+        {message.text}
+      </div>
+    </div>
   );
 }
 

@@ -1,19 +1,22 @@
+// Staff follow-up — lists DEPLOYED applications grouped by enterprise. Each
+// row surfaces the candidate, the latest CheckpointStatus and days since the
+// last checkpoint. Business logic preserved verbatim; chrome restyled with
+// the MG design system.
+
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { canAccess, type Role } from "@/lib/roles";
-import { PageHeader } from "@/components/layout/page-header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckpointStatusBadge, type CheckpointStatusValue } from "@/components/staff/StatusBadge";
-
-// Follow-up dashboard: lists DEPLOYED applications grouped by enterprise.
-// Each row surfaces:
-//   - candidate name
-//   - latest CheckpointStatus (OK / ALERT / INTERVENTION_REQUIRED)
-//   - days since last checkpoint
-//
-// Server component; Prisma reads with a single grouped query plan.
+import {
+  PageHeader,
+  Card,
+  Stack,
+  Avatar,
+  StatusBadge,
+  KpiCard,
+} from "@/components/mg";
+import type { StatusKey } from "@/components/mg";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +25,7 @@ type DeployedRow = {
   enterpriseId: string;
   enterpriseName: string;
   candidateLabel: string;
-  latestStatus: CheckpointStatusValue | null;
+  latestStatus: StatusKey | null;
   daysSinceLatest: number | null;
 };
 
@@ -50,13 +53,15 @@ async function loadDeployed(): Promise<DeployedRow[]> {
   return apps.map((a) => {
     const latest = a.checkpoints[0];
     const daysSinceLatest =
-      latest != null ? Math.floor((now - latest.date.getTime()) / (1000 * 60 * 60 * 24)) : null;
+      latest != null
+        ? Math.floor((now - latest.date.getTime()) / (1000 * 60 * 60 * 24))
+        : null;
     return {
       applicationId: a.id,
       enterpriseId: a.jobOffer.enterprise.id,
       enterpriseName: a.jobOffer.enterprise.companyName,
       candidateLabel: `${a.candidate.firstName} ${a.candidate.lastName}`,
-      latestStatus: (latest?.status ?? null) as CheckpointStatusValue | null,
+      latestStatus: (latest?.status ?? null) as StatusKey | null,
       daysSinceLatest,
     };
   });
@@ -95,66 +100,155 @@ export default async function StaffFollowupPage() {
 
   const rows = await loadDeployed();
   const groups = groupByEnterprise(rows);
-  const totalAlerts = rows.filter((r) => r.latestStatus === "ALERT" || r.latestStatus === "INTERVENTION_REQUIRED").length;
+  const totalAlerts = rows.filter(
+    (r) => r.latestStatus === "ALERT" || r.latestStatus === "INTERVENTION_REQUIRED",
+  ).length;
+  const stale30 = rows.filter(
+    (r) => r.daysSinceLatest !== null && r.daysSinceLatest >= 30,
+  ).length;
 
   return (
     <>
       <PageHeader
-        title="Follow-up"
-        description={`${rows.length} deployed candidates · ${totalAlerts} need attention`}
+        title="Suivi candidats"
+        subtitle={`${rows.length} candidat${rows.length === 1 ? "" : "s"} déployé${rows.length === 1 ? "" : "s"} · ${totalAlerts} à surveiller`}
       />
-      <div className="space-y-6 p-6">
+
+      <div
+        style={{
+          padding: "0 32px 16px",
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+          gap: 16,
+        }}
+      >
+        <KpiCard
+          label="Déployés actifs"
+          value={rows.length.toString()}
+          tone="success"
+        />
+        <KpiCard
+          label="À surveiller"
+          value={totalAlerts.toString()}
+          tone={totalAlerts > 0 ? "danger" : "success"}
+        />
+        <KpiCard
+          label="Sans checkpoint > 30j"
+          value={stale30.toString()}
+          tone={stale30 > 0 ? "danger" : "success"}
+        />
+        <KpiCard label="Entreprises" value={groups.size.toString()} tone="primary" />
+      </div>
+
+      <div
+        style={{
+          padding: "0 32px 32px",
+          display: "flex",
+          flexDirection: "column",
+          gap: 16,
+        }}
+      >
         {rows.length === 0 ? (
-          <Card>
-            <CardContent className="py-10 text-center text-sm text-muted-foreground">
-              No deployed candidates yet.
-            </CardContent>
+          <Card padding={32} style={{ textAlign: "center" }}>
+            <span className="mg-body-sm" style={{ color: "hsl(var(--muted-foreground))" }}>
+              Aucun candidat déployé pour le moment.
+            </span>
           </Card>
         ) : (
           Array.from(groups.entries()).map(([enterpriseId, group]) => (
-            <Card key={enterpriseId}>
-              <CardHeader>
-                <CardTitle>{group.name}</CardTitle>
-              </CardHeader>
-              <CardContent className="p-0">
-                <ul className="divide-y">
-                  {group.rows.map((r) => {
-                    const tone = staleTone(r.daysSinceLatest);
-                    const sinceLabel =
-                      r.daysSinceLatest === null
-                        ? "no checkpoint yet"
-                        : r.daysSinceLatest === 0
-                          ? "today"
-                          : `${r.daysSinceLatest}d ago`;
-                    const sinceClass =
-                      tone === "danger"
-                        ? "text-red-700"
-                        : tone === "warning"
-                          ? "text-amber-700"
-                          : "text-muted-foreground";
-                    return (
-                      <li key={r.applicationId}>
-                        <Link
-                          href={`/staff/followup/${r.applicationId}`}
-                          className="flex items-center gap-4 px-6 py-3 hover:bg-accent/50"
+            <Card key={enterpriseId} padding={0}>
+              <div
+                style={{
+                  padding: "14px 20px",
+                  borderBottom: "1px solid hsl(var(--border))",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 12,
+                }}
+              >
+                <h3 className="mg-h4" style={{ margin: 0 }}>
+                  {group.name}
+                </h3>
+                <span
+                  className="mg-caption"
+                  style={{ color: "hsl(var(--muted-foreground))" }}
+                >
+                  {group.rows.length} candidat{group.rows.length === 1 ? "" : "s"}
+                </span>
+              </div>
+              <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
+                {group.rows.map((r, i) => {
+                  const tone = staleTone(r.daysSinceLatest);
+                  const sinceLabel =
+                    r.daysSinceLatest === null
+                      ? "aucun checkpoint"
+                      : r.daysSinceLatest === 0
+                        ? "aujourd'hui"
+                        : `il y a ${r.daysSinceLatest} j`;
+                  const sinceColor =
+                    tone === "danger"
+                      ? "hsl(var(--destructive))"
+                      : tone === "warning"
+                        ? "#9A5E08"
+                        : "hsl(var(--muted-foreground))";
+                  return (
+                    <li
+                      key={r.applicationId}
+                      style={{
+                        borderTop: i === 0 ? 0 : "1px solid hsl(var(--border))",
+                      }}
+                    >
+                      <Link
+                        href={`/staff/followup/${r.applicationId}`}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 12,
+                          padding: "14px 20px",
+                          color: "inherit",
+                          textDecoration: "none",
+                        }}
+                      >
+                        <Avatar name={r.candidateLabel} size={32} />
+                        <Stack
+                          dir="column"
+                          gap={2}
+                          style={{ flex: 1, minWidth: 0 }}
                         >
-                          <div className="flex-1">
-                            <div className="text-sm font-medium">{r.candidateLabel}</div>
-                            <div className={`text-xs ${sinceClass}`}>Last checkpoint: {sinceLabel}</div>
-                          </div>
-                          <div>
-                            {r.latestStatus ? (
-                              <CheckpointStatusBadge status={r.latestStatus} />
-                            ) : (
-                              <span className="text-xs text-muted-foreground">No checkpoint</span>
-                            )}
-                          </div>
-                        </Link>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </CardContent>
+                          <span
+                            className="mg-body-sm"
+                            style={{
+                              fontWeight: 600,
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {r.candidateLabel}
+                          </span>
+                          <span
+                            className="mg-caption"
+                            style={{ color: sinceColor }}
+                          >
+                            Dernier point : {sinceLabel}
+                          </span>
+                        </Stack>
+                        {r.latestStatus ? (
+                          <StatusBadge status={r.latestStatus} />
+                        ) : (
+                          <span
+                            className="mg-caption"
+                            style={{ color: "hsl(var(--muted-foreground))" }}
+                          >
+                            Aucun point
+                          </span>
+                        )}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
             </Card>
           ))
         )}

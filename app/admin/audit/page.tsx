@@ -1,11 +1,9 @@
-// Admin audit log viewer — paginated; filters by userId / action /
-// resourceType / date range. Read-only.
+// Admin audit log viewer — paginated, filterable by userId / action /
+// resourceType / date range. Business logic preserved; chrome restyled with
+// MG design system primitives.
 
 import Link from "next/link";
-import { PageHeader } from "@/components/layout/page-header";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { PageHeader, Card, Button, Input, Stack } from "@/components/mg";
 import { prisma } from "@/lib/prisma";
 import { auditQuerySchema } from "@/lib/validation/admin";
 
@@ -77,110 +75,190 @@ export default async function AdminAuditPage({
 
   return (
     <>
-      <PageHeader title="Audit log" description="Compliance trail for sensitive actions." />
+      <PageHeader
+        title="Journal d'audit"
+        subtitle="Piste de conformité pour les actions sensibles."
+      />
 
-      <div className="px-6 pt-4">
-        <form method="get" className="grid gap-3 md:grid-cols-6 md:items-end">
-          <label className="flex flex-col gap-1 text-sm">
-            <span>User id</span>
-            <Input name="userId" defaultValue={filters.userId ?? ""} />
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span>Action contains</span>
-            <Input name="action" defaultValue={filters.action ?? ""} />
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span>Resource</span>
-            <Input
-              name="resourceType"
-              defaultValue={filters.resourceType ?? ""}
-              placeholder="user, invoice, document..."
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span>From</span>
-            <Input
-              type="date"
-              name="from"
-              defaultValue={filters.from ? filters.from.toISOString().slice(0, 10) : ""}
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span>To</span>
-            <Input
-              type="date"
-              name="to"
-              defaultValue={filters.to ? filters.to.toISOString().slice(0, 10) : ""}
-            />
-          </label>
-          <Button type="submit">Filter</Button>
-        </form>
+      <div style={{ padding: "0 32px 16px" }}>
+        <Card padding={20}>
+          <form
+            method="get"
+            style={{
+              display: "grid",
+              gap: 12,
+              gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+              alignItems: "end",
+            }}
+          >
+            <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <span className="mg-caption">ID utilisateur</span>
+              <Input name="userId" defaultValue={filters.userId ?? ""} />
+            </label>
+            <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <span className="mg-caption">Action contient</span>
+              <Input name="action" defaultValue={filters.action ?? ""} />
+            </label>
+            <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <span className="mg-caption">Ressource</span>
+              <Input
+                name="resourceType"
+                defaultValue={filters.resourceType ?? ""}
+                placeholder="user, invoice, document..."
+              />
+            </label>
+            <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <span className="mg-caption">Du</span>
+              <Input
+                type="date"
+                name="from"
+                defaultValue={
+                  filters.from ? filters.from.toISOString().slice(0, 10) : ""
+                }
+              />
+            </label>
+            <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <span className="mg-caption">Au</span>
+              <Input
+                type="date"
+                name="to"
+                defaultValue={filters.to ? filters.to.toISOString().slice(0, 10) : ""}
+              />
+            </label>
+            <Button type="submit" iconLeft="filter">
+              Filtrer
+            </Button>
+          </form>
+        </Card>
       </div>
 
-      <div className="p-6">
-        <Card>
-          <CardContent className="p-0">
-            <table className="w-full text-sm">
-              <thead className="border-b bg-muted/40 text-left">
-                <tr>
-                  <th className="p-3">When</th>
-                  <th className="p-3">Actor</th>
-                  <th className="p-3">Action</th>
-                  <th className="p-3">Resource</th>
-                  <th className="p-3">IP</th>
-                  <th className="p-3">Metadata</th>
-                </tr>
-              </thead>
-              <tbody>
-                {page.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="p-6 text-center text-muted-foreground">
-                      No audit entries match these filters.
-                    </td>
-                  </tr>
-                ) : (
-                  page.map((a) => (
-                    <tr key={a.id} className="border-b last:border-b-0 align-top">
-                      <td className="p-3 whitespace-nowrap font-mono text-xs">
-                        {a.createdAt.toISOString().replace("T", " ").slice(0, 19)}
-                      </td>
-                      <td className="p-3">
-                        <Link href={`/admin/users/${a.userId}`} className="text-primary hover:underline">
-                          {a.user.email}
-                        </Link>
-                        <div className="text-xs text-muted-foreground">{a.user.role}</div>
-                      </td>
-                      <td className="p-3 font-mono text-xs">{a.action}</td>
-                      <td className="p-3 font-mono text-xs">
-                        {a.resourceType}
-                        {a.resourceId ? `/${a.resourceId}` : ""}
-                      </td>
-                      <td className="p-3 font-mono text-xs">{a.ipAddress ?? "—"}</td>
-                      <td className="p-3 max-w-xs">
-                        <pre className="whitespace-pre-wrap break-words text-xs">
-                          {a.metadata ? JSON.stringify(a.metadata) : "—"}
-                        </pre>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </CardContent>
+      <div style={{ padding: "0 32px 32px" }}>
+        <Card padding={0}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "180px minmax(0, 1fr) 160px 200px 140px minmax(0, 1.4fr)",
+              padding: "10px 20px",
+              background: "hsl(var(--surface-2))",
+              borderBottom: "1px solid hsl(var(--border))",
+              color: "hsl(var(--muted-foreground))",
+            }}
+            className="mg-micro"
+          >
+            <span>Quand</span>
+            <span>Acteur</span>
+            <span>Action</span>
+            <span>Ressource</span>
+            <span>IP</span>
+            <span>Métadonnées</span>
+          </div>
+          {page.length === 0 ? (
+            <div
+              style={{
+                padding: 40,
+                textAlign: "center",
+                color: "hsl(var(--muted-foreground))",
+                fontSize: 14,
+              }}
+            >
+              Aucune entrée ne correspond à ces filtres.
+            </div>
+          ) : (
+            page.map((a, i) => (
+              <div
+                key={a.id}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns:
+                    "180px minmax(0, 1fr) 160px 200px 140px minmax(0, 1.4fr)",
+                  padding: "12px 20px",
+                  alignItems: "flex-start",
+                  borderTop: i === 0 ? 0 : "1px solid hsl(var(--border))",
+                  gap: 8,
+                }}
+              >
+                <span className="mg-mono" style={{ fontSize: 11, whiteSpace: "nowrap" }}>
+                  {a.createdAt.toISOString().replace("T", " ").slice(0, 19)}
+                </span>
+                <div style={{ minWidth: 0 }}>
+                  <Link
+                    href={`/admin/users/${a.userId}`}
+                    style={{
+                      color: "hsl(var(--primary))",
+                      textDecoration: "none",
+                      fontSize: 13,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                      display: "block",
+                    }}
+                  >
+                    {a.user.email}
+                  </Link>
+                  <div
+                    className="mg-caption"
+                    style={{ color: "hsl(var(--muted-foreground))" }}
+                  >
+                    {a.user.role}
+                  </div>
+                </div>
+                <span className="mg-mono" style={{ fontSize: 11 }}>
+                  {a.action}
+                </span>
+                <span
+                  className="mg-mono"
+                  style={{
+                    fontSize: 11,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {a.resourceType}
+                  {a.resourceId ? `/${a.resourceId}` : ""}
+                </span>
+                <span className="mg-mono" style={{ fontSize: 11 }}>
+                  {a.ipAddress ?? "—"}
+                </span>
+                <pre
+                  style={{
+                    margin: 0,
+                    fontSize: 11,
+                    fontFamily: "var(--font-mono, ui-monospace, monospace)",
+                    whiteSpace: "pre-wrap",
+                    wordBreak: "break-word",
+                  }}
+                >
+                  {a.metadata ? JSON.stringify(a.metadata) : "—"}
+                </pre>
+              </div>
+            ))
+          )}
         </Card>
 
-        <div className="mt-4 flex items-center justify-end gap-2 text-sm">
+        <Stack
+          dir="row"
+          justify="flex-end"
+          gap={12}
+          style={{ marginTop: 16, fontSize: 13 }}
+        >
           {filters.cursor ? (
-            <Link href={buildHref({ cursor: undefined })} className="text-primary hover:underline">
-              First page
+            <Link
+              href={buildHref({ cursor: undefined })}
+              style={{ color: "hsl(var(--primary))", textDecoration: "none" }}
+            >
+              Première page
             </Link>
           ) : null}
           {nextCursor ? (
-            <Link href={buildHref({ cursor: nextCursor })} className="text-primary hover:underline">
-              Next →
+            <Link
+              href={buildHref({ cursor: nextCursor })}
+              style={{ color: "hsl(var(--primary))", textDecoration: "none" }}
+            >
+              Suivante →
             </Link>
           ) : null}
-        </div>
+        </Stack>
       </div>
     </>
   );

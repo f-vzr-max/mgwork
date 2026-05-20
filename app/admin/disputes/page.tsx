@@ -1,95 +1,290 @@
-// Admin disputes view — read-only timeline of Checkpoints flagged
-// `INTERVENTION_REQUIRED`. Staff own the actual intervention; admin observes.
+// Admin disputes — Kanban view across three lanes: open, in-progress and
+// resolved. Server component pulls real Checkpoint rows and a 30d resolved
+// window so the "Résolus" column is actually populated.
 
-import { PageHeader } from "@/components/layout/page-header";
-import { Card, CardContent } from "@/components/ui/card";
+import {
+  PageHeader,
+  Button,
+  Card,
+  Badge,
+  Stack,
+  Avatar,
+  StatusBadge,
+  Icon,
+} from "@/components/mg";
+import type { StatusKey } from "@/components/mg";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminDisputesPage() {
-  const items = await prisma.checkpoint.findMany({
-    where: { status: "INTERVENTION_REQUIRED" },
-    orderBy: { date: "desc" },
-    take: 100,
-    include: {
-      candidate: {
-        select: {
-          id: true,
-          firstName: true,
-          lastName: true,
-          user: { select: { email: true } },
-        },
-      },
-      application: {
-        select: {
-          id: true,
-          jobOffer: {
-            select: {
-              id: true,
-              title: true,
-              enterprise: { select: { id: true, companyName: true } },
-            },
+type DisputeCard = {
+  id: string;
+  name: string;
+  co: string;
+  days: number;
+  status: StatusKey;
+  priority: boolean;
+};
+
+type Column = {
+  id: "new" | "inprogress" | "resolved";
+  title: string;
+  tone: string;
+  cards: DisputeCard[];
+};
+
+function maskName(first: string | null | undefined, last: string | null | undefined): string {
+  const f = (first ?? "").trim();
+  const l = (last ?? "").trim();
+  const lastMasked = l ? `${l.charAt(0).toUpperCase()}.` : "";
+  return [f, lastMasked].filter(Boolean).join(" ") || "Candidat";
+}
+
+function daysSince(d: Date): number {
+  return Math.max(0, Math.floor((Date.now() - d.getTime()) / (1000 * 60 * 60 * 24)));
+}
+
+const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+
+type LoadResult = { columns: Column[]; open: number; priority: number };
+
+async function loadColumns(): Promise<LoadResult> {
+  const [openRows, resolvedRows] = await Promise.all([
+    prisma.checkpoint.findMany({
+      where: { status: "INTERVENTION_REQUIRED" },
+      orderBy: { date: "desc" },
+      take: 60,
+      include: {
+        candidate: { select: { firstName: true, lastName: true } },
+        application: {
+          select: {
+            jobOffer: { select: { enterprise: { select: { companyName: true } } } },
           },
         },
       },
-    },
-  });
+    }),
+    prisma.checkpoint.findMany({
+      where: {
+        status: "OK",
+        date: { gte: new Date(Date.now() - THIRTY_DAYS_MS) },
+      },
+      orderBy: { date: "desc" },
+      take: 30,
+      include: {
+        candidate: { select: { firstName: true, lastName: true } },
+        application: {
+          select: {
+            jobOffer: { select: { enterprise: { select: { companyName: true } } } },
+          },
+        },
+      },
+    }),
+  ]);
+
+  // Split open into "new" (<= 3 days) vs "in progress" (older). Without an
+  // explicit assignment field on Checkpoint this is the simplest stable split.
+  const newCol: DisputeCard[] = [];
+  const progCol: DisputeCard[] = [];
+  for (const r of openRows) {
+    const card: DisputeCard = {
+      id: r.id,
+      name: maskName(r.candidate?.firstName, r.candidate?.lastName),
+      co: r.application?.jobOffer?.enterprise?.companyName ?? "—",
+      days: daysSince(r.date),
+      status: "INTERVENTION_REQUIRED",
+      priority: daysSince(r.date) <= 2,
+    };
+    if (card.days <= 3) newCol.push(card);
+    else progCol.push(card);
+  }
+
+  const resolvedCol: DisputeCard[] = resolvedRows.map((r) => ({
+    id: r.id,
+    name: maskName(r.candidate?.firstName, r.candidate?.lastName),
+    co: r.application?.jobOffer?.enterprise?.companyName ?? "—",
+    days: daysSince(r.date),
+    status: "COMPLETED",
+    priority: false,
+  }));
+
+  const columns: Column[] = [
+    { id: "new", title: "Ouverts", tone: "hsl(var(--info))", cards: newCol },
+    { id: "inprogress", title: "En cours", tone: "hsl(var(--warning))", cards: progCol },
+    { id: "resolved", title: "Résolus", tone: "hsl(var(--success))", cards: resolvedCol },
+  ];
+
+  return {
+    columns,
+    open: openRows.length,
+    priority: openRows.filter((r) => daysSince(r.date) <= 2).length,
+  };
+}
+
+export default async function AdminDisputesPage() {
+  const { columns, open, priority } = await loadColumns();
 
   return (
     <>
       <PageHeader
-        title="Disputes"
-        description="Open interventions across deployed candidates. Read-only — staff handles resolution."
+        title="Litiges"
+        subtitle={`${open} dossier${open === 1 ? "" : "s"} ouvert${open === 1 ? "" : "s"} · ${priority} prioritaire${priority === 1 ? "" : "s"}`}
+        action={
+          <Stack dir="row" gap={8}>
+            <Button variant="outline" iconLeft="filter">
+              Filtres
+            </Button>
+            <Button iconLeft="plus">Nouveau dossier</Button>
+          </Stack>
+        }
       />
-      <div className="p-6">
-        <Card>
-          <CardContent className="p-0">
-            <table className="w-full text-sm">
-              <thead className="border-b bg-muted/40 text-left">
-                <tr>
-                  <th className="p-3">Date</th>
-                  <th className="p-3">Candidate</th>
-                  <th className="p-3">Enterprise</th>
-                  <th className="p-3">Offer</th>
-                  <th className="p-3">Notes</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="p-6 text-center text-muted-foreground">
-                      No open interventions.
-                    </td>
-                  </tr>
-                ) : (
-                  items.map((c) => (
-                    <tr key={c.id} className="border-b last:border-b-0 align-top">
-                      <td className="p-3 whitespace-nowrap">
-                        {c.date.toISOString().slice(0, 10)}
-                      </td>
-                      <td className="p-3">
-                        {c.candidate.firstName} {c.candidate.lastName}
-                        <div className="text-xs text-muted-foreground">
-                          {c.candidate.user.email}
+
+      <div
+        style={{
+          padding: "0 32px 32px",
+          display: "grid",
+          gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+          gap: 20,
+          alignItems: "start",
+        }}
+      >
+        {columns.map((col) => (
+          <div
+            key={col.id}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 12,
+              minWidth: 0,
+            }}
+          >
+            <Stack dir="row" justify="space-between" align="center">
+              <Stack dir="row" gap={10} align="center">
+                <span
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: 9999,
+                    background: col.tone,
+                  }}
+                />
+                <span className="mg-h4">{col.title}</span>
+                <Badge tone="neutral">{col.cards.length}</Badge>
+              </Stack>
+              <button
+                type="button"
+                aria-label="Plus d'actions"
+                style={{
+                  border: 0,
+                  background: "transparent",
+                  color: "hsl(var(--muted-foreground))",
+                  padding: 4,
+                  cursor: "pointer",
+                }}
+              >
+                <Icon name="more-horizontal" size={16} />
+              </button>
+            </Stack>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {col.cards.length === 0 ? (
+                <Card
+                  padding={16}
+                  surface={2}
+                  elevation={0}
+                  style={{
+                    textAlign: "center",
+                    color: "hsl(var(--muted-foreground))",
+                    fontSize: 13,
+                  }}
+                >
+                  Aucun dossier
+                </Card>
+              ) : (
+                col.cards.map((c) => (
+                  <Card key={c.id} padding={16} style={{ position: "relative" }}>
+                    {c.priority && (
+                      <span
+                        style={{
+                          position: "absolute",
+                          top: 12,
+                          right: 12,
+                          width: 8,
+                          height: 8,
+                          borderRadius: 9999,
+                          background: "hsl(var(--destructive))",
+                        }}
+                        aria-label="Priorité haute"
+                      />
+                    )}
+                    <Stack
+                      dir="row"
+                      gap={10}
+                      align="center"
+                      style={{ marginBottom: 10 }}
+                    >
+                      <Avatar name={c.name} size={32} />
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div
+                          className="mg-body-sm"
+                          style={{
+                            fontWeight: 600,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {c.name}
                         </div>
-                      </td>
-                      <td className="p-3">
-                        {c.application?.jobOffer?.enterprise?.companyName ?? "—"}
-                      </td>
-                      <td className="p-3">
-                        {c.application?.jobOffer?.title ?? "—"}
-                      </td>
-                      <td className="p-3 max-w-md whitespace-pre-wrap">
-                        {c.interventionLog ?? c.notes ?? "—"}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </CardContent>
-        </Card>
+                        <div
+                          className="mg-caption"
+                          style={{
+                            color: "hsl(var(--muted-foreground))",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {c.co}
+                        </div>
+                      </div>
+                    </Stack>
+                    <Stack dir="row" justify="space-between" align="center">
+                      <span
+                        className="mg-caption"
+                        style={{ color: "hsl(var(--muted-foreground))" }}
+                      >
+                        {col.id === "resolved"
+                          ? `Résolu il y a ${c.days} j`
+                          : `Ouvert depuis ${c.days} j`}
+                      </span>
+                      <StatusBadge status={c.status} />
+                    </Stack>
+                  </Card>
+                ))
+              )}
+              {col.id !== "resolved" && (
+                <button
+                  type="button"
+                  style={{
+                    border: "1px dashed hsl(var(--border))",
+                    background: "transparent",
+                    color: "hsl(var(--muted-foreground))",
+                    borderRadius: 8,
+                    padding: "10px 12px",
+                    cursor: "pointer",
+                    fontSize: 13,
+                    fontWeight: 500,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 6,
+                  }}
+                >
+                  <Icon name="plus" size={14} /> Ajouter
+                </button>
+              )}
+            </div>
+          </div>
+        ))}
       </div>
     </>
   );

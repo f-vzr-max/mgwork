@@ -1,14 +1,9 @@
-// Admin user list — paginated, with role/lang/verified filters and
-// a per-row actions menu (ban toggle / change role / impersonate / detail).
-//
-// Server-renders the filtered query; the actions row is a client component so
-// that POST calls + Clerk impersonation URL can be triggered from the browser.
+// Admin user list — paginated, with role/lang/verified filters and a per-row
+// actions menu. Business logic preserved verbatim; chrome restyled with MG
+// design system primitives.
 
 import Link from "next/link";
-import { PageHeader } from "@/components/layout/page-header";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { PageHeader, Card, Button, Input, Stack } from "@/components/mg";
 import { prisma } from "@/lib/prisma";
 import { adminUserListQuerySchema } from "@/lib/validation/admin";
 import { ROLES } from "@/lib/roles";
@@ -36,7 +31,6 @@ export default async function AdminUsersPage({
     cursor: pickFirst(searchParams.cursor),
     limit: pickFirst(searchParams.limit),
   };
-  // Strip undefineds before parse.
   const cleaned: Record<string, string> = {};
   for (const [k, v] of Object.entries(raw)) {
     if (typeof v === "string" && v.length > 0) cleaned[k] = v;
@@ -57,16 +51,13 @@ export default async function AdminUsersPage({
     where,
     orderBy: { createdAt: "desc" },
     take: limit + 1,
-    ...(filters.cursor
-      ? { cursor: { id: filters.cursor }, skip: 1 }
-      : {}),
+    ...(filters.cursor ? { cursor: { id: filters.cursor }, skip: 1 } : {}),
     include: {
       enterprise: { select: { verified: true, companyName: true } },
       candidate: { select: { firstName: true, lastName: true } },
     },
   });
 
-  // Apply verified filter post-query (only meaningful for ENTERPRISE rows).
   const filtered =
     filters.verified !== undefined
       ? users.filter((u) =>
@@ -91,145 +82,190 @@ export default async function AdminUsersPage({
     return q ? `/admin/users?${q}` : "/admin/users";
   }
 
+  const selectStyle: React.CSSProperties = {
+    height: 40,
+    borderRadius: 8,
+    border: "1px solid hsl(var(--border))",
+    background: "hsl(var(--background))",
+    padding: "0 12px",
+    fontSize: 14,
+    color: "hsl(var(--foreground))",
+  };
+
   return (
     <>
       <PageHeader
-        title="Users"
-        description="Manage roles, ban accounts, impersonate for support."
+        title="Utilisateurs"
+        subtitle="Gérer les rôles, bannir des comptes, dépanner par impersonation."
       />
 
-      <div className="px-6 pt-4">
-        <form
-          method="get"
-          className="grid gap-3 md:grid-cols-5 md:items-end"
-        >
-          <label className="flex flex-col gap-1 text-sm">
-            <span>Email contains</span>
-            <Input name="q" defaultValue={filters.q ?? ""} />
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span>Role</span>
-            <select
-              name="role"
-              defaultValue={filters.role ?? ""}
-              className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
-            >
-              <option value="">Any</option>
-              {ROLES.map((r) => (
-                <option key={r} value={r}>
-                  {r}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span>Language</span>
-            <select
-              name="lang"
-              defaultValue={filters.lang ?? ""}
-              className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
-            >
-              <option value="">Any</option>
-              <option value="FR">FR</option>
-              <option value="EN">EN</option>
-              <option value="MG">MG</option>
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span>Verified (enterprises)</span>
-            <select
-              name="verified"
-              defaultValue={filters.verified ?? ""}
-              className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
-            >
-              <option value="">Any</option>
-              <option value="true">Verified</option>
-              <option value="false">Unverified</option>
-            </select>
-          </label>
-          <Button type="submit" className="md:self-end">
-            Filter
-          </Button>
-        </form>
+      <div style={{ padding: "0 32px 16px" }}>
+        <Card padding={20}>
+          <form
+            method="get"
+            style={{
+              display: "grid",
+              gap: 12,
+              gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+              alignItems: "end",
+            }}
+          >
+            <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <span className="mg-caption">L&apos;email contient</span>
+              <Input name="q" defaultValue={filters.q ?? ""} />
+            </label>
+            <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <span className="mg-caption">Rôle</span>
+              <select name="role" defaultValue={filters.role ?? ""} style={selectStyle}>
+                <option value="">Tous</option>
+                {ROLES.map((r) => (
+                  <option key={r} value={r}>
+                    {r}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <span className="mg-caption">Langue</span>
+              <select name="lang" defaultValue={filters.lang ?? ""} style={selectStyle}>
+                <option value="">Toutes</option>
+                <option value="FR">FR</option>
+                <option value="EN">EN</option>
+                <option value="MG">MG</option>
+              </select>
+            </label>
+            <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <span className="mg-caption">Vérifié (entreprises)</span>
+              <select
+                name="verified"
+                defaultValue={filters.verified ?? ""}
+                style={selectStyle}
+              >
+                <option value="">Tous</option>
+                <option value="true">Vérifié</option>
+                <option value="false">Non vérifié</option>
+              </select>
+            </label>
+            <Button type="submit" iconLeft="filter">
+              Filtrer
+            </Button>
+          </form>
+        </Card>
       </div>
 
-      <div className="p-6">
-        <Card>
-          <CardContent className="p-0">
-            <table className="w-full text-sm">
-              <thead className="border-b bg-muted/40 text-left">
-                <tr>
-                  <th className="p-3">Email</th>
-                  <th className="p-3">Name</th>
-                  <th className="p-3">Role</th>
-                  <th className="p-3">Lang</th>
-                  <th className="p-3">Created</th>
-                  <th className="p-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {page.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="p-6 text-center text-muted-foreground">
-                      No users match these filters.
-                    </td>
-                  </tr>
-                ) : (
-                  page.map((u) => {
-                    const display =
-                      u.candidate
-                        ? `${u.candidate.firstName} ${u.candidate.lastName}`
-                        : u.enterprise?.companyName ?? "—";
-                    return (
-                      <tr key={u.id} className="border-b last:border-b-0">
-                        <td className="p-3">
-                          <Link
-                            className="text-primary hover:underline"
-                            href={`/admin/users/${u.id}`}
-                          >
-                            {u.email}
-                          </Link>
-                        </td>
-                        <td className="p-3">{display}</td>
-                        <td className="p-3 font-mono text-xs">{u.role}</td>
-                        <td className="p-3">{u.lang}</td>
-                        <td className="p-3 whitespace-nowrap">
-                          {u.createdAt.toISOString().slice(0, 10)}
-                        </td>
-                        <td className="p-3 text-right">
-                          <UserActionsMenu
-                            userId={u.id}
-                            email={u.email}
-                            role={u.role}
-                          />
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </CardContent>
+      <div style={{ padding: "0 32px 32px" }}>
+        <Card padding={0}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "minmax(0, 1.4fr) minmax(0, 1fr) 120px 80px 130px 140px",
+              padding: "10px 20px",
+              background: "hsl(var(--surface-2))",
+              borderBottom: "1px solid hsl(var(--border))",
+              color: "hsl(var(--muted-foreground))",
+            }}
+            className="mg-micro"
+          >
+            <span>Email</span>
+            <span>Nom</span>
+            <span>Rôle</span>
+            <span>Langue</span>
+            <span>Créé</span>
+            <span style={{ textAlign: "right" }}>Actions</span>
+          </div>
+          {page.length === 0 ? (
+            <div
+              style={{
+                padding: 40,
+                textAlign: "center",
+                color: "hsl(var(--muted-foreground))",
+                fontSize: 14,
+              }}
+            >
+              Aucun utilisateur ne correspond à ces filtres.
+            </div>
+          ) : (
+            page.map((u, i) => {
+              const display = u.candidate
+                ? `${u.candidate.firstName} ${u.candidate.lastName}`
+                : u.enterprise?.companyName ?? "—";
+              return (
+                <div
+                  key={u.id}
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns:
+                      "minmax(0, 1.4fr) minmax(0, 1fr) 120px 80px 130px 140px",
+                    padding: "14px 20px",
+                    alignItems: "center",
+                    borderTop: i === 0 ? 0 : "1px solid hsl(var(--border))",
+                  }}
+                >
+                  <Link
+                    href={`/admin/users/${u.id}`}
+                    style={{
+                      color: "hsl(var(--primary))",
+                      textDecoration: "none",
+                      fontSize: 13,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {u.email}
+                  </Link>
+                  <span
+                    className="mg-body-sm"
+                    style={{
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {display}
+                  </span>
+                  <span className="mg-mono" style={{ fontSize: 11 }}>
+                    {u.role}
+                  </span>
+                  <span className="mg-body-sm">{u.lang}</span>
+                  <span
+                    className="mg-tabular mg-body-sm"
+                    style={{ color: "hsl(var(--muted-foreground))" }}
+                  >
+                    {u.createdAt.toISOString().slice(0, 10)}
+                  </span>
+                  <div style={{ textAlign: "right" }}>
+                    <UserActionsMenu userId={u.id} email={u.email} role={u.role} />
+                  </div>
+                </div>
+              );
+            })
+          )}
         </Card>
 
-        <div className="mt-4 flex items-center justify-end gap-2 text-sm">
+        <Stack
+          dir="row"
+          justify="flex-end"
+          gap={12}
+          style={{ marginTop: 16, fontSize: 13 }}
+        >
           {filters.cursor ? (
             <Link
               href={buildHref({ cursor: undefined })}
-              className="text-primary hover:underline"
+              style={{ color: "hsl(var(--primary))", textDecoration: "none" }}
             >
-              First page
+              Première page
             </Link>
           ) : null}
           {nextCursor ? (
             <Link
               href={buildHref({ cursor: nextCursor })}
-              className="text-primary hover:underline"
+              style={{ color: "hsl(var(--primary))", textDecoration: "none" }}
             >
-              Next →
+              Suivante →
             </Link>
           ) : null}
-        </div>
+        </Stack>
       </div>
     </>
   );

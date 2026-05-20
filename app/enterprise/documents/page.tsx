@@ -1,15 +1,14 @@
 "use client";
 
-// Enterprise document wallet — KYC documents (incorporation certificate,
-// signed contracts, etc.). Same shape as the candidate wallet but with a
-// different set of allowed types.
+// MG Work — Enterprise document wallet (KYC).
+//
+// Same logic as the previous version (fetches /api/documents and renders the
+// shared <DocumentRow />) but dressed in MG primitives so it matches the rest
+// of the enterprise area chrome.
 
 import * as React from "react";
-import { Plus, RefreshCw } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { PageHeader } from "@/components/layout/page-header";
+import { Badge, Button, Card, Hairline, PageHeader, Stack } from "@/components/mg";
 import { DocumentRow } from "@/components/documents/DocumentRow";
 import { UploadDialog } from "@/components/documents/UploadDialog";
 import type { DocumentDto } from "@/lib/documents";
@@ -32,7 +31,7 @@ export default function EnterpriseDocumentsPage(): React.ReactElement {
     try {
       const res = await fetch("/api/documents", { credentials: "same-origin" });
       if (!res.ok) {
-        setError(`Failed to load documents (HTTP ${res.status})`);
+        setError(`Échec du chargement (HTTP ${res.status})`);
         setDocs([]);
         return;
       }
@@ -55,48 +54,97 @@ export default function EnterpriseDocumentsPage(): React.ReactElement {
     void fetchDocs();
   }, [fetchDocs]);
 
+  const approved = docs?.filter((d) => d.status === "APPROVED").length ?? 0;
+  const pending = docs?.filter((d) => d.status === "PENDING").length ?? 0;
+  const rejected = docs?.filter((d) => d.status === "REJECTED").length ?? 0;
+
   return (
     <>
       <PageHeader
-        title="Company documents"
-        description="KYC documents and contracts. Track expiry and renew before staff requests."
-      >
-        <Button variant="outline" size="sm" onClick={() => void fetchDocs()} disabled={loading}>
-          <RefreshCw className="h-4 w-4" />
-          Refresh
-        </Button>
-        <Button size="sm" onClick={() => setUploadOpen(true)}>
-          <Plus className="h-4 w-4" />
-          Upload
-        </Button>
-      </PageHeader>
+        title="Documents"
+        subtitle="Pièces KYC et contrats. Suivez les échéances avant qu&apos;un client ne le demande."
+        action={
+          <Stack dir="row" gap={8}>
+            <Button
+              variant="outline"
+              iconLeft="upload"
+              onClick={() => void fetchDocs()}
+              disabled={loading}
+            >
+              Actualiser
+            </Button>
+            <Button iconLeft="plus" onClick={() => setUploadOpen(true)}>
+              Téléverser
+            </Button>
+          </Stack>
+        }
+      />
 
-      <div className="p-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Wallet</CardTitle>
-            <CardDescription>
-              Documents marked in red expire within 30 days; amber within 90 days.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="px-0 pt-0">
-            {error ? (
-              <p className="px-4 py-3 text-sm text-rose-700">{error}</p>
-            ) : null}
-            {loading && docs == null ? (
-              <p className="px-4 py-3 text-sm text-muted-foreground">Loading…</p>
-            ) : docs && docs.length === 0 ? (
-              <p className="px-4 py-3 text-sm text-muted-foreground">
-                No documents yet. Upload your incorporation certificate to begin verification.
-              </p>
-            ) : (
-              <ul className="m-0 list-none p-0">
-                {(docs ?? []).map((d) => (
-                  <DocumentRow key={d.id} doc={d} />
-                ))}
-              </ul>
-            )}
-          </CardContent>
+      <div style={{ padding: "0 32px 32px", display: "flex", flexDirection: "column", gap: 24 }}>
+        <Card padding={0}>
+          <div
+            style={{
+              padding: "14px 20px",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: 12,
+            }}
+          >
+            <div style={{ minWidth: 0 }}>
+              <h3 className="mg-h4" style={{ margin: 0 }}>
+                Portefeuille de documents
+              </h3>
+              <div
+                className="mg-caption"
+                style={{ color: "hsl(var(--muted-foreground))", marginTop: 2 }}
+              >
+                Rouge : expire sous 30 jours · Ambre : sous 90 jours
+              </div>
+            </div>
+            <Stack dir="row" gap={6}>
+              <Badge tone="success" size="md">
+                Approuvés · {approved}
+              </Badge>
+              <Badge tone="warning" size="md">
+                En attente · {pending}
+              </Badge>
+              <Badge tone="danger" size="md">
+                Refusés · {rejected}
+              </Badge>
+            </Stack>
+          </div>
+          <Hairline />
+          {error ? (
+            <p
+              className="mg-body-sm"
+              style={{ padding: "12px 20px", color: "hsl(var(--destructive))" }}
+            >
+              {error}
+            </p>
+          ) : null}
+          {loading && docs == null ? (
+            <p
+              className="mg-body-sm"
+              style={{ padding: "16px 20px", color: "hsl(var(--muted-foreground))" }}
+            >
+              Chargement…
+            </p>
+          ) : docs && docs.length === 0 ? (
+            <p
+              className="mg-body-sm"
+              style={{ padding: "16px 20px", color: "hsl(var(--muted-foreground))" }}
+            >
+              Aucun document pour l&apos;instant. Téléversez votre certificat d&apos;incorporation
+              pour démarrer la vérification.
+            </p>
+          ) : (
+            <ul className="m-0 list-none p-0" style={{ margin: 0, padding: 0 }}>
+              {(docs ?? []).map((d) => (
+                <DocumentRow key={d.id} doc={d} />
+              ))}
+            </ul>
+          )}
         </Card>
       </div>
 

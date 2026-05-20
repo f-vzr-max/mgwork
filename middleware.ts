@@ -6,6 +6,10 @@ import { canAccess } from "@/lib/roles";
 
 const isPublic = createRouteMatcher([
   "/",
+  "/candidats",
+  "/entreprises",
+  "/conformite",
+  "/tarifs",
   "/sign-in(.*)",
   "/sign-up(.*)",
   "/api/webhooks(.*)",

@@ -1,22 +1,19 @@
-import { Sidebar, type NavItem } from "@/components/layout/sidebar";
-import { getLocale } from "@/lib/i18n";
+// MG Work — Admin area layout.
+//
+// Server component that resolves the signed-in user via Clerk and hands off to
+// <AdminShell />, a client component that uses the current pathname to drive
+// the WebSidebar active state.
 
-const items: NavItem[] = [
-  { label: "Overview", href: "/admin", icon: "layoutDashboard" },
-  { label: "Users", href: "/admin/users", icon: "users" },
-  { label: "Disputes", href: "/admin/disputes", icon: "alertTriangle" },
-  { label: "Invoices", href: "/admin/invoices", icon: "receipt" },
-  { label: "Audit log", href: "/admin/audit", icon: "activity" },
-  { label: "Feature flags", href: "/admin/feature-flags", icon: "shieldCheck" },
-  { label: "Translations", href: "/admin/i18n", icon: "fileText" },
-];
+import { currentUser } from "@clerk/nextjs/server";
+import { AdminShell } from "@/components/layout/admin-shell";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  const lang = await getLocale();
-  return (
-    <div className="flex min-h-screen bg-muted/30">
-      <Sidebar brandLabel="Admin" items={items} currentLang={lang} />
-      <main className="flex-1">{children}</main>
-    </div>
-  );
+  const u = await currentUser();
+  const name = u
+    ? [u.firstName, u.lastName].filter(Boolean).join(" ") || u.username || "Compte"
+    : "Compte";
+  const email = u?.emailAddresses?.[0]?.emailAddress ?? "";
+  const user = { name, email };
+
+  return <AdminShell user={user}>{children}</AdminShell>;
 }

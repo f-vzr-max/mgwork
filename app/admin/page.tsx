@@ -1,15 +1,9 @@
 // Admin overview dashboard — real KPIs computed via Prisma. Server component.
+// Data-fetching logic is preserved verbatim; only the JSX has been restyled
+// to use the MG design system primitives.
 
-import { PageHeader } from "@/components/layout/page-header";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from "@/components/ui/card";
+import { PageHeader, KpiCard, Stack } from "@/components/mg";
 import { prisma } from "@/lib/prisma";
-import { getLocale, tFor } from "@/lib/i18n";
 
 async function loadKpis() {
   const [candidates, enterprises, activeOffers, openInterventions, paidAgg] =
@@ -33,11 +27,9 @@ async function loadKpis() {
   };
 }
 
-function formatRevenue(amount: number, locale: string): string {
-  // Display in MUR — currency-agnostic since invoices may use multiple currencies,
-  // but PAID aggregate is shown as a single sum here for skeleton purposes.
+function formatRevenue(amount: number): string {
   try {
-    return new Intl.NumberFormat(locale, {
+    return new Intl.NumberFormat("fr-FR", {
       style: "currency",
       currency: "MUR",
       maximumFractionDigits: 0,
@@ -50,91 +42,58 @@ function formatRevenue(amount: number, locale: string): string {
 export const dynamic = "force-dynamic";
 
 export default async function AdminDashboard() {
-  const lang = await getLocale();
-  const t = tFor(lang);
-  const intlLocale = lang === "FR" ? "fr-FR" : lang === "MG" ? "mg-MG" : "en-US";
   const k = await loadKpis();
 
   return (
     <>
       <PageHeader
-        title={t("admin.overview.title", "Admin overview")}
-        description={t(
-          "admin.overview.description",
-          "Platform-wide health, signups, and compliance posture.",
-        )}
+        title="Vue d'ensemble"
+        subtitle="Santé de la plateforme, inscriptions et conformité"
       />
-      <div className="grid gap-4 p-6 md:grid-cols-3 lg:grid-cols-5">
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("admin.kpi.candidates", "Candidates")}</CardTitle>
-            <CardDescription>
-              {k.candidates} {t("admin.kpi.total", "total")}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            {k.candidates === 0
-              ? t("admin.kpi.noCandidates", "No candidates yet.")
-              : t("admin.kpi.live", "Profiles in the system.")}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("admin.kpi.enterprises", "Enterprises")}</CardTitle>
-            <CardDescription>
-              {k.enterprises} {t("admin.kpi.total", "total")}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            {k.enterprises === 0
-              ? t("admin.kpi.noEnterprises", "No enterprises yet.")
-              : t("admin.kpi.companiesOnboarded", "Companies onboarded.")}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("admin.kpi.activeOffers", "Active offers")}</CardTitle>
-            <CardDescription>
-              {k.activeOffers} {t("admin.kpi.published", "published")}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            {k.activeOffers === 0
-              ? t("admin.kpi.noOffers", "No offers yet.")
-              : t("admin.kpi.acceptingApplications", "Accepting applications.")}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              {t("admin.kpi.openInterventions", "Open interventions")}
-            </CardTitle>
-            <CardDescription>
-              {k.openInterventions}{" "}
-              {t("admin.kpi.needAttention", "need attention")}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            {k.openInterventions === 0
-              ? t("admin.kpi.allClear", "All clear.")
-              : t("admin.kpi.staffShouldFollow", "Staff to follow up.")}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("admin.kpi.revenue", "Revenue (paid)")}</CardTitle>
-            <CardDescription>{formatRevenue(k.revenue, intlLocale)}</CardDescription>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            {k.revenue === 0
-              ? t("admin.kpi.noRevenue", "No paid invoices yet.")
-              : t("admin.kpi.cumulativeRevenue", "Cumulative paid total.")}
-          </CardContent>
-        </Card>
+      <div
+        style={{
+          padding: "0 32px 32px",
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+          gap: 16,
+        }}
+      >
+        <KpiCard
+          label="Candidats"
+          value={k.candidates.toString()}
+          unit="profils"
+          tone="primary"
+        />
+        <KpiCard
+          label="Entreprises"
+          value={k.enterprises.toString()}
+          unit="comptes"
+          tone="primary"
+        />
+        <KpiCard
+          label="Offres actives"
+          value={k.activeOffers.toString()}
+          unit="publiées"
+          tone="success"
+        />
+        <KpiCard
+          label="Interventions ouvertes"
+          value={k.openInterventions.toString()}
+          unit="à traiter"
+          tone={k.openInterventions > 0 ? "danger" : "success"}
+        />
+        <KpiCard
+          label="Revenu (payé)"
+          value={formatRevenue(k.revenue)}
+          tone="success"
+        />
+      </div>
+      <div style={{ padding: "0 32px 32px" }}>
+        <Stack dir="column" gap={8}>
+          <span className="mg-caption" style={{ color: "hsl(var(--muted-foreground))" }}>
+            Les indicateurs sont rafraîchis à chaque chargement.
+          </span>
+        </Stack>
       </div>
     </>
   );
