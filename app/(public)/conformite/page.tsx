@@ -1,4 +1,6 @@
 import * as React from "react";
+import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import {
   Badge,
   Button,
@@ -18,73 +20,25 @@ export const metadata = {
     "Conformité Data Protection Act Mauritius 2017, PII masqué par défaut, hébergement régional. La conformité par construction.",
 };
 
-const PILLARS = [
-  {
-    icon: "shield-check" as const,
-    title: "Minimisation des données",
-    body:
-      "Nous ne collectons que ce qui est strictement nécessaire au matching et à l'embauche. Les pièces sensibles (passeport, médical) sont supprimées 90 jours après le recrutement.",
-  },
-  {
-    icon: "eye" as const,
-    title: "PII masqué par défaut",
-    body:
-      "Le nom, l'adresse et la photo des candidats sont masqués pour les entreprises tant qu'une présélection n'a pas été engagée. Vous ne voyez que ce qui sert à décider.",
-  },
-  {
-    icon: "file-text" as const,
-    title: "Audit log complet",
-    body:
-      "Chaque accès aux données candidat est journalisé : qui, quand, pourquoi. Le candidat peut consulter son journal d'accès depuis son compte.",
-  },
-  {
-    icon: "globe" as const,
-    title: "Hébergement régional",
-    body:
-      "Toutes les données sont stockées à Port-Louis et répliquées à Saint-Denis. Aucune donnée ne quitte l'océan Indien sans demande explicite.",
-  },
-];
+const PILLAR_KEYS = ["p1", "p2", "p3", "p4"] as const;
+const PILLAR_ICONS: IconName[] = ["shield-check", "eye", "file-text", "globe"];
 
 type LifecycleTone = "info" | "warning" | "success" | "neutral";
 
-const LIFECYCLE: { step: string; body: string; tone: LifecycleTone; icon: IconName }[] = [
-  {
-    step: "Collecte",
-    body: "Le candidat saisit ses données. Consentement explicite par cas d'usage.",
-    tone: "info",
-    icon: "upload",
-  },
-  {
-    step: "Vérification",
-    body: "Identité et diplômes contrôlés par notre équipe. Documents chiffrés au repos.",
-    tone: "info",
-    icon: "shield-check",
-  },
-  {
-    step: "Matching",
-    body: "Le moteur calcule un score sur des critères pondérés et auditables.",
-    tone: "info",
-    icon: "sparkles",
-  },
-  {
-    step: "Présélection",
-    body: "Le PII est révélé à l'entreprise après acceptation de la présélection.",
-    tone: "warning",
-    icon: "eye",
-  },
-  {
-    step: "Embauche",
-    body: "Contrat signé. Les pièces sensibles sont supprimées sous 90 jours.",
-    tone: "success",
-    icon: "check-circle-2",
-  },
-  {
-    step: "Archivage",
-    body: "Données minimales conservées 5 ans pour conformité fiscale, puis supprimées.",
-    tone: "neutral",
-    icon: "file-text",
-  },
-];
+const LIFECYCLE_KEYS = ["s1", "s2", "s3", "s4", "s5", "s6"] as const;
+const LIFECYCLE_META: Record<
+  (typeof LIFECYCLE_KEYS)[number],
+  { tone: LifecycleTone; icon: IconName }
+> = {
+  s1: { tone: "info", icon: "upload" },
+  s2: { tone: "info", icon: "shield-check" },
+  s3: { tone: "info", icon: "sparkles" },
+  s4: { tone: "warning", icon: "eye" },
+  s5: { tone: "success", icon: "check-circle-2" },
+  s6: { tone: "neutral", icon: "file-text" },
+};
+
+const RIGHTS_KEYS = ["access", "rectify", "delete", "port", "oppose"] as const;
 
 function toneToBg(tone: LifecycleTone): string {
   switch (tone) {
@@ -112,36 +66,34 @@ function toneToFg(tone: LifecycleTone): string {
   }
 }
 
-const RIGHTS = [
-  "Accès à mes données",
-  "Rectification",
-  "Suppression",
-  "Portabilité",
-  "Opposition",
-];
+export default async function ConformitePage() {
+  const t = await getTranslations("marketing");
 
-export default function ConformitePage() {
   return (
     <PublicShell active="conformite">
       {/* Hero */}
       <div
+        className="px-4 md:px-8 py-12 md:py-16"
         style={{
           background:
             "linear-gradient(180deg, rgba(19,115,176,0.06) 0%, hsl(var(--background)) 100%)",
-          padding: "72px 32px 56px",
         }}
       >
         <div style={{ maxWidth: 920, margin: "0 auto", textAlign: "center" }}>
           <Badge tone="info" size="md" icon="shield-check" style={{ marginBottom: 20 }}>
-            Conformité régionale
+            {t("conformite.hero.badge")}
           </Badge>
           <h1
             className="mg-display"
             style={{ margin: 0, textWrap: "balance" as React.CSSProperties["textWrap"] }}
           >
-            La conformité,
+            {t("conformite.hero.titlePart1")}
             <br />
-            par <span style={{ color: "hsl(var(--info))" }}>construction</span>.
+            {t("conformite.hero.titlePart2Prefix")}
+            <span style={{ color: "hsl(var(--info))" }}>
+              {t("conformite.hero.titleHighlight")}
+            </span>
+            {t("conformite.hero.titleSuffix")}
           </h1>
           <p
             className="mg-body-lg"
@@ -151,18 +103,17 @@ export default function ConformitePage() {
               maxWidth: 640,
             }}
           >
-            MG·Work est conforme au Data Protection Act Mauritius 2017. Chaque flux de données —
-            candidat, entreprise, paiement — est tracé, chiffré et auditable.
+            {t("conformite.hero.subtitle")}
           </p>
           <Stack dir="row" gap={8} justify="center" style={{ marginTop: 28 }} wrap>
             <Badge tone="success" icon="check-circle-2">
-              DPA Mauritius 2017
+              {t("conformite.hero.badgeDpa")}
             </Badge>
             <Badge tone="success" icon="check-circle-2">
-              ISO 27001 (en cours)
+              {t("conformite.hero.badgeIso")}
             </Badge>
             <Badge tone="success" icon="check-circle-2">
-              RGPD-aligné
+              {t("conformite.hero.badgeGdpr")}
             </Badge>
           </Stack>
         </div>
@@ -171,12 +122,12 @@ export default function ConformitePage() {
       {/* Pillars */}
       <Section padY={96}>
         <SectionHeader
-          eyebrow="Nos 4 engagements"
-          title="Ce qui protège candidats et entreprises"
+          eyebrow={t("conformite.pillars.eyebrow")}
+          title={t("conformite.pillars.title")}
         />
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 20 }}>
-          {PILLARS.map((p) => (
-            <Card key={p.title} padding={28}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {PILLAR_KEYS.map((key, i) => (
+            <Card key={key} padding={28}>
               <Stack dir="row" gap={20} align="flex-start">
                 <div
                   style={{
@@ -191,17 +142,17 @@ export default function ConformitePage() {
                     flexShrink: 0,
                   }}
                 >
-                  <Icon name={p.icon} size={22} />
+                  <Icon name={PILLAR_ICONS[i]!} size={22} />
                 </div>
                 <div>
                   <h3 className="mg-h3" style={{ margin: 0 }}>
-                    {p.title}
+                    {t(`conformite.pillars.${key}.title`)}
                   </h3>
                   <p
                     className="mg-body"
                     style={{ color: "hsl(var(--muted-foreground))", margin: "8px 0 0" }}
                   >
-                    {p.body}
+                    {t(`conformite.pillars.${key}.body`)}
                   </p>
                 </div>
               </Stack>
@@ -213,76 +164,70 @@ export default function ConformitePage() {
       {/* Lifecycle */}
       <Section padY={96} surface={2}>
         <SectionHeader
-          eyebrow="Cycle de vie des données"
-          title="Ce qui se passe, étape par étape"
+          eyebrow={t("conformite.lifecycle.eyebrow")}
+          title={t("conformite.lifecycle.title")}
         />
         <Card padding={0}>
-          {LIFECYCLE.map((s, i) => (
-            <div
-              key={s.step}
-              style={{
-                display: "grid",
-                gridTemplateColumns: "40px 180px 1fr",
-                gap: 20,
-                padding: "20px 28px",
-                alignItems: "center",
-                borderTop: i === 0 ? 0 : "1px solid hsl(var(--border))",
-              }}
-            >
+          {LIFECYCLE_KEYS.map((key, i) => {
+            const { tone, icon } = LIFECYCLE_META[key];
+            return (
               <div
+                key={key}
+                className="grid grid-cols-[40px_1fr] md:grid-cols-[40px_180px_1fr] gap-3 md:gap-5"
                 style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: 9999,
-                  background: toneToBg(s.tone),
-                  color: toneToFg(s.tone),
-                  display: "inline-flex",
+                  padding: "20px 28px",
                   alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 13,
-                  fontWeight: 700,
+                  borderTop: i === 0 ? 0 : "1px solid hsl(var(--border))",
                 }}
               >
-                {i + 1}
-              </div>
-              <Stack dir="row" gap={10} align="center">
-                <Icon
-                  name={s.icon}
-                  size={16}
+                <div
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 9999,
+                    background: toneToBg(tone),
+                    color: toneToFg(tone),
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 13,
+                    fontWeight: 700,
+                  }}
+                >
+                  {i + 1}
+                </div>
+                <Stack dir="row" gap={10} align="center">
+                  <Icon
+                    name={icon}
+                    size={16}
+                    style={{ color: "hsl(var(--muted-foreground))" }}
+                  />
+                  <span className="mg-body" style={{ fontWeight: 600 }}>
+                    {t(`conformite.lifecycle.${key}.step`)}
+                  </span>
+                </Stack>
+                <span
+                  className="mg-body-sm col-span-2 md:col-span-1"
                   style={{ color: "hsl(var(--muted-foreground))" }}
-                />
-                <span className="mg-body" style={{ fontWeight: 600 }}>
-                  {s.step}
+                >
+                  {t(`conformite.lifecycle.${key}.body`)}
                 </span>
-              </Stack>
-              <span
-                className="mg-body-sm"
-                style={{ color: "hsl(var(--muted-foreground))" }}
-              >
-                {s.body}
-              </span>
-            </div>
-          ))}
+              </div>
+            );
+          })}
         </Card>
       </Section>
 
       {/* DPO contact */}
       <Section padY={96}>
         <Card padding={48} style={{ background: "hsl(var(--surface-2))" }}>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1.4fr 1fr",
-              gap: 48,
-              alignItems: "center",
-            }}
-          >
+          <div className="grid grid-cols-1 md:grid-cols-[1.4fr_1fr] gap-10 md:gap-12 items-center">
             <div>
               <Badge tone="primary" icon="users" style={{ marginBottom: 12 }}>
-                Délégué à la protection des données
+                {t("conformite.dpo.badge")}
               </Badge>
               <h3 className="mg-h2" style={{ margin: 0 }}>
-                Une question, un signalement ?
+                {t("conformite.dpo.title")}
               </h3>
               <p
                 className="mg-body-lg"
@@ -292,12 +237,15 @@ export default function ConformitePage() {
                   maxWidth: 480,
                 }}
               >
-                Notre DPO répond à toute demande d&apos;accès, de rectification ou de suppression sous
-                72 heures ouvrées.
+                {t("conformite.dpo.body")}
               </p>
-              <Stack dir="row" gap={12}>
-                <Button iconLeft="mail">dpo@mg-work.com</Button>
-                <Button variant="outline">Politique de confidentialité</Button>
+              <Stack dir="row" gap={12} wrap>
+                <a href={`mailto:${t("conformite.dpo.email")}`} className="no-underline">
+                  <Button iconLeft="mail">{t("conformite.dpo.email")}</Button>
+                </a>
+                <Link href="/legal/confidentialite" className="no-underline">
+                  <Button variant="outline">{t("conformite.dpo.policy")}</Button>
+                </Link>
               </Stack>
             </div>
             <Card padding={24}>
@@ -305,17 +253,19 @@ export default function ConformitePage() {
                 className="mg-micro"
                 style={{ color: "hsl(var(--muted-foreground))", marginBottom: 12 }}
               >
-                Vos droits
+                {t("conformite.dpo.rightsTitle")}
               </div>
               <Stack gap={8}>
-                {RIGHTS.map((r) => (
+                {RIGHTS_KEYS.map((r) => (
                   <Stack key={r} dir="row" gap={10} align="center">
                     <Icon
                       name="check-circle-2"
                       size={14}
                       style={{ color: "hsl(var(--success))" }}
                     />
-                    <span className="mg-body-sm">{r}</span>
+                    <span className="mg-body-sm">
+                      {t(`conformite.dpo.rights.${r}`)}
+                    </span>
                   </Stack>
                 ))}
               </Stack>
@@ -326,16 +276,20 @@ export default function ConformitePage() {
 
       {/* FAQ */}
       <Section padY={96} surface={2}>
-        <SectionHeader eyebrow="FAQ" title="Conformité & sécurité" align="center" />
+        <SectionHeader
+          eyebrow={t("conformite.faq.eyebrow")}
+          title={t("conformite.faq.title")}
+          align="center"
+        />
         <div style={{ maxWidth: 800, margin: "0 auto", display: "grid", gap: 12 }}>
           <FaqItem
             open
-            q="Où sont stockées mes données ?"
-            a="À Port-Louis (Maurice), avec réplication à Saint-Denis (La Réunion). Aucune donnée ne quitte la région océan Indien sans demande explicite et tracée."
+            q={t("conformite.faq.q1.q")}
+            a={t("conformite.faq.q1.a")}
           />
-          <FaqItem q="Combien de temps gardez-vous mes documents ?" />
-          <FaqItem q="Qui peut voir mon profil ?" />
-          <FaqItem q="Comment supprimer mon compte ?" />
+          <FaqItem q={t("conformite.faq.q2.q")} />
+          <FaqItem q={t("conformite.faq.q3.q")} />
+          <FaqItem q={t("conformite.faq.q4.q")} />
         </div>
       </Section>
     </PublicShell>

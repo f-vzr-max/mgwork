@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import {
   Badge,
   Button,
@@ -24,57 +26,55 @@ export const metadata = {
     "Postulez à des offres vérifiées en Maurice, La Réunion et Seychelles. Inscription gratuite, conseiller dédié, suivi jusqu'au départ.",
 };
 
-const STEPS = [
-  { n: 1, title: "Inscription", body: "Compte créé en 5 minutes, vérification par SMS.", icon: "users" as const },
-  { n: 2, title: "Profil", body: "Compétences, langues, secteur, mobilité.", icon: "file-text" as const },
-  { n: 3, title: "Vérification", body: "Identité et diplômes contrôlés sous 48 h.", icon: "shield-check" as const },
-  { n: 4, title: "Matchs", body: "Offres triées et notées selon vos critères.", icon: "sparkles" as const },
-  { n: 5, title: "Départ", body: "Visa, logement, contrat — suivi jusqu'au J-1.", icon: "arrow-up-right" as const },
-];
+const STEP_KEYS = ["step1", "step2", "step3", "step4", "step5"] as const;
+const STEP_ICONS = ["users", "file-text", "shield-check", "sparkles", "arrow-up-right"] as const;
 
-const BENEFITS = [
-  { icon: "check-circle-2" as const, title: "Gratuit, toujours", body: "Aucun frais pour les candidats — jamais." },
-  { icon: "shield-check" as const, title: "Offres vérifiées", body: "Chaque entreprise passe par notre KYC." },
-  { icon: "message-circle" as const, title: "Conseiller dédié", body: "Un humain joignable, en français ou en malgache." },
-  { icon: "sparkles" as const, title: "Score transparent", body: "Vous savez pourquoi vous matchez, ou pas." },
-];
+const BENEFIT_KEYS = ["b1", "b2", "b3", "b4"] as const;
+const BENEFIT_ICONS = [
+  "check-circle-2",
+  "shield-check",
+  "message-circle",
+  "sparkles",
+] as const;
 
-const MATCH_BREAKDOWN: { label: string; score: number }[] = [
-  { label: "Compétences", score: 92 },
-  { label: "Langues", score: 88 },
-  { label: "Secteur", score: 95 },
-  { label: "Mobilité", score: 72 },
-];
+const MATCH_KEYS = ["skills", "languages", "sector", "mobility"] as const;
+const MATCH_SCORES: Record<(typeof MATCH_KEYS)[number], number> = {
+  skills: 92,
+  languages: 88,
+  sector: 95,
+  mobility: 72,
+};
 
-export default function CandidatsPage() {
+const STORY_KEYS = ["t1", "t2"] as const;
+const STORY_SCORES: Record<(typeof STORY_KEYS)[number], number> = { t1: 91, t2: 84 };
+
+export default async function CandidatsPage() {
+  const t = await getTranslations("marketing");
+
   return (
     <PublicShell active="candidats">
       {/* Hero */}
       <div
+        className="px-4 md:px-8 py-12 md:py-16"
         style={{
           background:
             "linear-gradient(180deg, rgba(0,123,85,0.06) 0%, hsl(var(--background)) 100%)",
-          padding: "72px 32px 56px",
         }}
       >
         <div
-          style={{
-            maxWidth: 1120,
-            margin: "0 auto",
-            display: "grid",
-            gridTemplateColumns: "1.1fr 0.9fr",
-            gap: 56,
-            alignItems: "center",
-          }}
+          className="mx-auto grid w-full max-w-[1120px] grid-cols-1 items-center gap-10 md:grid-cols-[1.1fr_0.9fr] md:gap-14"
         >
           <div>
             <Badge tone="success" size="md" icon="users" style={{ marginBottom: 20 }}>
-              Pour les candidats
+              {t("candidats.hero.badge")}
             </Badge>
             <h1 className="mg-display" style={{ margin: 0, maxWidth: 540 }}>
-              Travaillez à l&apos;étranger,
+              {t("candidats.hero.titlePart1")}
               <br />
-              <span style={{ color: "hsl(var(--success))" }}>sereinement</span>.
+              <span style={{ color: "hsl(var(--success))" }}>
+                {t("candidats.hero.titleHighlight")}
+              </span>
+              {t("candidats.hero.titleSuffix")}
             </h1>
             <p
               className="mg-body-lg"
@@ -84,16 +84,19 @@ export default function CandidatsPage() {
                 maxWidth: 480,
               }}
             >
-              Postulez à des offres vérifiées en Maurice, La Réunion et Seychelles. Un conseiller dédié
-              vous accompagne du dossier jusqu&apos;au premier jour de travail.
+              {t("candidats.hero.subtitle")}
             </p>
-            <Stack dir="row" gap={12} style={{ marginTop: 32 }}>
-              <Button size="lg" variant="success" iconRight="arrow-right">
-                Créer mon profil
-              </Button>
-              <Button size="lg" variant="outline">
-                Voir les offres
-              </Button>
+            <Stack dir="row" gap={12} style={{ marginTop: 32 }} wrap>
+              <Link href="/sign-up" className="no-underline">
+                <Button size="lg" variant="success" iconRight="arrow-right">
+                  {t("candidats.cta.primary")}
+                </Button>
+              </Link>
+              <Link href="/sign-up" className="no-underline">
+                <Button size="lg" variant="outline">
+                  {t("cta.viewOffers")}
+                </Button>
+              </Link>
             </Stack>
           </div>
           <Card padding={28} elevation={2}>
@@ -101,46 +104,49 @@ export default function CandidatsPage() {
               <ScoreGauge value={87} size={72} stroke={6} />
               <div>
                 <div className="mg-micro" style={{ color: "hsl(var(--muted-foreground))" }}>
-                  Votre dernier match
+                  {t("candidats.hero.matchEyebrow")}
                 </div>
                 <div className="mg-h3" style={{ margin: "4px 0 0" }}>
-                  Très bon match
+                  {t("candidats.hero.matchTitle")}
                 </div>
                 <div
                   className="mg-caption"
                   style={{ color: "hsl(var(--muted-foreground))" }}
                 >
-                  Réceptionniste · Hôtel Lux, Maurice
+                  {t("candidats.hero.matchRole")}
                 </div>
               </div>
             </Stack>
             <Hairline style={{ margin: "20px 0" }} />
             <div style={{ display: "grid", gap: 10 }}>
-              {MATCH_BREAKDOWN.map((c) => (
-                <div key={c.label}>
-                  <Stack
-                    dir="row"
-                    justify="space-between"
-                    align="center"
-                    style={{ marginBottom: 4 }}
-                  >
-                    <span className="mg-body-sm" style={{ fontWeight: 500 }}>
-                      {c.label}
-                    </span>
-                    <span
-                      className="mg-tabular mg-caption"
-                      style={{ color: "hsl(var(--muted-foreground))" }}
+              {MATCH_KEYS.map((key) => {
+                const score = MATCH_SCORES[key];
+                return (
+                  <div key={key}>
+                    <Stack
+                      dir="row"
+                      justify="space-between"
+                      align="center"
+                      style={{ marginBottom: 4 }}
                     >
-                      {c.score}
-                    </span>
-                  </Stack>
-                  <Progress
-                    value={c.score}
-                    tone={c.score >= 80 ? "success" : "primary"}
-                    height={4}
-                  />
-                </div>
-              ))}
+                      <span className="mg-body-sm" style={{ fontWeight: 500 }}>
+                        {t(`candidats.hero.match.${key}`)}
+                      </span>
+                      <span
+                        className="mg-tabular mg-caption"
+                        style={{ color: "hsl(var(--muted-foreground))" }}
+                      >
+                        {score}
+                      </span>
+                    </Stack>
+                    <Progress
+                      value={score}
+                      tone={score >= 80 ? "success" : "primary"}
+                      height={4}
+                    />
+                  </div>
+                );
+              })}
             </div>
           </Card>
         </div>
@@ -149,37 +155,36 @@ export default function CandidatsPage() {
       {/* Process — 5 steps */}
       <Section padY={96}>
         <SectionHeader
-          eyebrow="Votre parcours"
-          title="5 étapes, un accompagnement"
+          eyebrow={t("candidats.steps.eyebrow")}
+          title={t("candidats.steps.title")}
           align="center"
         />
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12 }}>
-          {STEPS.map((s) => (
-            <StepCard key={s.n} {...s} />
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+          {STEP_KEYS.map((key, i) => (
+            <StepCard
+              key={key}
+              n={i + 1}
+              title={t(`candidats.steps.${key}.title`)}
+              body={t(`candidats.steps.${key}.body`)}
+              icon={STEP_ICONS[i]}
+            />
           ))}
         </div>
       </Section>
 
       {/* Benefits split */}
       <Section padY={96} surface={2}>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1.2fr",
-            gap: 56,
-            alignItems: "center",
-          }}
-        >
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_1.2fr] gap-10 md:gap-14 items-center">
           <div>
             <SectionHeader
-              eyebrow="Pour vous"
-              title="Ce que MG·Work change"
-              subtitle="Une plateforme pensée pour les candidats malgaches, pas une copie d'un job board européen."
+              eyebrow={t("candidats.benefits.eyebrow")}
+              title={t("candidats.benefits.title")}
+              subtitle={t("candidats.benefits.subtitle")}
               maxWidth={420}
             />
             <div style={{ display: "grid", gap: 16 }}>
-              {BENEFITS.map((b) => (
-                <Stack key={b.title} dir="row" gap={16} align="flex-start">
+              {BENEFIT_KEYS.map((key, i) => (
+                <Stack key={key} dir="row" gap={16} align="flex-start">
                   <div
                     style={{
                       width: 32,
@@ -193,17 +198,17 @@ export default function CandidatsPage() {
                       flexShrink: 0,
                     }}
                   >
-                    <Icon name={b.icon} size={16} />
+                    <Icon name={BENEFIT_ICONS[i]} size={16} />
                   </div>
                   <div>
                     <div className="mg-body" style={{ fontWeight: 600 }}>
-                      {b.title}
+                      {t(`candidats.benefits.${key}.title`)}
                     </div>
                     <div
                       className="mg-body-sm"
                       style={{ color: "hsl(var(--muted-foreground))", marginTop: 2 }}
                     >
-                      {b.body}
+                      {t(`candidats.benefits.${key}.body`)}
                     </div>
                   </div>
                 </Stack>
@@ -215,7 +220,7 @@ export default function CandidatsPage() {
               className="mg-micro"
               style={{ color: "hsl(var(--muted-foreground))", marginBottom: 12 }}
             >
-              Exemple d&apos;offre · 3 / 142
+              {t("candidats.sample.eyebrow")}
             </div>
             <Stack dir="row" gap={12} align="center" style={{ marginBottom: 16 }}>
               <div
@@ -235,29 +240,29 @@ export default function CandidatsPage() {
               </div>
               <div style={{ flex: 1 }}>
                 <div className="mg-h3" style={{ margin: 0 }}>
-                  Aide-soignant
+                  {t("candidats.sample.role")}
                 </div>
                 <div
                   className="mg-caption"
                   style={{ color: "hsl(var(--muted-foreground))" }}
                 >
-                  Clinique Atlantis · Seychelles
+                  {t("candidats.sample.company")}
                 </div>
               </div>
               <ScoreGauge value={78} size={56} />
             </Stack>
             <Stack dir="row" gap={6} wrap style={{ marginBottom: 20 }}>
               <Badge tone="neutral" icon="map-pin">
-                Mahé
+                {t("candidats.sample.location")}
               </Badge>
               <Badge tone="neutral" icon="briefcase">
-                CDI
+                {t("candidats.sample.contract")}
               </Badge>
               <Badge tone="neutral" icon="calendar">
-                Mars 2026
+                {t("candidats.sample.start")}
               </Badge>
               <Badge tone="success" icon="check-circle-2">
-                Logement
+                {t("candidats.sample.housing")}
               </Badge>
             </Stack>
             <Hairline style={{ marginBottom: 16 }} />
@@ -265,57 +270,64 @@ export default function CandidatsPage() {
               className="mg-body-sm"
               style={{ color: "hsl(var(--muted-foreground))", lineHeight: "22px" }}
             >
-              CDI · 1 800 €/mois net · Visa, billet et logement pris en charge. Diplôme
-              d&apos;aide-soignant exigé. Anglais B1.
+              {t("candidats.sample.description")}
             </div>
-            <Button fullWidth style={{ marginTop: 20 }} iconRight="arrow-right">
-              Postuler
-            </Button>
+            <Link href="/sign-up" className="no-underline">
+              <Button fullWidth style={{ marginTop: 20 }} iconRight="arrow-right">
+                {t("candidats.sample.cta")}
+              </Button>
+            </Link>
           </Card>
         </div>
       </Section>
 
       {/* Stories */}
       <Section padY={96}>
-        <SectionHeader eyebrow="Histoires" title="Ils ont franchi le pas" />
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 24 }}>
-          <TestimonialCard
-            quote="J'avais peur de partir, surtout pour la paperasse. Mon conseiller a tout suivi. Aujourd'hui je travaille à Maurice et j'envoie un peu chaque mois à ma famille."
-            name="Tahiry Razafy"
-            role="Antananarivo → Maurice · Hôtellerie"
-            score={91}
-          />
-          <TestimonialCard
-            quote="C'est la seule plateforme où le score est expliqué. J'ai pu améliorer mon profil (anglais, certifications) et passer de 64 à 84 en deux mois."
-            name="Naina Andriana"
-            role="Mahajanga → La Réunion · BTP"
-            score={84}
-          />
+        <SectionHeader
+          eyebrow={t("candidats.stories.eyebrow")}
+          title={t("candidats.stories.title")}
+        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {STORY_KEYS.map((key) => (
+            <TestimonialCard
+              key={key}
+              quote={t(`candidats.stories.${key}.quote`)}
+              name={t(`candidats.stories.${key}.name`)}
+              role={t(`candidats.stories.${key}.role`)}
+              score={STORY_SCORES[key]}
+            />
+          ))}
         </div>
       </Section>
 
       {/* FAQ */}
       <Section padY={96} surface={2}>
-        <SectionHeader eyebrow="FAQ" title="Vos questions" align="center" />
+        <SectionHeader
+          eyebrow={t("candidats.faq.eyebrow")}
+          title={t("candidats.faq.title")}
+          align="center"
+        />
         <div style={{ maxWidth: 800, margin: "0 auto", display: "grid", gap: 12 }}>
           <FaqItem
             open
-            q="Combien coûte l'inscription ?"
-            a="Rien. La plateforme est entièrement gratuite pour les candidats : création de profil, matching, accompagnement administratif, suivi au départ. Notre revenu vient des entreprises qui recrutent via MG·Work."
+            q={t("candidats.faq.q1.q")}
+            a={t("candidats.faq.q1.a")}
           />
-          <FaqItem q="Combien de temps avant de partir ?" />
-          <FaqItem q="Et si je ne parle pas anglais ?" />
-          <FaqItem q="Qui s'occupe du visa et du logement ?" />
+          <FaqItem q={t("candidats.faq.q2.q")} />
+          <FaqItem q={t("candidats.faq.q3.q")} />
+          <FaqItem q={t("candidats.faq.q4.q")} />
         </div>
       </Section>
 
       {/* CTA */}
       <Section padY={80}>
         <CtaBanner
-          title="Votre prochain poste vous attend."
-          body="Créez votre profil en 5 minutes. Gratuit, sans engagement."
-          primary="Créer mon profil"
-          secondary="Parler à un conseiller"
+          title={t("candidats.cta.title")}
+          body={t("candidats.cta.body")}
+          primary={t("candidats.cta.primary")}
+          primaryHref="/sign-up?role=candidate"
+          secondary={t("candidats.cta.secondary")}
+          secondaryHref="/contact"
         />
       </Section>
     </PublicShell>

@@ -53,3 +53,10 @@ export {
   type PublicNavKey,
 } from "./public-shell";
 export { Section, SectionHeader, type SectionProps, type SectionHeaderProps } from "./section";
+export { MobileCarousel, type MobileCarouselProps } from "./carousel";
+export { LogoMarquee, type LogoMarqueeProps } from "./logo-marquee";
+export {
+  MatchingCardStack,
+  type MatchingCard,
+  type MatchingCardStackProps,
+} from "./matching-card-stack";

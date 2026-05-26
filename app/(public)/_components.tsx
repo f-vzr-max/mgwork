@@ -1,4 +1,5 @@
 import * as React from "react";
+import Link from "next/link";
 import {
   Avatar,
   Badge,
@@ -222,59 +223,60 @@ export function TestimonialCard({ quote, name, role, score }: TestimonialCardPro
   );
 }
 
-export interface FaqItemProps {
-  q: string;
-  a?: string;
-  open?: boolean;
-}
-
-export function FaqItem({ q, a, open = false }: FaqItemProps) {
-  return (
-    <Card
-      padding={24}
-      style={{ display: "flex", flexDirection: "column", gap: 12 }}
-    >
-      <Stack dir="row" justify="space-between" align="center" gap={16}>
-        <span className="mg-h4" style={{ margin: 0 }}>
-          {q}
-        </span>
-        <Icon
-          name={open ? "chevron-up" : "chevron-down"}
-          size={18}
-          style={{ color: "hsl(var(--muted-foreground))" }}
-        />
-      </Stack>
-      {open && a && (
-        <p
-          className="mg-body-sm"
-          style={{ margin: 0, color: "hsl(var(--muted-foreground))" }}
-        >
-          {a}
-        </p>
-      )}
-    </Card>
-  );
-}
+export { FaqItem, type FaqItemProps } from "./_faq-item";
 
 export interface CtaBannerProps {
   title: string;
   body?: string;
   primary: string;
   secondary?: string;
+  primaryHref?: string;
+  secondaryHref?: string;
 }
 
-export function CtaBanner({ title, body, primary, secondary }: CtaBannerProps) {
+export function CtaBanner({
+  title,
+  body,
+  primary,
+  secondary,
+  primaryHref,
+  secondaryHref,
+}: CtaBannerProps) {
+  const secondaryButton = secondary ? (
+    <Button
+      size="lg"
+      variant="ghost"
+      className="w-full md:w-auto"
+      style={{
+        color: "hsl(var(--primary-foreground))",
+        border: "1px solid rgba(255,255,255,0.3)",
+      }}
+    >
+      {secondary}
+    </Button>
+  ) : null;
+
+  const primaryButton = (
+    <Button
+      size="lg"
+      iconRight="arrow-right"
+      className="w-full md:w-auto"
+      style={{
+        background: "hsl(var(--primary-foreground))",
+        color: "hsl(var(--primary))",
+      }}
+    >
+      {primary}
+    </Button>
+  );
+
   return (
     <div
+      className="grid grid-cols-1 md:grid-cols-[1.5fr_auto] gap-6 md:gap-8 items-center p-8 md:p-12"
       style={{
         background: "hsl(var(--primary))",
         color: "hsl(var(--primary-foreground))",
         borderRadius: 12,
-        padding: "48px 56px",
-        display: "grid",
-        gridTemplateColumns: "1.5fr auto",
-        gap: 32,
-        alignItems: "center",
       }}
     >
       <div>
@@ -290,30 +292,23 @@ export function CtaBanner({ title, body, primary, secondary }: CtaBannerProps) {
           </p>
         )}
       </div>
-      <Stack dir="row" gap={12}>
-        {secondary && (
-          <Button
-            size="lg"
-            variant="ghost"
-            style={{
-              color: "hsl(var(--primary-foreground))",
-              border: "1px solid rgba(255,255,255,0.3)",
-            }}
-          >
-            {secondary}
-          </Button>
+      <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
+        {secondary &&
+          (secondaryHref ? (
+            <Link href={secondaryHref} className="no-underline w-full md:w-auto">
+              {secondaryButton}
+            </Link>
+          ) : (
+            secondaryButton
+          ))}
+        {primaryHref ? (
+          <Link href={primaryHref} className="no-underline w-full md:w-auto">
+            {primaryButton}
+          </Link>
+        ) : (
+          primaryButton
         )}
-        <Button
-          size="lg"
-          iconRight="arrow-right"
-          style={{
-            background: "hsl(var(--primary-foreground))",
-            color: "hsl(var(--primary))",
-          }}
-        >
-          {primary}
-        </Button>
-      </Stack>
+      </div>
     </div>
   );
 }

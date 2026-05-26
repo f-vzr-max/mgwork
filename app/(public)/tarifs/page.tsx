@@ -1,6 +1,8 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
+import { useTranslations } from "next-intl";
 import {
   Badge,
   Button,
@@ -17,119 +19,90 @@ import { CtaBanner, FaqItem } from "../_components";
 
 type Cycle = "monthly" | "annual";
 
-interface Tier {
-  name: string;
-  monthlyPrice: string;
-  annualPrice: string;
-  priceSub: string;
-  ribbon: string;
-  tagline: string;
-  cta: string;
-  ctaVariant: ButtonVariant;
-  featured?: boolean;
-  features: { ok: boolean; label: string }[];
-  feeNote: string;
-}
+const TIER_KEYS = ["t1", "t2", "t3"] as const;
+type TierKey = (typeof TIER_KEYS)[number];
 
-const TIERS: Tier[] = [
-  {
-    name: "Starter",
-    monthlyPrice: "0 €",
-    annualPrice: "0 €",
-    priceSub: "/ mois",
-    ribbon: "À la performance",
-    tagline: "Pour 1–3 recrutements par an.",
-    cta: "Commencer",
-    ctaVariant: "outline",
-    features: [
-      { ok: true, label: "Publication de 1 offre active" },
-      { ok: true, label: "Jusqu'à 3 présélections / mois" },
-      { ok: true, label: "Score de matching expliqué" },
-      { ok: true, label: "KYC entreprise inclus" },
-      { ok: false, label: "Conseiller dédié" },
-      { ok: false, label: "API & webhooks" },
-    ],
-    feeNote: "Frais de succès : 8 % du brut annuel",
-  },
-  {
-    name: "Business",
-    monthlyPrice: "490 €",
-    annualPrice: "417 €",
-    priceSub: "/ mois",
-    ribbon: "Le plus choisi",
-    tagline: "Pour les recrutements continus, 1 à 3 par mois.",
-    cta: "Démarrer une démo",
-    ctaVariant: "default",
-    featured: true,
-    features: [
-      { ok: true, label: "Jusqu'à 6 offres actives" },
-      { ok: true, label: "15 présélections / mois" },
-      { ok: true, label: "Score de matching expliqué" },
-      { ok: true, label: "Conseiller dédié" },
-      { ok: true, label: "Suivi post-départ 6 mois" },
-      { ok: false, label: "API & webhooks" },
-    ],
-    feeNote: "Frais de succès : 5 % du brut annuel",
-  },
-  {
-    name: "Enterprise",
-    monthlyPrice: "Sur devis",
-    annualPrice: "Sur devis",
-    priceSub: "",
-    ribbon: "Volume & SLA",
-    tagline: "Pipeline structuré, intégrations, audit.",
-    cta: "Nous contacter",
-    ctaVariant: "outline",
-    features: [
-      { ok: true, label: "Offres illimitées" },
-      { ok: true, label: "Présélections illimitées" },
-      { ok: true, label: "Pondérations matching sur mesure" },
-      { ok: true, label: "Conseiller principal + équipe" },
-      { ok: true, label: "Suivi post-départ 12 mois" },
-      { ok: true, label: "API, SSO, audit log exporté" },
-    ],
-    feeNote: "Frais de succès négociés",
-  },
-];
+const TIER_META: Record<
+  TierKey,
+  { ctaVariant: ButtonVariant; featured: boolean; href: string }
+> = {
+  t1: { ctaVariant: "outline", featured: false, href: "/sign-up" },
+  t2: { ctaVariant: "default", featured: true, href: "/contact" },
+  t3: { ctaVariant: "outline", featured: false, href: "/contact" },
+};
+
+const TIER_FEATURE_FLAGS: Record<TierKey, boolean[]> = {
+  t1: [true, true, true, true, false, false],
+  t2: [true, true, true, true, true, false],
+  t3: [true, true, true, true, true, true],
+};
 
 type FeatureValue = string | boolean;
 
-const FEATURE_ROWS: { f: string; s: FeatureValue; b: FeatureValue; e: FeatureValue }[] = [
-  { f: "Offres actives simultanées", s: "1", b: "6", e: "illimité" },
-  { f: "Présélections / mois", s: "3", b: "15", e: "illimité" },
-  { f: "Score de matching expliqué", s: true, b: true, e: true },
-  { f: "PII masqué jusqu'à présélection", s: true, b: true, e: true },
-  { f: "KYC entreprise", s: true, b: true, e: true },
-  { f: "Multi-utilisateurs", s: "1 siège", b: "5 sièges", e: "illimité" },
-  { f: "Conseiller dédié", s: false, b: true, e: true },
-  { f: "Suivi post-départ", s: "90 j", b: "6 mois", e: "12 mois" },
-  { f: "Pondérations matching sur mesure", s: false, b: false, e: true },
-  { f: "API & webhooks", s: false, b: false, e: true },
-  { f: "SSO (SAML / OIDC)", s: false, b: false, e: true },
-  { f: "Audit log exportable", s: false, b: false, e: true },
-  { f: "SLA support", s: "Standard", b: "24h ouvré", e: "4h prioritaire" },
+type FeatureRowKey =
+  | "r1"
+  | "r2"
+  | "r3"
+  | "r4"
+  | "r5"
+  | "r6"
+  | "r7"
+  | "r8"
+  | "r9"
+  | "r10"
+  | "r11"
+  | "r12"
+  | "r13";
+
+const FEATURE_ROW_DEFS: { key: FeatureRowKey; s: FeatureValue; b: FeatureValue; e: FeatureValue }[] = [
+  { key: "r1", s: "1", b: "6", e: "__unlimited__" },
+  { key: "r2", s: "3", b: "15", e: "__unlimited__" },
+  { key: "r3", s: true, b: true, e: true },
+  { key: "r4", s: true, b: true, e: true },
+  { key: "r5", s: true, b: true, e: true },
+  { key: "r6", s: "__r6.s__", b: "__r6.b__", e: "__r6.e__" },
+  { key: "r7", s: false, b: true, e: true },
+  { key: "r8", s: "__r8.s__", b: "__r8.b__", e: "__r8.e__" },
+  { key: "r9", s: false, b: false, e: true },
+  { key: "r10", s: false, b: false, e: true },
+  { key: "r11", s: false, b: false, e: true },
+  { key: "r12", s: false, b: false, e: true },
+  { key: "r13", s: "__r13.s__", b: "__r13.b__", e: "__r13.e__" },
 ];
 
 export default function TarifsPage() {
+  const t = useTranslations("marketing");
   const [cycle, setCycle] = React.useState<Cycle>("monthly");
+
+  // Resolve string token to translated value, leaving plain strings alone.
+  const resolveValue = (v: FeatureValue): FeatureValue => {
+    if (typeof v !== "string") return v;
+    if (v === "__unlimited__") return t("tarifs.matrix.unlimited");
+    const tokenMatch = /^__(.+)__$/.exec(v);
+    if (tokenMatch) return t(`tarifs.matrix.${tokenMatch[1]}`);
+    return v;
+  };
 
   return (
     <PublicShell active="tarifs">
       {/* Hero */}
       <div
+        className="px-4 md:px-8 py-12 md:py-10"
         style={{
           background:
             "linear-gradient(180deg, rgba(26,60,110,0.06) 0%, hsl(var(--background)) 100%)",
-          padding: "72px 32px 40px",
         }}
       >
         <div style={{ maxWidth: 920, margin: "0 auto", textAlign: "center" }}>
           <Badge tone="primary" size="md" style={{ marginBottom: 20 }}>
-            Tarifs entreprises
+            {t("tarifs.hero.badge")}
           </Badge>
           <h1 className="mg-display" style={{ margin: 0 }}>
-            Un plan pour chaque{" "}
-            <span style={{ color: "hsl(var(--primary))" }}>cadence</span> de recrutement.
+            {t("tarifs.hero.titlePart1")}
+            <span style={{ color: "hsl(var(--primary))" }}>
+              {t("tarifs.hero.titleHighlight")}
+            </span>
+            {t("tarifs.hero.titlePart2")}
           </h1>
           <p
             className="mg-body-lg"
@@ -139,7 +112,7 @@ export default function TarifsPage() {
               maxWidth: 600,
             }}
           >
-            Toujours gratuit pour les candidats. Facturé aux entreprises uniquement.
+            {t("tarifs.hero.subtitle")}
           </p>
           {/* Toggle */}
           <div
@@ -154,12 +127,12 @@ export default function TarifsPage() {
               fontWeight: 600,
             }}
             role="tablist"
-            aria-label="Cycle de facturation"
+            aria-label={t("tarifs.cycle.aria")}
           >
             {(
               [
-                { label: "Mensuel", value: "monthly" as const },
-                { label: "Annuel · -15%", value: "annual" as const },
+                { labelKey: "tarifs.cycle.monthly", value: "monthly" as const },
+                { labelKey: "tarifs.cycle.annual", value: "annual" as const },
               ]
             ).map((o) => {
               const active = o.value === cycle;
@@ -183,7 +156,7 @@ export default function TarifsPage() {
                     fontSize: 13,
                   }}
                 >
-                  {o.label}
+                  {t(o.labelKey)}
                 </button>
               );
             })}
@@ -194,31 +167,31 @@ export default function TarifsPage() {
       {/* Tiers */}
       <Section padY={64}>
         <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(3, 1fr)",
-            gap: 20,
-            alignItems: "stretch",
-          }}
+          className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5 items-stretch"
         >
-          {TIERS.map((t) => {
-            const price = cycle === "annual" ? t.annualPrice : t.monthlyPrice;
+          {TIER_KEYS.map((tierKey) => {
+            const meta = TIER_META[tierKey];
+            const price =
+              cycle === "annual"
+                ? t(`tarifs.${tierKey}.annualPrice`)
+                : t(`tarifs.${tierKey}.monthlyPrice`);
+            const flags = TIER_FEATURE_FLAGS[tierKey];
             return (
               <Card
-                key={t.name}
+                key={tierKey}
                 padding={32}
                 style={{
                   position: "relative",
-                  border: t.featured
+                  border: meta.featured
                     ? "2px solid hsl(var(--primary))"
                     : "1px solid hsl(var(--border))",
-                  boxShadow: t.featured ? "var(--shadow-md)" : "var(--shadow-sm)",
+                  boxShadow: meta.featured ? "var(--shadow-md)" : "var(--shadow-sm)",
                   display: "flex",
                   flexDirection: "column",
                   gap: 16,
                 }}
               >
-                {t.featured && (
+                {meta.featured && (
                   <div
                     style={{
                       position: "absolute",
@@ -235,18 +208,18 @@ export default function TarifsPage() {
                       textTransform: "uppercase",
                     }}
                   >
-                    {t.ribbon}
+                    {t(`tarifs.${tierKey}.ribbon`)}
                   </div>
                 )}
                 <div>
                   <div className="mg-h3" style={{ margin: 0 }}>
-                    {t.name}
+                    {t(`tarifs.${tierKey}.name`)}
                   </div>
                   <div
                     className="mg-caption"
                     style={{ color: "hsl(var(--muted-foreground))", marginTop: 4 }}
                   >
-                    {t.tagline}
+                    {t(`tarifs.${tierKey}.tagline`)}
                   </div>
                 </div>
                 <Stack dir="row" gap={6} align="baseline">
@@ -265,38 +238,43 @@ export default function TarifsPage() {
                     className="mg-caption"
                     style={{ color: "hsl(var(--muted-foreground))" }}
                   >
-                    {t.priceSub}
+                    {t(`tarifs.${tierKey}.priceSub`)}
                   </span>
                 </Stack>
-                <Button variant={t.ctaVariant} fullWidth iconRight="arrow-right">
-                  {t.cta}
-                </Button>
+                <Link href={meta.href} className="no-underline">
+                  <Button variant={meta.ctaVariant} fullWidth iconRight="arrow-right">
+                    {t(`tarifs.${tierKey}.cta`)}
+                  </Button>
+                </Link>
                 <Hairline />
                 <Stack gap={10}>
-                  {t.features.map((f) => (
-                    <Stack key={f.label} dir="row" gap={10} align="center">
-                      <Icon
-                        name={f.ok ? "check-circle-2" : "x"}
-                        size={16}
-                        style={{
-                          color: f.ok
-                            ? "hsl(var(--success))"
-                            : "hsl(var(--muted-foreground))",
-                          flexShrink: 0,
-                        }}
-                      />
-                      <span
-                        className="mg-body-sm"
-                        style={{
-                          color: f.ok
-                            ? "hsl(var(--foreground))"
-                            : "hsl(var(--muted-foreground))",
-                        }}
-                      >
-                        {f.label}
-                      </span>
-                    </Stack>
-                  ))}
+                  {flags.map((ok, i) => {
+                    const featureKey = `f${i + 1}` as const;
+                    return (
+                      <Stack key={featureKey} dir="row" gap={10} align="center">
+                        <Icon
+                          name={ok ? "check-circle-2" : "x"}
+                          size={16}
+                          style={{
+                            color: ok
+                              ? "hsl(var(--success))"
+                              : "hsl(var(--muted-foreground))",
+                            flexShrink: 0,
+                          }}
+                        />
+                        <span
+                          className="mg-body-sm"
+                          style={{
+                            color: ok
+                              ? "hsl(var(--foreground))"
+                              : "hsl(var(--muted-foreground))",
+                          }}
+                        >
+                          {t(`tarifs.${tierKey}.${featureKey}`)}
+                        </span>
+                      </Stack>
+                    );
+                  })}
                 </Stack>
                 <div
                   className="mg-caption"
@@ -306,7 +284,7 @@ export default function TarifsPage() {
                     paddingTop: 8,
                   }}
                 >
-                  {t.feeNote}
+                  {t(`tarifs.${tierKey}.feeNote`)}
                 </div>
               </Card>
             );
@@ -317,10 +295,10 @@ export default function TarifsPage() {
       {/* Feature matrix */}
       <Section padY={96} surface={2}>
         <SectionHeader
-          eyebrow="Comparatif"
-          title="Toutes les fonctionnalités, en détail"
+          eyebrow={t("tarifs.matrix.eyebrow")}
+          title={t("tarifs.matrix.title")}
         />
-        <Card padding={0}>
+        <Card padding={0} style={{ overflowX: "auto" }}>
           <div
             className="mg-micro"
             style={{
@@ -330,18 +308,21 @@ export default function TarifsPage() {
               background: "hsl(var(--surface-2))",
               borderBottom: "1px solid hsl(var(--border))",
               color: "hsl(var(--muted-foreground))",
+              minWidth: 640,
             }}
           >
-            <span>Fonctionnalité</span>
-            <span style={{ textAlign: "center" }}>Starter</span>
+            <span>{t("tarifs.matrix.colFeature")}</span>
+            <span style={{ textAlign: "center" }}>{t("tarifs.matrix.colStarter")}</span>
             <span style={{ textAlign: "center", color: "hsl(var(--primary))" }}>
-              Business
+              {t("tarifs.matrix.colBusiness")}
             </span>
-            <span style={{ textAlign: "center" }}>Enterprise</span>
+            <span style={{ textAlign: "center" }}>
+              {t("tarifs.matrix.colEnterprise")}
+            </span>
           </div>
-          {FEATURE_ROWS.map((row, i) => (
+          {FEATURE_ROW_DEFS.map((row, i) => (
             <div
-              key={row.f}
+              key={row.key}
               style={{
                 display: "grid",
                 gridTemplateColumns: "1.6fr 1fr 1fr 1fr",
@@ -349,11 +330,12 @@ export default function TarifsPage() {
                 alignItems: "center",
                 borderTop: i === 0 ? 0 : "1px solid hsl(var(--border))",
                 background: i % 2 === 1 ? "hsl(var(--surface-2))" : undefined,
+                minWidth: 640,
               }}
             >
-              <span className="mg-body-sm">{row.f}</span>
+              <span className="mg-body-sm">{t(`tarifs.matrix.${row.key}.f`)}</span>
               {(["s", "b", "e"] as const).map((k) => {
-                const v = row[k];
+                const v = resolveValue(row[k]);
                 const isBusiness = k === "b";
                 return (
                   <span
@@ -400,27 +382,33 @@ export default function TarifsPage() {
 
       {/* FAQ */}
       <Section padY={96}>
-        <SectionHeader eyebrow="FAQ" title="Questions sur les tarifs" align="center" />
+        <SectionHeader
+          eyebrow={t("tarifs.faq.eyebrow")}
+          title={t("tarifs.faq.title")}
+          align="center"
+        />
         <div style={{ maxWidth: 800, margin: "0 auto", display: "grid", gap: 12 }}>
           <FaqItem
             open
-            q="Que comprennent les « frais de succès » ?"
-            a="Un pourcentage du salaire brut annuel du candidat embauché, facturé uniquement quand l'embauche est confirmée. C'est notre alignement d'intérêts : nous gagnons quand vous recrutez avec succès."
+            q={t("tarifs.faq.q1.q")}
+            a={t("tarifs.faq.q1.a")}
           />
-          <FaqItem q="Puis-je changer de plan en cours d'année ?" />
-          <FaqItem q="Les candidats paient-ils quelque chose ?" />
-          <FaqItem q="Comment se passe la facturation ?" />
-          <FaqItem q="Y a-t-il une période d'engagement ?" />
+          <FaqItem q={t("tarifs.faq.q2.q")} />
+          <FaqItem q={t("tarifs.faq.q3.q")} />
+          <FaqItem q={t("tarifs.faq.q4.q")} />
+          <FaqItem q={t("tarifs.faq.q5.q")} />
         </div>
       </Section>
 
       {/* CTA */}
       <Section padY={80}>
         <CtaBanner
-          title="Commencez avec 3 profils gratuits."
-          body="Aucune carte requise. Démo personnalisée sous 48 h."
-          primary="Demander une démo"
-          secondary="Comparer les plans"
+          title={t("tarifs.cta.title")}
+          body={t("tarifs.cta.body")}
+          primary={t("tarifs.cta.primary")}
+          primaryHref="/sign-up?role=employer"
+          secondary={t("tarifs.cta.secondary")}
+          secondaryHref="/contact"
         />
       </Section>
     </PublicShell>

@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import * as Dialog from "@radix-ui/react-dialog";
+import { useTranslations } from "next-intl";
 import { Wordmark } from "./wordmark";
 import { Badge } from "./badge";
 import { Hairline } from "./hairline";
@@ -17,15 +18,15 @@ export type PublicNavKey = "candidats" | "entreprises" | "conformite" | "tarifs"
 
 interface NavLink {
   key: Exclude<PublicNavKey, null>;
-  label: string;
+  labelKey: string;
   href: string;
 }
 
 const NAV_LINKS: NavLink[] = [
-  { key: "candidats", label: "Candidats", href: "/candidats" },
-  { key: "entreprises", label: "Entreprises", href: "/entreprises" },
-  { key: "conformite", label: "Conformité", href: "/conformite" },
-  { key: "tarifs", label: "Tarifs", href: "/tarifs" },
+  { key: "candidats", labelKey: "nav.candidats", href: "/candidats" },
+  { key: "entreprises", labelKey: "nav.entreprises", href: "/entreprises" },
+  { key: "conformite", labelKey: "nav.conformite", href: "/conformite" },
+  { key: "tarifs", labelKey: "nav.tarifs", href: "/tarifs" },
 ];
 
 export interface PublicShellProps {
@@ -33,7 +34,17 @@ export interface PublicShellProps {
   children: React.ReactNode;
 }
 
-function NavLinkItem({ link, isActive, onNavigate }: { link: NavLink; isActive: boolean; onNavigate?: () => void }) {
+function NavLinkItem({
+  link,
+  label,
+  isActive,
+  onNavigate,
+}: {
+  link: NavLink;
+  label: string;
+  isActive: boolean;
+  onNavigate?: () => void;
+}) {
   return (
     <Link
       href={link.href}
@@ -45,12 +56,13 @@ function NavLinkItem({ link, isActive, onNavigate }: { link: NavLink; isActive: 
           : "border-transparent font-medium text-[hsl(var(--foreground))] hover:text-[hsl(var(--primary))]",
       )}
     >
-      {link.label}
+      {label}
     </Link>
   );
 }
 
 export function PublicHeader({ active = null }: { active?: PublicNavKey }) {
+  const t = useTranslations("marketing");
   const [open, setOpen] = React.useState(false);
   const close = React.useCallback(() => setOpen(false), []);
 
@@ -64,10 +76,10 @@ export function PublicHeader({ active = null }: { active?: PublicNavKey }) {
         {/* Desktop nav (md+) */}
         <nav
           className="hidden md:flex shrink-0 items-center gap-7"
-          aria-label="Sections publiques"
+          aria-label={t("nav.sectionsAria")}
         >
           {NAV_LINKS.map((l) => (
-            <NavLinkItem key={l.key} link={l} isActive={l.key === active} />
+            <NavLinkItem key={l.key} link={l} label={t(l.labelKey)} isActive={l.key === active} />
           ))}
         </nav>
 
@@ -76,10 +88,10 @@ export function PublicHeader({ active = null }: { active?: PublicNavKey }) {
           <LanguageMenu />
           <ThemeToggle />
           <Link href="/sign-in" className="no-underline">
-            <Button variant="ghost">Se connecter</Button>
+            <Button variant="ghost">{t("nav.signIn")}</Button>
           </Link>
           <Link href="/sign-up" className="no-underline">
-            <Button>S&apos;inscrire</Button>
+            <Button>{t("nav.signUp")}</Button>
           </Link>
         </div>
 
@@ -88,7 +100,7 @@ export function PublicHeader({ active = null }: { active?: PublicNavKey }) {
           <Dialog.Trigger asChild>
             <button
               type="button"
-              aria-label="Ouvrir le menu"
+              aria-label={t("nav.openMenu")}
               className="md:hidden inline-flex items-center justify-center h-10 w-10 rounded-md border border-[hsl(var(--border))] bg-transparent text-[hsl(var(--foreground))] hover:bg-[hsl(var(--surface-2))] transition-colors"
             >
               <Icon name="menu" size={20} aria-hidden />
@@ -107,7 +119,7 @@ export function PublicHeader({ active = null }: { active?: PublicNavKey }) {
                 <Dialog.Close asChild>
                   <button
                     type="button"
-                    aria-label="Fermer le menu"
+                    aria-label={t("nav.closeMenu")}
                     className="inline-flex items-center justify-center h-10 w-10 rounded-md text-[hsl(var(--foreground))] hover:bg-[hsl(var(--surface-2))] transition-colors"
                   >
                     <Icon name="x" size={20} aria-hidden />
@@ -116,12 +128,13 @@ export function PublicHeader({ active = null }: { active?: PublicNavKey }) {
               </div>
               <nav
                 className="flex flex-col gap-5 px-6 py-6"
-                aria-label="Sections publiques"
+                aria-label={t("nav.sectionsAria")}
               >
                 {NAV_LINKS.map((l) => (
                   <NavLinkItem
                     key={l.key}
                     link={l}
+                    label={t(l.labelKey)}
                     isActive={l.key === active}
                     onNavigate={close}
                   />
@@ -134,11 +147,11 @@ export function PublicHeader({ active = null }: { active?: PublicNavKey }) {
                 </div>
                 <Link href="/sign-in" className="no-underline" onClick={close}>
                   <Button variant="ghost" className="w-full">
-                    Se connecter
+                    {t("nav.signIn")}
                   </Button>
                 </Link>
                 <Link href="/sign-up" className="no-underline" onClick={close}>
-                  <Button className="w-full">S&apos;inscrire</Button>
+                  <Button className="w-full">{t("nav.signUp")}</Button>
                 </Link>
               </div>
             </Dialog.Content>
@@ -150,8 +163,8 @@ export function PublicHeader({ active = null }: { active?: PublicNavKey }) {
 }
 
 interface FooterCol {
-  title: string;
-  links: { label: string; href: string }[];
+  titleKey: string;
+  links: { labelKey: string; href: string }[];
 }
 
 // Only ship links that resolve to a real page. Placeholder "#" hrefs were
@@ -159,39 +172,40 @@ interface FooterCol {
 // and a legal-compliance risk (Mentions légales, Confidentialité).
 const FOOTER_COLS: FooterCol[] = [
   {
-    title: "Produit",
+    titleKey: "footer.colProduit",
     links: [
-      { label: "Pour les candidats", href: "/candidats" },
-      { label: "Pour les entreprises", href: "/entreprises" },
-      { label: "Tarifs", href: "/tarifs" },
-      { label: "Sécurité", href: "/conformite" },
+      { labelKey: "footer.links.candidats", href: "/candidats" },
+      { labelKey: "footer.links.entreprises", href: "/entreprises" },
+      { labelKey: "footer.links.tarifs", href: "/tarifs" },
+      { labelKey: "footer.links.security", href: "/conformite" },
     ],
   },
   {
-    title: "Ressources",
+    titleKey: "footer.colRessources",
     links: [
-      { label: "Guide candidat", href: "/guides/candidat" },
-      { label: "Guide entreprise", href: "/guides/entreprise" },
-      { label: "Centre d'aide", href: "/aide" },
+      { labelKey: "footer.links.guideCandidat", href: "/guides/candidat" },
+      { labelKey: "footer.links.guideEntreprise", href: "/guides/entreprise" },
+      { labelKey: "footer.links.helpCenter", href: "/aide" },
     ],
   },
   {
-    title: "Entreprise",
-    links: [{ label: "Nous contacter", href: "/contact" }],
+    titleKey: "footer.colEntreprise",
+    links: [{ labelKey: "footer.links.contact", href: "/contact" }],
   },
   {
-    title: "Légal",
+    titleKey: "footer.colLegal",
     links: [
-      { label: "Mentions légales", href: "/legal/mentions-legales" },
-      { label: "Confidentialité", href: "/legal/confidentialite" },
-      { label: "Conditions d'utilisation", href: "/legal/conditions" },
-      { label: "DPA Mauritius 2017", href: "/conformite" },
-      { label: "Cookies", href: "/legal/cookies" },
+      { labelKey: "footer.links.mentionsLegales", href: "/legal/mentions-legales" },
+      { labelKey: "footer.links.confidentialite", href: "/legal/confidentialite" },
+      { labelKey: "footer.links.conditions", href: "/legal/conditions" },
+      { labelKey: "footer.links.dpa", href: "/conformite" },
+      { labelKey: "footer.links.cookies", href: "/legal/cookies" },
     ],
   },
 ];
 
 export function PublicFooter() {
+  const t = useTranslations("marketing");
   const year = new Date().getFullYear();
   return (
     <footer className="bg-[hsl(var(--surface-2))] border-t border-[hsl(var(--border))]">
@@ -203,33 +217,31 @@ export function PublicFooter() {
               className="mg-body-sm mt-4 mb-5 max-w-[280px]"
               style={{ color: "hsl(var(--muted-foreground))" }}
             >
-              La plateforme sérieuse pour la mobilité du travail entre Madagascar et l&apos;océan Indien.
+              {t("footer.tagline")}
             </p>
             <Stack dir="row" gap={8} align="center" wrap>
               <Badge tone="success" icon="shield-check">
-                DPA 2017
+                {t("footer.badge.dpa")}
               </Badge>
-              <Badge tone="neutral" icon="globe">
-                FR · EN
-              </Badge>
+              <LanguageMenu />
             </Stack>
           </div>
           {FOOTER_COLS.map((c) => (
-            <div key={c.title}>
+            <div key={c.titleKey}>
               <div
                 className="mg-micro mb-3.5"
                 style={{ color: "hsl(var(--muted-foreground))" }}
               >
-                {c.title}
+                {t(c.titleKey)}
               </div>
               <Stack gap={10}>
                 {c.links.map((l) => (
                   <Link
-                    key={l.label}
+                    key={l.labelKey}
                     href={l.href}
                     className="mg-body-sm no-underline text-[hsl(var(--foreground))] hover:text-[hsl(var(--primary))] transition-colors"
                   >
-                    {l.label}
+                    {t(l.labelKey)}
                   </Link>
                 ))}
               </Stack>
@@ -239,7 +251,7 @@ export function PublicFooter() {
         <Hairline style={{ margin: "32px 0 16px" }} />
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="mg-caption" style={{ color: "hsl(var(--muted-foreground))" }}>
-            © {year} MG·Work SARL · Antananarivo, Madagascar · Port-Louis, Maurice
+            {t("footer.copyright", { year })}
           </div>
           {/* Social links removed pending real accounts (audit F-007). */}
         </div>

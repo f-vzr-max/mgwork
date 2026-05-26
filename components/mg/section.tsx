@@ -17,7 +17,14 @@ export function Section({
   const bg =
     surface === 2 ? "hsl(var(--surface-2))" : surface === 3 ? "hsl(var(--surface-3))" : "hsl(var(--background))";
   return (
-    <section style={{ background: bg, padding: `${padY}px 32px`, ...style }} {...rest}>
+    <section
+      style={{
+        background: bg,
+        padding: `clamp(48px, 8vw, ${padY}px) clamp(16px, 4vw, 32px)`,
+        ...style,
+      }}
+      {...rest}
+    >
       <div style={{ maxWidth: 1120, margin: "0 auto", ...inner }}>{children}</div>
     </section>
   );

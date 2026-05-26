@@ -1,15 +1,19 @@
+import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import {
-  Avatar,
   Badge,
   Button,
   Card,
   Hairline,
   Icon,
+  LogoMarquee,
+  MatchingCardStack,
+  MobileCarousel,
   PublicShell,
-  ScoreGauge,
   Section,
   SectionHeader,
   Stack,
+  type MatchingCard,
 } from "@/components/mg";
 import {
   CountryCard,
@@ -20,14 +24,41 @@ import {
   TestimonialCard,
 } from "./_components";
 
-export const metadata = {
-  title:
-    "MG·Work — La mobilité du travail entre Madagascar et l'océan Indien",
-  description:
-    "Plateforme sérieuse de mise en relation entre candidats malgaches et entreprises de Maurice, La Réunion et Seychelles. Conforme DPA Mauritius 2017.",
-};
+export async function generateMetadata() {
+  const t = await getTranslations("marketing");
+  return {
+    title: t("home.metaTitle"),
+    description: t("home.metaDescription"),
+  };
+}
 
-function HomeHero() {
+async function HomeHero() {
+  const t = await getTranslations("marketing");
+
+  const matchingCards: MatchingCard[] = [
+    {
+      name: "Tahiry Razafy",
+      short: t("home.hero.match1.name"),
+      origin: t("home.hero.match1.role"),
+      score: 87,
+      role: t("home.hero.match1.target"),
+    },
+    {
+      name: "Naina Andriana",
+      short: t("home.hero.match2.name"),
+      origin: t("home.hero.match2.role"),
+      score: 74,
+      role: t("home.hero.match2.target"),
+    },
+    {
+      name: "Iary Rakoto",
+      short: t("home.hero.match3.name"),
+      origin: t("home.hero.match3.role"),
+      score: 92,
+      role: t("home.hero.match3.target"),
+    },
+  ];
+
   return (
     <div
       className="px-4 md:px-8 py-12 md:py-16"
@@ -41,13 +72,14 @@ function HomeHero() {
       >
         <div>
           <Badge tone="primary" size="md" icon="shield-check" style={{ marginBottom: 20 }}>
-            Conforme DPA Mauritius 2017
+            {t("home.hero.badge")}
           </Badge>
           <h1 className="mg-display" style={{ margin: 0, maxWidth: 540 }}>
-            La mobilité du travail
+            {t("home.hero.titlePart1")}
             <br />
-            entre Madagascar et l&apos;
-            <span style={{ color: "hsl(var(--primary))" }}>océan Indien</span>.
+            {t("home.hero.titlePart2Prefix")}
+            <span style={{ color: "hsl(var(--primary))" }}>{t("home.hero.titleHighlight")}</span>
+            {t("home.hero.titleSuffix")}
           </h1>
           <p
             className="mg-body-lg"
@@ -57,16 +89,19 @@ function HomeHero() {
               maxWidth: 480,
             }}
           >
-            Une plateforme sérieuse pour mettre en relation candidats malgaches et entreprises en
-            Maurice, La Réunion et aux Seychelles.
+            {t("home.hero.subtitle")}
           </p>
           <Stack dir="row" gap={12} style={{ marginTop: 32 }}>
-            <Button size="lg" iconRight="arrow-right">
-              Je suis candidat
-            </Button>
-            <Button size="lg" variant="outline" iconRight="arrow-up-right">
-              Je recrute
-            </Button>
+            <Link href="/sign-up?role=candidate" className="no-underline">
+              <Button size="lg" iconRight="arrow-right">
+                {t("cta.iAmCandidate")}
+              </Button>
+            </Link>
+            <Link href="/sign-up?role=employer" className="no-underline">
+              <Button size="lg" variant="outline" iconRight="arrow-up-right">
+                {t("cta.iAmRecruiting")}
+              </Button>
+            </Link>
           </Stack>
           <div
             style={{
@@ -81,13 +116,13 @@ function HomeHero() {
                 className="mg-tabular"
                 style={{ fontSize: 22, fontWeight: 600, letterSpacing: "-0.015em" }}
               >
-                1 240+
+                {t("home.hero.stats.placed.value")}
               </div>
               <div
                 className="mg-caption"
                 style={{ color: "hsl(var(--muted-foreground))" }}
               >
-                candidats placés
+                {t("home.hero.stats.placed.label")}
               </div>
             </div>
             <Hairline vertical style={{ height: 32 }} />
@@ -96,13 +131,13 @@ function HomeHero() {
                 className="mg-tabular"
                 style={{ fontSize: 22, fontWeight: 600, letterSpacing: "-0.015em" }}
               >
-                87
+                {t("home.hero.stats.partners.value")}
               </div>
               <div
                 className="mg-caption"
                 style={{ color: "hsl(var(--muted-foreground))" }}
               >
-                entreprises partenaires
+                {t("home.hero.stats.partners.label")}
               </div>
             </div>
             <Hairline vertical style={{ height: 32 }} />
@@ -111,252 +146,138 @@ function HomeHero() {
                 className="mg-tabular"
                 style={{ fontSize: 22, fontWeight: 600, letterSpacing: "-0.015em" }}
               >
-                3
+                {t("home.hero.stats.countries.value")}
               </div>
               <div
                 className="mg-caption"
                 style={{ color: "hsl(var(--muted-foreground))" }}
               >
-                pays couverts
+                {t("home.hero.stats.countries.label")}
               </div>
             </div>
           </div>
         </div>
-        <div className="relative hidden md:block" style={{ height: 360 }}>
-          <Card
-            elevation={2}
-            style={{ position: "absolute", top: 36, left: 0, right: 24, transform: "rotate(-2deg)" }}
-          >
-            <Stack dir="row" gap={16} align="center">
-              <Avatar name="Tahiry Razafy" size={44} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div className="mg-h4">Tahiry R.</div>
-                <div
-                  className="mg-caption"
-                  style={{ color: "hsl(var(--muted-foreground))" }}
-                >
-                  Antananarivo · Hôtellerie
-                </div>
-              </div>
-              <ScoreGauge value={87} size={56} />
-            </Stack>
-            <Hairline style={{ margin: "16px 0" }} />
-            <div
-              className="mg-caption"
-              style={{ color: "hsl(var(--muted-foreground))" }}
-            >
-              Pour
-            </div>
-            <div className="mg-body-sm" style={{ fontWeight: 600, marginTop: 2 }}>
-              Réceptionniste · Hôtel Lux, Maurice
-            </div>
-          </Card>
-          <Card
-            elevation={2}
-            style={{ position: "absolute", top: 130, left: 64, right: -16, transform: "rotate(1.5deg)" }}
-          >
-            <Stack dir="row" gap={16} align="center">
-              <Avatar name="Naina Andriana" size={44} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div className="mg-h4">Naina A.</div>
-                <div
-                  className="mg-caption"
-                  style={{ color: "hsl(var(--muted-foreground))" }}
-                >
-                  Mahajanga · Construction
-                </div>
-              </div>
-              <ScoreGauge value={74} size={56} />
-            </Stack>
-            <Hairline style={{ margin: "16px 0" }} />
-            <div
-              className="mg-caption"
-              style={{ color: "hsl(var(--muted-foreground))" }}
-            >
-              Pour
-            </div>
-            <div className="mg-body-sm" style={{ fontWeight: 600, marginTop: 2 }}>
-              Charpentier · BTP Réunion SA
-            </div>
-          </Card>
-          <Card
-            elevation={2}
-            style={{ position: "absolute", top: 234, left: 24, right: 8, transform: "rotate(-0.8deg)" }}
-          >
-            <Stack dir="row" gap={16} align="center">
-              <Avatar name="Iary Rakoto" size={44} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div className="mg-h4">Iary R.</div>
-                <div
-                  className="mg-caption"
-                  style={{ color: "hsl(var(--muted-foreground))" }}
-                >
-                  Toamasina · Santé
-                </div>
-              </div>
-              <ScoreGauge value={92} size={56} />
-            </Stack>
-            <Hairline style={{ margin: "16px 0" }} />
-            <div
-              className="mg-caption"
-              style={{ color: "hsl(var(--muted-foreground))" }}
-            >
-              Pour
-            </div>
-            <div className="mg-body-sm" style={{ fontWeight: 600, marginTop: 2 }}>
-              Aide-soignant · Clinique Seychelles
-            </div>
-          </Card>
-        </div>
+        <MatchingCardStack cards={matchingCards} forLabel={t("home.hero.matchFor")} />
       </div>
     </div>
   );
 }
 
-const SECTORS = [
-  { icon: "briefcase" as const, name: "Hôtellerie", jobs: 312, growth: "+24%" },
-  { icon: "building-2" as const, name: "Construction", jobs: 248, growth: "+18%" },
-  { icon: "stethoscope" as const, name: "Santé", jobs: 184, growth: "+31%" },
-  { icon: "star" as const, name: "Restauration", jobs: 156, growth: "+12%" },
-  { icon: "shield-check" as const, name: "Sécurité", jobs: 92, growth: "+8%" },
-  { icon: "home" as const, name: "Domestique", jobs: 78, growth: "+15%" },
-];
+export default async function HomePage() {
+  const t = await getTranslations("marketing");
 
-const PILLARS = [
-  {
-    icon: "users" as const,
-    title: "Profils vérifiés",
-    body:
-      "Identité, diplômes et autorisations contrôlés par notre équipe avant chaque match.",
-  },
-  {
-    icon: "sparkles" as const,
-    title: "Matching transparent",
-    body:
-      "Chaque score est expliqué : compétences, langues, secteur, mobilité géographique.",
-  },
-  {
-    icon: "shield-check" as const,
-    title: "Conformité régionale",
-    body: "Conformité DPA Mauritius 2017 et accompagnement KYC pour les entreprises.",
-  },
-];
+  const sectors = [
+    { icon: "briefcase" as const, name: t("home.sectors.hospitality"), jobs: 312, growth: "+24%" },
+    { icon: "building-2" as const, name: t("home.sectors.construction"), jobs: 248, growth: "+18%" },
+    { icon: "stethoscope" as const, name: t("home.sectors.health"), jobs: 184, growth: "+31%" },
+    { icon: "star" as const, name: t("home.sectors.restaurant"), jobs: 156, growth: "+12%" },
+    { icon: "shield-check" as const, name: t("home.sectors.security"), jobs: 92, growth: "+8%" },
+    { icon: "home" as const, name: t("home.sectors.domestic"), jobs: 78, growth: "+15%" },
+  ];
 
-const NUMBERS = [
-  { v: "1 240+", l: "candidats placés" },
-  { v: "87", l: "entreprises partenaires" },
-  { v: "14 j", l: "délai moyen au départ" },
-  { v: "94 %", l: "taux de rétention 6 mois" },
-];
+  const pillars = [
+    {
+      icon: "users" as const,
+      title: t("home.pillars.verified.title"),
+      body: t("home.pillars.verified.body"),
+    },
+    {
+      icon: "sparkles" as const,
+      title: t("home.pillars.matching.title"),
+      body: t("home.pillars.matching.body"),
+    },
+    {
+      icon: "shield-check" as const,
+      title: t("home.pillars.compliance.title"),
+      body: t("home.pillars.compliance.body"),
+    },
+  ];
 
-export default function HomePage() {
+  const numbers = [
+    { v: t("home.numbers.placed.value"), l: t("home.numbers.placed.label") },
+    { v: t("home.numbers.partners.value"), l: t("home.numbers.partners.label") },
+    { v: t("home.numbers.delay.value"), l: t("home.numbers.delay.label") },
+    { v: t("home.numbers.retention.value"), l: t("home.numbers.retention.label") },
+  ];
+
+  const trustLogos = [
+    "HÔTEL LUX",
+    "CLINIQUE ATLANTIS",
+    "BTP RÉUNION",
+    "SUCRIÈRE MU",
+    "CONSTANCE",
+    "BEACHCOMBER",
+  ];
+
   return (
     <PublicShell active={null}>
       <HomeHero />
 
       {/* Logos / trust strip */}
-      <div
-        style={{
-          background: "hsl(var(--surface-2))",
-          borderTop: "1px solid hsl(var(--border))",
-          borderBottom: "1px solid hsl(var(--border))",
-          padding: "24px 32px",
-        }}
-      >
-        <div
-          style={{
-            maxWidth: 1120,
-            margin: "0 auto",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 32,
-          }}
-        >
-          <span
-            className="mg-caption"
-            style={{ color: "hsl(var(--muted-foreground))", whiteSpace: "nowrap" }}
-          >
-            Ils nous font confiance
-          </span>
-          <Stack dir="row" gap={48} align="center" wrap>
-            {["HÔTEL LUX", "CLINIQUE ATLANTIS", "BTP RÉUNION", "SUCRIÈRE MU", "CONSTANCE", "BEACHCOMBER"].map(
-              (b) => (
-                <div
-                  key={b}
-                  className="mg-micro"
-                  style={{ color: "hsl(var(--muted-foreground))", letterSpacing: "0.08em" }}
-                >
-                  {b}
-                </div>
-              ),
-            )}
-          </Stack>
-        </div>
-      </div>
+      <LogoMarquee logos={trustLogos} label={t("home.trust.label")} />
 
       {/* How it works — split */}
       <Section padY={96}>
         <SectionHeader
-          eyebrow="Comment ça marche"
-          title="Une plateforme, deux parcours"
-          subtitle="Côté candidat, vous postulez en quelques minutes. Côté entreprise, vous recevez des profils déjà vérifiés."
+          eyebrow={t("home.howItWorks.eyebrow")}
+          title={t("home.howItWorks.title")}
+          subtitle={t("home.howItWorks.subtitle")}
           align="center"
           maxWidth={620}
         />
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32, alignItems: "start" }}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
           <div>
             <Badge tone="info" size="md" icon="users" style={{ marginBottom: 16 }}>
-              Côté candidat
+              {t("home.howItWorks.candidate.badge")}
             </Badge>
             <h3 className="mg-h2" style={{ margin: "0 0 24px" }}>
-              Trouvez un poste à l&apos;étranger
+              {t("home.howItWorks.candidate.title")}
             </h3>
             <div style={{ display: "grid", gap: 12 }}>
               <StepCard
                 n={1}
-                title="Créez votre profil"
-                body="Identité, expériences, langues, secteur recherché. 10 minutes."
+                title={t("home.howItWorks.candidate.step1.title")}
+                body={t("home.howItWorks.candidate.step1.body")}
                 icon="users"
               />
               <StepCard
                 n={2}
-                title="Recevez des matchs"
-                body="Notre moteur croise vos critères avec les offres ouvertes."
+                title={t("home.howItWorks.candidate.step2.title")}
+                body={t("home.howItWorks.candidate.step2.body")}
                 icon="sparkles"
               />
               <StepCard
                 n={3}
-                title="Décollez"
-                body="Documents, visa, logement : un conseiller vous suit jusqu'au départ."
+                title={t("home.howItWorks.candidate.step3.title")}
+                body={t("home.howItWorks.candidate.step3.body")}
                 icon="arrow-up-right"
               />
             </div>
           </div>
           <div>
             <Badge tone="primary" size="md" icon="building-2" style={{ marginBottom: 16 }}>
-              Côté entreprise
+              {t("home.howItWorks.enterprise.badge")}
             </Badge>
             <h3 className="mg-h2" style={{ margin: "0 0 24px" }}>
-              Recrutez en confiance
+              {t("home.howItWorks.enterprise.title")}
             </h3>
             <div style={{ display: "grid", gap: 12 }}>
               <StepCard
                 n={1}
-                title="Publiez votre offre"
-                body="Décrivez le poste, les compétences, les langues. Validation KYC en 48 h."
+                title={t("home.howItWorks.enterprise.step1.title")}
+                body={t("home.howItWorks.enterprise.step1.body")}
                 icon="briefcase"
               />
               <StepCard
                 n={2}
-                title="Recevez des profils notés"
-                body="Chaque candidat est noté de 0 à 100. PII masqué avant présélection."
+                title={t("home.howItWorks.enterprise.step2.title")}
+                body={t("home.howItWorks.enterprise.step2.body")}
                 icon="shield-check"
               />
               <StepCard
                 n={3}
-                title="Concluez"
-                body="Entretiens, contrat, embarquement : notre équipe sécurise chaque étape."
+                title={t("home.howItWorks.enterprise.step3.title")}
+                body={t("home.howItWorks.enterprise.step3.body")}
                 icon="check-circle-2"
               />
             </div>
@@ -367,12 +288,12 @@ export default function HomePage() {
       {/* Pillars */}
       <Section padY={80} surface={2}>
         <SectionHeader
-          eyebrow="Pourquoi MG·Work"
-          title="Sérieux, transparent, conforme"
+          eyebrow={t("home.pillars.eyebrow")}
+          title={t("home.pillars.title")}
           align="center"
         />
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 24 }}>
-          {PILLARS.map((p) => (
+        <MobileCarousel desktopCols={3} ariaLabel={t("home.pillars.eyebrow")}>
+          {pillars.map((p) => (
             <Card key={p.title} padding={28}>
               <div
                 style={{
@@ -404,105 +325,109 @@ export default function HomePage() {
               </p>
             </Card>
           ))}
-        </div>
+        </MobileCarousel>
       </Section>
 
       {/* Sectors */}
       <Section padY={96}>
         <SectionHeader
-          eyebrow="Secteurs qui recrutent"
-          title="Des opportunités dans 6 industries"
-          subtitle="Les postes les plus actifs ce trimestre, tous pays confondus."
+          eyebrow={t("home.sectors.eyebrow")}
+          title={t("home.sectors.title")}
+          subtitle={t("home.sectors.subtitle")}
         />
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
-          {SECTORS.map((s) => (
+        <MobileCarousel desktopCols={3} ariaLabel={t("home.sectors.eyebrow")}>
+          {sectors.map((s) => (
             <SectorCard key={s.name} {...s} />
           ))}
-        </div>
+        </MobileCarousel>
         <div style={{ marginTop: 32, textAlign: "center" }}>
-          <Button variant="outline" iconRight="arrow-right">
-            Voir tous les secteurs
-          </Button>
+          <Link href="/candidats" className="no-underline">
+            <Button variant="outline" iconRight="arrow-right">
+              {t("cta.viewAllSectors")}
+            </Button>
+          </Link>
         </div>
       </Section>
 
       {/* Countries */}
       <Section padY={96} surface={2}>
-        <SectionHeader eyebrow="Pays couverts" title="L'océan Indien, à portée" />
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 20 }}>
+        <SectionHeader
+          eyebrow={t("home.countries.eyebrow")}
+          title={t("home.countries.title")}
+        />
+        <MobileCarousel desktopCols={3} ariaLabel={t("home.countries.eyebrow")}>
           <CountryCard
-            name="Maurice"
-            label="Île Maurice · MU"
+            name={t("home.countries.mauritius.name")}
+            label={t("home.countries.mauritius.label")}
             flagColors={["#1A3C6E", "#007B55"]}
             stats={[
-              { value: "52", label: "entreprises" },
-              { value: "720+", label: "placements" },
-              { value: "14 j", label: "délai moyen" },
-              { value: "12", label: "secteurs" },
+              { value: "52", label: t("home.countries.stats.companies") },
+              { value: "720+", label: t("home.countries.stats.placements") },
+              { value: "14 j", label: t("home.countries.stats.avgDelay") },
+              { value: "12", label: t("home.countries.stats.sectors") },
             ]}
           />
           <CountryCard
-            name="La Réunion"
-            label="DOM-TOM · FR"
+            name={t("home.countries.reunion.name")}
+            label={t("home.countries.reunion.label")}
             flagColors={["#1373B0", "#5B3D8B"]}
             stats={[
-              { value: "23", label: "entreprises" },
-              { value: "310+", label: "placements" },
-              { value: "18 j", label: "délai moyen" },
-              { value: "8", label: "secteurs" },
+              { value: "23", label: t("home.countries.stats.companies") },
+              { value: "310+", label: t("home.countries.stats.placements") },
+              { value: "18 j", label: t("home.countries.stats.avgDelay") },
+              { value: "8", label: t("home.countries.stats.sectors") },
             ]}
           />
           <CountryCard
-            name="Seychelles"
-            label="Mahé · SC"
+            name={t("home.countries.seychelles.name")}
+            label={t("home.countries.seychelles.label")}
             flagColors={["#007B55", "#DC8A12"]}
             stats={[
-              { value: "12", label: "entreprises" },
-              { value: "210+", label: "placements" },
-              { value: "22 j", label: "délai moyen" },
-              { value: "6", label: "secteurs" },
+              { value: "12", label: t("home.countries.stats.companies") },
+              { value: "210+", label: t("home.countries.stats.placements") },
+              { value: "22 j", label: t("home.countries.stats.avgDelay") },
+              { value: "6", label: t("home.countries.stats.sectors") },
             ]}
           />
-        </div>
+        </MobileCarousel>
       </Section>
 
       {/* Testimonials */}
       <Section padY={96}>
         <SectionHeader
-          eyebrow="Témoignages"
-          title="Ils ont trouvé leur place"
+          eyebrow={t("home.testimonials.eyebrow")}
+          title={t("home.testimonials.title")}
           align="center"
         />
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 20 }}>
+        <MobileCarousel desktopCols={3} ariaLabel={t("home.testimonials.eyebrow")}>
           <TestimonialCard
-            quote="Le suivi a vraiment fait la différence. Documents, visa, logement — tout était prêt avant mon départ pour Maurice."
-            name="Tahiry Razafy"
-            role="Réceptionniste · Hôtel Lux"
+            quote={t("home.testimonials.t1.quote")}
+            name={t("home.testimonials.t1.name")}
+            role={t("home.testimonials.t1.role")}
             score={91}
           />
           <TestimonialCard
-            quote="On reçoit des profils déjà notés et déjà vérifiés. Notre temps de recrutement est passé de 6 semaines à 2."
-            name="Camille Léonard"
-            role="DRH · Hôtel Lux Maurice"
+            quote={t("home.testimonials.t2.quote")}
+            name={t("home.testimonials.t2.name")}
+            role={t("home.testimonials.t2.role")}
           />
           <TestimonialCard
-            quote="Premier matin à La Réunion, j'avais mon contrat, mon logement et ma carte de séjour. Je n'ai jamais été aussi serein."
-            name="Naina Andriana"
-            role="Charpentier · BTP Réunion SA"
+            quote={t("home.testimonials.t3.quote")}
+            name={t("home.testimonials.t3.name")}
+            role={t("home.testimonials.t3.role")}
             score={84}
           />
-        </div>
+        </MobileCarousel>
       </Section>
 
       {/* Numbers */}
       <Section padY={80} surface={2}>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 32 }}>
-          {NUMBERS.map((s) => (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+          {numbers.map((s) => (
             <div key={s.l} style={{ textAlign: "center" }}>
               <div
-                className="mg-tabular"
+                className="mg-tabular text-[28px] sm:text-[32px] md:text-[40px] whitespace-nowrap"
                 style={{
-                  fontSize: 40,
                   fontWeight: 700,
                   color: "hsl(var(--primary))",
                   letterSpacing: "-0.02em",
@@ -525,30 +450,32 @@ export default function HomePage() {
       {/* FAQ */}
       <Section padY={96}>
         <SectionHeader
-          eyebrow="FAQ"
-          title="Vos questions, nos réponses"
+          eyebrow={t("home.faq.eyebrow")}
+          title={t("home.faq.title")}
           align="center"
         />
         <div style={{ maxWidth: 800, margin: "0 auto", display: "grid", gap: 12 }}>
           <FaqItem
             open
-            q="MG·Work est-il payant pour les candidats ?"
-            a="Non. La création de profil, le matching et l'accompagnement administratif sont entièrement gratuits pour les candidats. Notre revenu vient des entreprises."
+            q={t("home.faq.q1.q")}
+            a={t("home.faq.q1.a")}
           />
-          <FaqItem q="Combien de temps faut-il pour trouver un poste ?" />
-          <FaqItem q="Comment vérifiez-vous l'identité des candidats ?" />
-          <FaqItem q="Quels pays sont couverts ?" />
-          <FaqItem q="Et après le départ ?" />
+          <FaqItem q={t("home.faq.q2.q")} />
+          <FaqItem q={t("home.faq.q3.q")} />
+          <FaqItem q={t("home.faq.q4.q")} />
+          <FaqItem q={t("home.faq.q5.q")} />
         </div>
       </Section>
 
       {/* CTA */}
       <Section padY={80}>
         <CtaBanner
-          title="Prêt à franchir le pas ?"
-          body="Inscription en 5 minutes. Sans engagement, sans frais cachés."
-          primary="Créer mon compte"
-          secondary="Parler à un conseiller"
+          title={t("home.cta.title")}
+          body={t("home.cta.body")}
+          primary={t("home.cta.primary")}
+          primaryHref="/sign-up"
+          secondary={t("home.cta.secondary")}
+          secondaryHref="/contact"
         />
       </Section>
     </PublicShell>

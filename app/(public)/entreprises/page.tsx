@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import {
   Badge,
   Button,
@@ -18,117 +20,55 @@ export const metadata = {
     "Recrutez à Madagascar en confiance : profils vérifiés et notés, KYC entreprise en 48h, conformité DPA Mauritius 2017.",
 };
 
-const WHY = [
-  {
-    icon: "shield-check" as const,
-    title: "Conformité incluse",
-    body:
-      "KYC entreprise, vérification d'identité candidat, autorisations de travail. Tout est tracé et audit-ready.",
-  },
-  {
-    icon: "sparkles" as const,
-    title: "Matching expliqué",
-    body:
-      "Vous voyez le score, mais aussi pourquoi : compétences, langues, secteur, mobilité. Pas de boîte noire.",
-  },
-  {
-    icon: "users" as const,
-    title: "Equipe locale",
-    body:
-      "Notre équipe à Antananarivo et Port-Louis suit chaque dossier — pas un chatbot, un humain.",
-  },
-];
+const WHY_KEYS = ["w1", "w2", "w3"] as const;
+const WHY_ICONS = ["shield-check", "sparkles", "users"] as const;
 
-const PROCESS = [
-  { n: 1, title: "KYC entreprise", body: "Documents légaux validés sous 48h.", icon: "shield-check" as const },
-  { n: 2, title: "Publication", body: "Offre rédigée avec vous, multi-langue.", icon: "briefcase" as const },
-  { n: 3, title: "Présélection", body: "Profils notés et anonymisés livrés.", icon: "sparkles" as const },
-  { n: 4, title: "Embarquement", body: "Visa, contrat, voyage : nous gérons.", icon: "arrow-up-right" as const },
-];
+const PROCESS_KEYS = ["step1", "step2", "step3", "step4"] as const;
+const PROCESS_ICONS = ["shield-check", "briefcase", "sparkles", "arrow-up-right"] as const;
 
-const CASES = [
-  {
-    co: "Hôtel Lux Maurice",
-    sector: "Hôtellerie",
-    placements: "34",
-    metric: "6 → 2",
-    metricLabel: "semaines / recrutement",
-    quote:
-      "Nous avions un turnover réceptionnistes problématique. MG·Work nous a livré une équipe stable en 4 mois.",
-  },
-  {
-    co: "BTP Réunion SA",
-    sector: "Construction",
-    placements: "21",
-    metric: "94 %",
-    metricLabel: "rétention 12 mois",
-    quote:
-      "Le suivi post-départ change tout : nos nouveaux arrivants restent, contrairement à nos canaux historiques.",
-  },
-];
+const CASE_KEYS = ["c1", "c2"] as const;
 
-const PRICING_TEASE = [
-  {
-    name: "Starter",
-    price: "€ 0",
-    sub: "/ recrutement réussi",
-    desc: "Pour 1–3 placements par an.",
-    cta: "Commencer",
-    featured: false,
-  },
-  {
-    name: "Business",
-    price: "€ 490",
-    sub: "/ mois",
-    desc: "Pour les recrutements continus.",
-    cta: "Démo",
-    featured: true,
-  },
-  {
-    name: "Enterprise",
-    price: "Sur devis",
-    sub: "",
-    desc: "Volume, API, audit, SLA.",
-    cta: "Contact",
-    featured: false,
-  },
-];
+const PRICING_KEYS = ["t1", "t2", "t3"] as const;
+const PRICING_FEATURED: Record<(typeof PRICING_KEYS)[number], boolean> = {
+  t1: false,
+  t2: true,
+  t3: false,
+};
 
-const HERO_MATCHES = [
-  { name: "Candidat #2451", city: "Antananarivo", sector: "Hôtellerie", score: 91 },
-  { name: "Candidat #2452", city: "Mahajanga", sector: "Hôtellerie", score: 84 },
-  { name: "Candidat #2453", city: "Toamasina", sector: "Cuisine", score: 79 },
-];
+const HERO_MATCH_KEYS = ["candidate1", "candidate2", "candidate3"] as const;
+const HERO_MATCH_SCORES: Record<(typeof HERO_MATCH_KEYS)[number], number> = {
+  candidate1: 91,
+  candidate2: 84,
+  candidate3: 79,
+};
 
-export default function EntreprisesPage() {
+export default async function EntreprisesPage() {
+  const t = await getTranslations("marketing");
+
   return (
     <PublicShell active="entreprises">
       {/* Hero */}
       <div
+        className="px-4 md:px-8 py-12 md:py-16"
         style={{
           background:
             "linear-gradient(180deg, rgba(26,60,110,0.06) 0%, hsl(var(--background)) 100%)",
-          padding: "72px 32px 56px",
         }}
       >
         <div
-          style={{
-            maxWidth: 1120,
-            margin: "0 auto",
-            display: "grid",
-            gridTemplateColumns: "1.1fr 0.9fr",
-            gap: 56,
-            alignItems: "center",
-          }}
+          className="mx-auto grid w-full max-w-[1120px] grid-cols-1 items-center gap-10 md:grid-cols-[1.1fr_0.9fr] md:gap-14"
         >
           <div>
             <Badge tone="primary" size="md" icon="building-2" style={{ marginBottom: 20 }}>
-              Pour les entreprises
+              {t("entreprises.hero.badge")}
             </Badge>
             <h1 className="mg-display" style={{ margin: 0, maxWidth: 540 }}>
-              Recrutez à Madagascar,
+              {t("entreprises.hero.titlePart1")}
               <br />
-              <span style={{ color: "hsl(var(--primary))" }}>en confiance</span>.
+              <span style={{ color: "hsl(var(--primary))" }}>
+                {t("entreprises.hero.titleHighlight")}
+              </span>
+              {t("entreprises.hero.titleSuffix")}
             </h1>
             <p
               className="mg-body-lg"
@@ -138,26 +78,32 @@ export default function EntreprisesPage() {
                 maxWidth: 480,
               }}
             >
-              Recevez des profils déjà vérifiés et notés. Nous gérons l&apos;identité, les diplômes,
-              l&apos;autorisation de travail et l&apos;embarquement.
+              {t("entreprises.hero.subtitle")}
             </p>
-            <Stack dir="row" gap={12} style={{ marginTop: 32 }}>
-              <Button size="lg" iconRight="arrow-right">
-                Demander une démo
-              </Button>
-              <Button size="lg" variant="outline">
-                Voir les tarifs
-              </Button>
+            <Stack dir="row" gap={12} style={{ marginTop: 32 }} wrap>
+              <Link href="/contact" className="no-underline">
+                <Button size="lg" iconRight="arrow-right">
+                  {t("entreprises.hero.ctaDemo")}
+                </Button>
+              </Link>
+              <Link href="/tarifs" className="no-underline">
+                <Button size="lg" variant="outline">
+                  {t("entreprises.hero.ctaPricing")}
+                </Button>
+              </Link>
             </Stack>
-            <div style={{ marginTop: 32, display: "flex", gap: 24, alignItems: "center" }}>
+            <div
+              className="flex flex-wrap items-center"
+              style={{ marginTop: 32, gap: 24 }}
+            >
               <Badge tone="success" icon="check-circle-2">
-                KYC en 48h
+                {t("entreprises.hero.badgeKyc")}
               </Badge>
               <Badge tone="info" icon="shield-check">
-                DPA Mauritius 2017
+                {t("entreprises.hero.badgeDpa")}
               </Badge>
               <Badge tone="neutral" icon="globe">
-                3 pays
+                {t("entreprises.hero.badgeCountries")}
               </Badge>
             </div>
           </div>
@@ -217,14 +163,14 @@ export default function EntreprisesPage() {
                 style={{ marginBottom: 16 }}
               >
                 <h3 className="mg-h4" style={{ margin: 0 }}>
-                  4 matchs aujourd&apos;hui
+                  {t("entreprises.hero.preview.matches")}
                 </h3>
-                <Badge tone="primary">PII masqué</Badge>
+                <Badge tone="primary">{t("entreprises.hero.preview.piiMasked")}</Badge>
               </Stack>
               <div style={{ display: "grid", gap: 10 }}>
-                {HERO_MATCHES.map((m) => (
+                {HERO_MATCH_KEYS.map((key) => (
                   <div
-                    key={m.name}
+                    key={key}
                     style={{
                       display: "flex",
                       alignItems: "center",
@@ -234,20 +180,26 @@ export default function EntreprisesPage() {
                       borderRadius: 8,
                     }}
                   >
-                    <ScoreGauge value={m.score} size={40} stroke={3} label={false} />
-                    <div style={{ flex: 1 }}>
+                    <ScoreGauge
+                      value={HERO_MATCH_SCORES[key]}
+                      size={40}
+                      stroke={3}
+                      label={false}
+                    />
+                    <div style={{ flex: 1, minWidth: 0 }}>
                       <div className="mg-body-sm" style={{ fontWeight: 600 }}>
-                        {m.name} · {m.city}
+                        {t(`entreprises.hero.preview.${key}.name`)} ·{" "}
+                        {t(`entreprises.hero.preview.${key}.city`)}
                       </div>
                       <div
                         className="mg-caption"
                         style={{ color: "hsl(var(--muted-foreground))" }}
                       >
-                        {m.sector}
+                        {t(`entreprises.hero.preview.${key}.sector`)}
                       </div>
                     </div>
                     <Button size="sm" variant="outline">
-                      Présélectionner
+                      {t("entreprises.hero.preview.shortlist")}
                     </Button>
                   </div>
                 ))}
@@ -260,13 +212,13 @@ export default function EntreprisesPage() {
       {/* Why */}
       <Section padY={96}>
         <SectionHeader
-          eyebrow="Pourquoi nous"
-          title="Le recrutement international, sans le risque"
+          eyebrow={t("entreprises.why.eyebrow")}
+          title={t("entreprises.why.title")}
           align="center"
         />
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 24 }}>
-          {WHY.map((p) => (
-            <Card key={p.title} padding={28}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+          {WHY_KEYS.map((key, i) => (
+            <Card key={key} padding={28}>
               <div
                 style={{
                   width: 48,
@@ -280,10 +232,10 @@ export default function EntreprisesPage() {
                   marginBottom: 20,
                 }}
               >
-                <Icon name={p.icon} size={24} />
+                <Icon name={WHY_ICONS[i]} size={24} />
               </div>
               <h3 className="mg-h3" style={{ margin: 0 }}>
-                {p.title}
+                {t(`entreprises.why.${key}.title`)}
               </h3>
               <p
                 className="mg-body"
@@ -293,7 +245,7 @@ export default function EntreprisesPage() {
                   marginBottom: 0,
                 }}
               >
-                {p.body}
+                {t(`entreprises.why.${key}.body`)}
               </p>
             </Card>
           ))}
@@ -303,23 +255,32 @@ export default function EntreprisesPage() {
       {/* Process */}
       <Section padY={96} surface={2}>
         <SectionHeader
-          eyebrow="Comment ça marche"
-          title="De l'offre au premier jour"
+          eyebrow={t("entreprises.process.eyebrow")}
+          title={t("entreprises.process.title")}
           align="center"
         />
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
-          {PROCESS.map((s) => (
-            <StepCard key={s.n} {...s} />
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+          {PROCESS_KEYS.map((key, i) => (
+            <StepCard
+              key={key}
+              n={i + 1}
+              title={t(`entreprises.process.${key}.title`)}
+              body={t(`entreprises.process.${key}.body`)}
+              icon={PROCESS_ICONS[i]}
+            />
           ))}
         </div>
       </Section>
 
       {/* Case studies */}
       <Section padY={96}>
-        <SectionHeader eyebrow="Cas clients" title="Ils recrutent avec MG·Work" />
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 24 }}>
-          {CASES.map((c) => (
-            <Card key={c.co} padding={28}>
+        <SectionHeader
+          eyebrow={t("entreprises.cases.eyebrow")}
+          title={t("entreprises.cases.title")}
+        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {CASE_KEYS.map((key) => (
+            <Card key={key} padding={28}>
               <Stack
                 dir="row"
                 justify="space-between"
@@ -328,10 +289,10 @@ export default function EntreprisesPage() {
               >
                 <div>
                   <div className="mg-h3" style={{ margin: 0 }}>
-                    {c.co}
+                    {t(`entreprises.cases.${key}.company`)}
                   </div>
                   <Badge tone="neutral" style={{ marginTop: 6 }}>
-                    {c.sector}
+                    {t(`entreprises.cases.${key}.sector`)}
                   </Badge>
                 </div>
                 <div style={{ textAlign: "right" }}>
@@ -344,18 +305,18 @@ export default function EntreprisesPage() {
                       letterSpacing: "-0.02em",
                     }}
                   >
-                    {c.metric}
+                    {t(`entreprises.cases.${key}.metric`)}
                   </div>
                   <div
                     className="mg-caption"
                     style={{ color: "hsl(var(--muted-foreground))" }}
                   >
-                    {c.metricLabel}
+                    {t(`entreprises.cases.${key}.metricLabel`)}
                   </div>
                 </div>
               </Stack>
               <p className="mg-body" style={{ color: "hsl(var(--foreground))" }}>
-                &ldquo;{c.quote}&rdquo;
+                &ldquo;{t(`entreprises.cases.${key}.quote`)}&rdquo;
               </p>
               <Hairline style={{ margin: "16px 0" }} />
               <Stack dir="row" justify="space-between" align="center">
@@ -363,10 +324,11 @@ export default function EntreprisesPage() {
                   className="mg-caption"
                   style={{ color: "hsl(var(--muted-foreground))" }}
                 >
-                  {c.placements} placements à ce jour
+                  {t(`entreprises.cases.${key}.placements`)}{" "}
+                  {t("entreprises.cases.placementsSuffix")}
                 </span>
                 <Button variant="link" iconRight="arrow-right">
-                  Lire le cas
+                  {t("entreprises.cases.readMore")}
                 </Button>
               </Stack>
             </Card>
@@ -377,76 +339,83 @@ export default function EntreprisesPage() {
       {/* Pricing tease */}
       <Section padY={96} surface={2}>
         <SectionHeader
-          eyebrow="Tarifs"
-          title="Un plan pour chaque taille"
-          subtitle="Du recrutement ponctuel au pipeline continu."
+          eyebrow={t("entreprises.pricing.eyebrow")}
+          title={t("entreprises.pricing.title")}
+          subtitle={t("entreprises.pricing.subtitle")}
           align="center"
         />
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 20 }}>
-          {PRICING_TEASE.map((p) => (
-            <Card
-              key={p.name}
-              padding={28}
-              style={
-                p.featured
-                  ? {
-                      borderColor: "hsl(var(--primary))",
-                      borderWidth: 2,
-                      boxShadow: "var(--shadow-md)",
-                    }
-                  : undefined
-              }
-            >
-              {p.featured && (
-                <Badge tone="primary" style={{ marginBottom: 12 }}>
-                  Le plus populaire
-                </Badge>
-              )}
-              <div className="mg-h3" style={{ margin: 0 }}>
-                {p.name}
-              </div>
-              <Stack dir="row" gap={6} align="baseline" style={{ marginTop: 12 }}>
-                <span
-                  className="mg-tabular"
-                  style={{ fontSize: 36, fontWeight: 700, letterSpacing: "-0.02em" }}
-                >
-                  {p.price}
-                </span>
-                <span
-                  className="mg-caption"
-                  style={{ color: "hsl(var(--muted-foreground))" }}
-                >
-                  {p.sub}
-                </span>
-              </Stack>
-              <p
-                className="mg-body-sm"
-                style={{
-                  color: "hsl(var(--muted-foreground))",
-                  margin: "12px 0 24px",
-                }}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
+          {PRICING_KEYS.map((key) => {
+            const featured = PRICING_FEATURED[key];
+            return (
+              <Card
+                key={key}
+                padding={28}
+                style={
+                  featured
+                    ? {
+                        borderColor: "hsl(var(--primary))",
+                        borderWidth: 2,
+                        boxShadow: "var(--shadow-md)",
+                      }
+                    : undefined
+                }
               >
-                {p.desc}
-              </p>
-              <Button
-                fullWidth
-                variant={p.featured ? "default" : "outline"}
-                iconRight="arrow-right"
-              >
-                {p.cta}
-              </Button>
-            </Card>
-          ))}
+                {featured && (
+                  <Badge tone="primary" style={{ marginBottom: 12 }}>
+                    {t("entreprises.pricing.popular")}
+                  </Badge>
+                )}
+                <div className="mg-h3" style={{ margin: 0 }}>
+                  {t(`entreprises.pricing.${key}.name`)}
+                </div>
+                <Stack dir="row" gap={6} align="baseline" style={{ marginTop: 12 }}>
+                  <span
+                    className="mg-tabular"
+                    style={{ fontSize: 36, fontWeight: 700, letterSpacing: "-0.02em" }}
+                  >
+                    {t(`entreprises.pricing.${key}.price`)}
+                  </span>
+                  <span
+                    className="mg-caption"
+                    style={{ color: "hsl(var(--muted-foreground))" }}
+                  >
+                    {t(`entreprises.pricing.${key}.sub`)}
+                  </span>
+                </Stack>
+                <p
+                  className="mg-body-sm"
+                  style={{
+                    color: "hsl(var(--muted-foreground))",
+                    margin: "12px 0 24px",
+                  }}
+                >
+                  {t(`entreprises.pricing.${key}.desc`)}
+                </p>
+                <Link href="/tarifs" className="no-underline">
+                  <Button
+                    fullWidth
+                    variant={featured ? "default" : "outline"}
+                    iconRight="arrow-right"
+                  >
+                    {t(`entreprises.pricing.${key}.cta`)}
+                  </Button>
+                </Link>
+              </Card>
+            );
+          })}
         </div>
       </Section>
 
       {/* CTA */}
       <Section padY={80}>
         <CtaBanner
-          title="Recevez 3 profils gratuits en 7 jours."
-          body="Démo personnalisée, sans engagement."
-          primary="Demander une démo"
-          secondary="Voir les tarifs"
+          title={t("entreprises.cta.title")}
+          body={t("entreprises.cta.body")}
+          primary={t("entreprises.cta.primary")}
+          primaryHref="/sign-up?role=employer"
+          secondary={t("entreprises.cta.secondary")}
+          secondaryHref="/contact"
         />
       </Section>
     </PublicShell>
