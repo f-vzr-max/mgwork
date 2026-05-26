@@ -60,6 +60,7 @@ export function LanguageMenu({ className }: LanguageMenuProps) {
         aria-label={t("languageToggle.aria")}
         onClick={() => setOpen((v) => !v)}
         disabled={pending}
+        className="hover:bg-[hsl(var(--surface-2))] transition-colors"
         style={{
           display: "inline-flex",
           alignItems: "center",
@@ -106,6 +107,11 @@ export function LanguageMenu({ className }: LanguageMenuProps) {
                 role="option"
                 aria-selected={active}
                 onClick={() => setLang(lang)}
+                className={
+                  active
+                    ? undefined
+                    : "hover:bg-[hsl(var(--surface-2))] transition-colors"
+                }
                 style={{
                   display: "flex",
                   alignItems: "center",

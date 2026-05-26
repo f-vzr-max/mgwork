@@ -460,10 +460,10 @@ export default async function HomePage() {
             q={t("home.faq.q1.q")}
             a={t("home.faq.q1.a")}
           />
-          <FaqItem q={t("home.faq.q2.q")} />
-          <FaqItem q={t("home.faq.q3.q")} />
-          <FaqItem q={t("home.faq.q4.q")} />
-          <FaqItem q={t("home.faq.q5.q")} />
+          <FaqItem q={t("home.faq.q2.q")} a={t("home.faq.q2.a")} />
+          <FaqItem q={t("home.faq.q3.q")} a={t("home.faq.q3.a")} />
+          <FaqItem q={t("home.faq.q4.q")} a={t("home.faq.q4.a")} />
+          <FaqItem q={t("home.faq.q5.q")} a={t("home.faq.q5.a")} />
         </div>
       </Section>
 

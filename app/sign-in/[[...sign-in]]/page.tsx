@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { SignIn } from "@clerk/nextjs";
-import { PublicHeader, Card } from "@/components/mg";
+import { PublicHeader } from "@/components/mg";
 
 export const metadata: Metadata = {
   title: "MG·Work — Se connecter",
@@ -27,12 +27,12 @@ export default function SignInPage() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          padding: "48px 24px",
+          padding: "32px 16px",
         }}
       >
-        <Card padding={32} surface={1} elevation={2}>
+        <div className="w-full max-w-[440px]">
           <SignIn />
-        </Card>
+        </div>
       </main>
     </div>
   );

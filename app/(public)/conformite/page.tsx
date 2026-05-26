@@ -287,9 +287,9 @@ export default async function ConformitePage() {
             q={t("conformite.faq.q1.q")}
             a={t("conformite.faq.q1.a")}
           />
-          <FaqItem q={t("conformite.faq.q2.q")} />
-          <FaqItem q={t("conformite.faq.q3.q")} />
-          <FaqItem q={t("conformite.faq.q4.q")} />
+          <FaqItem q={t("conformite.faq.q2.q")} a={t("conformite.faq.q2.a")} />
+          <FaqItem q={t("conformite.faq.q3.q")} a={t("conformite.faq.q3.a")} />
+          <FaqItem q={t("conformite.faq.q4.q")} a={t("conformite.faq.q4.a")} />
         </div>
       </Section>
     </PublicShell>

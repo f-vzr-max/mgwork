@@ -29,7 +29,11 @@ export function ThemeToggle({ className }: ThemeToggleProps) {
       onClick={toggle}
       aria-label={isDark ? "Activer le thème clair" : "Activer le thème sombre"}
       title={isDark ? "Thème clair" : "Thème sombre"}
-      className={className}
+      className={
+        ["hover:bg-[hsl(var(--surface-2))] transition-colors", className]
+          .filter(Boolean)
+          .join(" ")
+      }
       style={{
         height: 36,
         width: 36,

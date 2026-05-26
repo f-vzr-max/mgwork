@@ -12,7 +12,7 @@
 import * as React from "react";
 import { SignUp } from "@clerk/nextjs";
 import { useTranslations } from "next-intl";
-import { Card, PublicHeader } from "@/components/mg";
+import { PublicHeader } from "@/components/mg";
 
 type Choice = "CANDIDATE" | "ENTERPRISE";
 
@@ -106,10 +106,10 @@ export default function SignUpPage() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          padding: "48px 24px",
+          padding: "32px 16px",
         }}
       >
-        <div className="w-full max-w-md space-y-3">
+        <div className="w-full max-w-[440px] space-y-3">
           <div className="flex items-center justify-between text-xs">
             <span className="text-muted-foreground">
               {t("signup.profileLabel")}{" "}
@@ -129,13 +129,11 @@ export default function SignUpPage() {
               {t("signup.change")}
             </button>
           </div>
-          <Card padding={24} surface={1} elevation={2}>
-            <SignUp
-              unsafeMetadata={{ role: choice }}
-              fallbackRedirectUrl="/onboarding"
-              signInFallbackRedirectUrl="/onboarding"
-            />
-          </Card>
+          <SignUp
+            unsafeMetadata={{ role: choice }}
+            fallbackRedirectUrl="/onboarding"
+            signInFallbackRedirectUrl="/onboarding"
+          />
         </div>
       </main>
     </div>

@@ -143,6 +143,11 @@ export default function TarifsPage() {
                   role="tab"
                   aria-selected={active}
                   onClick={() => setCycle(o.value)}
+                  className={
+                    active
+                      ? undefined
+                      : "hover:text-[hsl(var(--foreground))] transition-colors"
+                  }
                   style={{
                     padding: "8px 18px",
                     borderRadius: 9999,
@@ -393,10 +398,10 @@ export default function TarifsPage() {
             q={t("tarifs.faq.q1.q")}
             a={t("tarifs.faq.q1.a")}
           />
-          <FaqItem q={t("tarifs.faq.q2.q")} />
-          <FaqItem q={t("tarifs.faq.q3.q")} />
-          <FaqItem q={t("tarifs.faq.q4.q")} />
-          <FaqItem q={t("tarifs.faq.q5.q")} />
+          <FaqItem q={t("tarifs.faq.q2.q")} a={t("tarifs.faq.q2.a")} />
+          <FaqItem q={t("tarifs.faq.q3.q")} a={t("tarifs.faq.q3.a")} />
+          <FaqItem q={t("tarifs.faq.q4.q")} a={t("tarifs.faq.q4.a")} />
+          <FaqItem q={t("tarifs.faq.q5.q")} a={t("tarifs.faq.q5.a")} />
         </div>
       </Section>
 
@@ -407,8 +412,6 @@ export default function TarifsPage() {
           body={t("tarifs.cta.body")}
           primary={t("tarifs.cta.primary")}
           primaryHref="/sign-up?role=employer"
-          secondary={t("tarifs.cta.secondary")}
-          secondaryHref="/contact"
         />
       </Section>
     </PublicShell>

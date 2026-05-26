@@ -114,7 +114,9 @@ export function PublicHeader({ active = null }: { active?: PublicNavKey }) {
             >
               <div className="flex items-center justify-between px-4 h-16 border-b border-[hsl(var(--border))]">
                 <Dialog.Title asChild>
-                  <Wordmark size={24} />
+                  <Link href="/" onClick={close} className="no-underline">
+                    <Wordmark size={24} />
+                  </Link>
                 </Dialog.Title>
                 <Dialog.Close asChild>
                   <button

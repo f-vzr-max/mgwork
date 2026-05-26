@@ -313,9 +313,9 @@ export default async function CandidatsPage() {
             q={t("candidats.faq.q1.q")}
             a={t("candidats.faq.q1.a")}
           />
-          <FaqItem q={t("candidats.faq.q2.q")} />
-          <FaqItem q={t("candidats.faq.q3.q")} />
-          <FaqItem q={t("candidats.faq.q4.q")} />
+          <FaqItem q={t("candidats.faq.q2.q")} a={t("candidats.faq.q2.a")} />
+          <FaqItem q={t("candidats.faq.q3.q")} a={t("candidats.faq.q3.a")} />
+          <FaqItem q={t("candidats.faq.q4.q")} a={t("candidats.faq.q4.a")} />
         </div>
       </Section>
 

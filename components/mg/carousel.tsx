@@ -102,10 +102,14 @@ export function MobileCarousel({
     const isMobile = window.matchMedia("(max-width: 767px)").matches;
     if (!isMobile) return;
     const interval = setInterval(() => {
+      const track = trackRef.current;
       const next = (activeIndex + 1) % items.length;
       const target = itemRefs.current[next];
-      if (target) {
-        target.scrollIntoView({ behavior: "smooth", inline: "start", block: "nearest" });
+      if (track && target) {
+        const trackRect = track.getBoundingClientRect();
+        const targetRect = target.getBoundingClientRect();
+        const left = targetRect.left - trackRect.left + track.scrollLeft;
+        track.scrollTo({ left, behavior: "smooth" });
       }
     }, autoAdvanceMs);
     return () => clearInterval(interval);
@@ -119,9 +123,13 @@ export function MobileCarousel({
   }, []);
 
   const goTo = (idx: number) => {
+    const track = trackRef.current;
     const target = itemRefs.current[idx];
-    if (target) {
-      target.scrollIntoView({ behavior: "smooth", inline: "start", block: "nearest" });
+    if (track && target) {
+      const trackRect = track.getBoundingClientRect();
+      const targetRect = target.getBoundingClientRect();
+      const left = targetRect.left - trackRect.left + track.scrollLeft;
+      track.scrollTo({ left, behavior: "smooth" });
       pauseFor(8000);
     }
   };

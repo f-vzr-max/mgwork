@@ -63,6 +63,19 @@ const VARIANT_STYLES: Record<ButtonVariant, React.CSSProperties> = {
   },
 };
 
+const VARIANT_HOVER: Record<ButtonVariant, string> = {
+  default: "hover:brightness-110 active:brightness-95",
+  success: "hover:brightness-110 active:brightness-95",
+  destructive: "hover:brightness-110 active:brightness-95",
+  outline: "hover:bg-[hsl(var(--surface-2))] active:bg-[hsl(var(--muted))]",
+  secondary: "hover:bg-[hsl(var(--surface-2))] active:bg-[hsl(var(--muted))]",
+  ghost: "hover:bg-[hsl(var(--surface-2))] active:bg-[hsl(var(--muted))]",
+  link: "hover:no-underline",
+};
+
+const FOCUS_RING =
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--background))]";
+
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function Button(
   {
     variant = "default",
@@ -74,6 +87,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function 
     style,
     disabled,
     type = "button",
+    className,
     ...rest
   },
   ref,
@@ -93,7 +107,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function 
     gap: 8,
     cursor: disabled ? "not-allowed" : "pointer",
     opacity: disabled ? 0.5 : 1,
-    transition: "background .12s ease, border-color .12s ease, color .12s ease, box-shadow .12s ease, opacity .12s ease",
+    transition: "background .12s ease, border-color .12s ease, color .12s ease, box-shadow .12s ease, opacity .12s ease, filter .12s ease",
     whiteSpace: "nowrap",
     border: "1px solid transparent",
     userSelect: "none",
@@ -101,11 +115,16 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function 
 
   const iconSize = size === "lg" ? 20 : size === "sm" ? 14 : 16;
 
+  const mergedClassName = [VARIANT_HOVER[variant], FOCUS_RING, className]
+    .filter(Boolean)
+    .join(" ");
+
   return (
     <button
       ref={ref}
       type={type}
       disabled={disabled}
+      className={mergedClassName}
       style={{ ...base, ...VARIANT_STYLES[variant], ...style }}
       {...rest}
     >

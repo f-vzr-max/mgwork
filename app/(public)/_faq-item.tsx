@@ -29,7 +29,7 @@ export function FaqItem({ q, a, open: defaultOpen = false }: FaqItemProps) {
         aria-expanded={isOpen}
         aria-controls={panelId}
         onClick={() => setIsOpen((v) => !v)}
-        className="w-full text-left flex items-center justify-between gap-4"
+        className="w-full text-left flex items-center justify-between gap-4 hover:bg-[hsl(var(--surface-2))] transition-colors"
         style={{
           padding: 24,
           background: "transparent",
