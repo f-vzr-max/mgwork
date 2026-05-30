@@ -7,6 +7,7 @@
 // of the enterprise area chrome.
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 
 import { Badge, Button, Card, Hairline, PageHeader, Stack } from "@/components/mg";
 import { DocumentRow } from "@/components/documents/DocumentRow";
@@ -20,6 +21,7 @@ type ListResponse =
   | { ok: false; error: { message: string } };
 
 export default function EnterpriseDocumentsPage(): React.ReactElement {
+  const t = useTranslations("app.enterprise");
   const [docs, setDocs] = React.useState<DocumentDto[] | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -31,7 +33,7 @@ export default function EnterpriseDocumentsPage(): React.ReactElement {
     try {
       const res = await fetch("/api/documents", { credentials: "same-origin" });
       if (!res.ok) {
-        setError(`Échec du chargement (HTTP ${res.status})`);
+        setError(t("documents.error.loadFailed", { status: res.status }));
         setDocs([]);
         return;
       }
@@ -48,7 +50,7 @@ export default function EnterpriseDocumentsPage(): React.ReactElement {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   React.useEffect(() => {
     void fetchDocs();
@@ -61,8 +63,8 @@ export default function EnterpriseDocumentsPage(): React.ReactElement {
   return (
     <>
       <PageHeader
-        title="Documents"
-        subtitle="Pièces KYC et contrats. Suivez les échéances avant qu&apos;un client ne le demande."
+        title={t("documents.title")}
+        subtitle={t("documents.subtitle")}
         action={
           <Stack dir="row" gap={8}>
             <Button
@@ -71,10 +73,10 @@ export default function EnterpriseDocumentsPage(): React.ReactElement {
               onClick={() => void fetchDocs()}
               disabled={loading}
             >
-              Actualiser
+              {t("documents.actions.refresh")}
             </Button>
             <Button iconLeft="plus" onClick={() => setUploadOpen(true)}>
-              Téléverser
+              {t("documents.actions.upload")}
             </Button>
           </Stack>
         }
@@ -93,24 +95,24 @@ export default function EnterpriseDocumentsPage(): React.ReactElement {
           >
             <div style={{ minWidth: 0 }}>
               <h3 className="mg-h4" style={{ margin: 0 }}>
-                Portefeuille de documents
+                {t("documents.wallet.title")}
               </h3>
               <div
                 className="mg-caption"
                 style={{ color: "hsl(var(--muted-foreground))", marginTop: 2 }}
               >
-                Rouge : expire sous 30 jours · Ambre : sous 90 jours
+                {t("documents.wallet.legend")}
               </div>
             </div>
             <Stack dir="row" gap={6}>
               <Badge tone="success" size="md">
-                Approuvés · {approved}
+                {t("documents.badges.approved", { count: approved })}
               </Badge>
               <Badge tone="warning" size="md">
-                En attente · {pending}
+                {t("documents.badges.pending", { count: pending })}
               </Badge>
               <Badge tone="danger" size="md">
-                Refusés · {rejected}
+                {t("documents.badges.rejected", { count: rejected })}
               </Badge>
             </Stack>
           </div>
@@ -128,15 +130,14 @@ export default function EnterpriseDocumentsPage(): React.ReactElement {
               className="mg-body-sm"
               style={{ padding: "16px 20px", color: "hsl(var(--muted-foreground))" }}
             >
-              Chargement…
+              {t("documents.state.loading")}
             </p>
           ) : docs && docs.length === 0 ? (
             <p
               className="mg-body-sm"
               style={{ padding: "16px 20px", color: "hsl(var(--muted-foreground))" }}
             >
-              Aucun document pour l&apos;instant. Téléversez votre certificat d&apos;incorporation
-              pour démarrer la vérification.
+              {t("documents.state.empty")}
             </p>
           ) : (
             <ul className="m-0 list-none p-0" style={{ margin: 0, padding: 0 }}>

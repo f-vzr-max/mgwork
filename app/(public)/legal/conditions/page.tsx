@@ -1,65 +1,82 @@
+import { getTranslations } from "next-intl/server";
+import Link from "next/link";
 import { PublicShell, Section, SectionHeader, Card, Stack } from "@/components/mg";
+import { LEGAL_ENTITY } from "@/lib/legal-entity";
 
-export const metadata = {
-  title: "MG·Work — Conditions d'utilisation",
-  description: "Conditions générales d'utilisation de la plateforme MG·Work.",
-};
+export async function generateMetadata() {
+  const t = await getTranslations("marketing");
+  return {
+    title: t("legal.conditions.metaTitle"),
+    description: t("legal.conditions.metaDescription"),
+  };
+}
 
-export default function ConditionsPage() {
+const linkStyle = { color: "hsl(var(--primary))", textDecoration: "underline" };
+
+export default async function ConditionsPage() {
+  const t = await getTranslations("marketing");
   return (
     <PublicShell active={null}>
       <Section padY={80}>
-        <SectionHeader title="Conditions d'utilisation" align="left" />
+        <SectionHeader title={t("legal.conditions.title")} align="left" />
         <Stack gap={24} style={{ marginTop: 32, maxWidth: 720 }}>
           <Card padding={32} surface={1}>
-            <h2 className="mg-heading-md" style={{ marginTop: 0 }}>
-              Objet
+            <h2 className="mg-h3" style={{ marginTop: 0 }}>
+              {t("legal.conditions.objet.title")}
+            </h2>
+            <p className="mg-body">{t("legal.conditions.objet.body")}</p>
+          </Card>
+          <Card padding={32} surface={1}>
+            <h2 className="mg-h3" style={{ marginTop: 0 }}>
+              {t("legal.conditions.gratuite.title")}
+            </h2>
+            <p className="mg-body" style={{ marginBottom: 12 }}>
+              {t("legal.conditions.gratuite.body")}
+            </p>
+            <Link href="/tarifs" className="mg-body-sm" style={linkStyle}>
+              {t("legal.conditions.gratuite.linkLabel")}
+            </Link>
+          </Card>
+          <Card padding={32} surface={1}>
+            <h2 className="mg-h3" style={{ marginTop: 0 }}>
+              {t("legal.conditions.entreprises.title")}
+            </h2>
+            <p className="mg-body">{t("legal.conditions.entreprises.body")}</p>
+          </Card>
+          <Card padding={32} surface={1}>
+            <h2 className="mg-h3" style={{ marginTop: 0 }}>
+              {t("legal.conditions.liability.title")}
+            </h2>
+            <p className="mg-body">{t("legal.conditions.liability.body")}</p>
+          </Card>
+          <Card padding={32} surface={1}>
+            <h2 className="mg-h3" style={{ marginTop: 0 }}>
+              {t("legal.conditions.governingLaw.title")}
+            </h2>
+            <p className="mg-body">{t("legal.conditions.governingLaw.body")}</p>
+          </Card>
+          <Card padding={32} surface={1}>
+            <h2 className="mg-h3" style={{ marginTop: 0 }}>
+              {t("legal.conditions.disputes.title")}
             </h2>
             <p className="mg-body">
-              Les présentes conditions régissent l&apos;utilisation de la
-              plateforme MG·Work par les candidats à la mobilité du travail et
-              par les entreprises qui recrutent dans la zone océan Indien.
+              {t("legal.conditions.disputes.body", { email: LEGAL_ENTITY.email.legal })}
             </p>
           </Card>
           <Card padding={32} surface={1}>
-            <h2 className="mg-heading-md" style={{ marginTop: 0 }}>
-              Gratuité pour les candidats
+            <h2 className="mg-h3" style={{ marginTop: 0 }}>
+              {t("legal.conditions.resiliation.title")}
             </h2>
-            <p className="mg-body">
-              La création de profil, le matching et l&apos;accompagnement
-              administratif sont gratuits pour les candidats. Notre revenu vient
-              exclusivement des entreprises (voir{" "}
-              <a href="/tarifs" className="underline">
-                Tarifs
-              </a>
-              ).
+            <p className="mg-body" style={{ marginBottom: 12 }}>
+              {t("legal.conditions.resiliation.body")}
             </p>
+            <Link href="/legal/confidentialite" className="mg-body-sm" style={linkStyle}>
+              {t("legal.conditions.resiliation.linkLabel")}
+            </Link>
           </Card>
-          <Card padding={32} surface={1}>
-            <h2 className="mg-heading-md" style={{ marginTop: 0 }}>
-              Engagements des entreprises
-            </h2>
-            <p className="mg-body">
-              Validation KYC obligatoire avant publication d&apos;une offre.
-              Respect des conditions de travail légales du pays
-              d&apos;embauche. Confidentialité des données candidat partagées
-              avant présélection.
-            </p>
-          </Card>
-          <Card padding={32} surface={1}>
-            <h2 className="mg-heading-md" style={{ marginTop: 0 }}>
-              Résiliation
-            </h2>
-            <p className="mg-body">
-              Vous pouvez supprimer votre compte à tout moment depuis
-              l&apos;interface. La suppression entraîne l&apos;effacement de vos
-              données dans les conditions prévues par notre{" "}
-              <a href="/legal/confidentialite" className="underline">
-                politique de confidentialité
-              </a>
-              .
-            </p>
-          </Card>
+          <p className="mg-caption" style={{ color: "hsl(var(--muted-foreground))" }}>
+            {t("legal.conditions.updated")} {LEGAL_ENTITY.lastUpdated}
+          </p>
         </Stack>
       </Section>
     </PublicShell>

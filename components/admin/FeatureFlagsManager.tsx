@@ -5,6 +5,7 @@
 // non-super-admins will see a 403 toast on toggle.
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -13,6 +14,8 @@ type Flag = { key: string; enabled: boolean; updatedAt: string };
 type Props = { initial: Flag[] };
 
 export function FeatureFlagsManager({ initial }: Props) {
+  const t = useTranslations("app.admin");
+  const tc = useTranslations("common");
   const [flags, setFlags] = React.useState<Flag[]>(initial);
   const [error, setError] = React.useState<string | null>(null);
   const [busy, setBusy] = React.useState<string | null>(null);
@@ -38,7 +41,7 @@ export function FeatureFlagsManager({ initial }: Props) {
           }
         | null;
       if (!res.ok || !data?.ok) {
-        setError(data?.error?.message ?? `Request failed (${res.status})`);
+        setError(data?.error?.message ?? tc("requestFailed", { status: res.status }));
         return null;
       }
       return data.data ?? null;
@@ -80,10 +83,10 @@ export function FeatureFlagsManager({ initial }: Props) {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="mb-3 text-sm font-semibold">Add or replace flag</h2>
+        <h2 className="mb-3 text-sm font-semibold">{t("featureFlags.addTitle")}</h2>
         <form className="flex flex-wrap items-end gap-3" onSubmit={create}>
           <label className="flex flex-col gap-1 text-sm">
-            <span>Key</span>
+            <span>{tc("key")}</span>
             <Input
               value={newKey}
               onChange={(e) => setNewKey(e.target.value)}
@@ -98,10 +101,10 @@ export function FeatureFlagsManager({ initial }: Props) {
               checked={newEnabled}
               onChange={(e) => setNewEnabled(e.target.checked)}
             />
-            Enabled
+            {tc("enabled")}
           </label>
           <Button type="submit" disabled={busy !== null}>
-            Save
+            {tc("save")}
           </Button>
         </form>
       </div>
@@ -113,28 +116,28 @@ export function FeatureFlagsManager({ initial }: Props) {
       ) : null}
 
       <div>
-        <h2 className="mb-3 text-sm font-semibold">Existing flags</h2>
+        <h2 className="mb-3 text-sm font-semibold">{t("featureFlags.existingTitle")}</h2>
         <table className="w-full text-sm">
           <thead className="border-b bg-muted/40 text-left">
             <tr>
-              <th className="p-3">Key</th>
-              <th className="p-3">Enabled</th>
-              <th className="p-3">Updated</th>
-              <th className="p-3 text-right">Action</th>
+              <th className="p-3">{tc("key")}</th>
+              <th className="p-3">{tc("enabled")}</th>
+              <th className="p-3">{t("featureFlags.colUpdated")}</th>
+              <th className="p-3 text-right">{tc("action")}</th>
             </tr>
           </thead>
           <tbody>
             {flags.length === 0 ? (
               <tr>
                 <td colSpan={4} className="p-6 text-center text-muted-foreground">
-                  No feature flags defined yet.
+                  {t("featureFlags.empty")}
                 </td>
               </tr>
             ) : (
               flags.map((f) => (
                 <tr key={f.key} className="border-b last:border-b-0">
                   <td className="p-3 font-mono text-xs">{f.key}</td>
-                  <td className="p-3">{f.enabled ? "Yes" : "No"}</td>
+                  <td className="p-3">{f.enabled ? tc("yes") : tc("no")}</td>
                   <td className="p-3 font-mono text-xs">
                     {f.updatedAt.replace("T", " ").slice(0, 19)}
                   </td>
@@ -146,7 +149,7 @@ export function FeatureFlagsManager({ initial }: Props) {
                       disabled={busy === f.key}
                       onClick={() => toggle(f.key, f.enabled)}
                     >
-                      {busy === f.key ? "..." : f.enabled ? "Disable" : "Enable"}
+                      {busy === f.key ? "..." : f.enabled ? t("featureFlags.disable") : t("featureFlags.enable")}
                     </Button>
                   </td>
                 </tr>

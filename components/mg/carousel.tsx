@@ -138,7 +138,7 @@ export function MobileCarousel({
     <div aria-label={ariaLabel} role={ariaLabel ? "region" : undefined}>
       <div
         ref={trackRef}
-        className={`flex gap-4 overflow-x-auto snap-x snap-mandatory scroll-smooth pb-2 -mx-4 px-4 md:mx-0 md:px-0 md:overflow-visible md:grid ${DESKTOP_GRID[desktopCols]} md:gap-5 md:pb-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden`}
+        className={`flex gap-4 overflow-x-auto snap-x snap-mandatory scroll-smooth pb-2 pl-2 pr-6 scroll-pl-2 md:pl-0 md:pr-0 md:scroll-pl-0 md:overflow-visible md:grid ${DESKTOP_GRID[desktopCols]} md:gap-5 md:pb-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden`}
       >
         {items.map((child, i) => (
           <div

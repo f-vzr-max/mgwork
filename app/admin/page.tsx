@@ -2,6 +2,7 @@
 // Data-fetching logic is preserved verbatim; only the JSX has been restyled
 // to use the MG design system primitives.
 
+import { getTranslations } from "next-intl/server";
 import { PageHeader, KpiCard, Stack } from "@/components/mg";
 import { prisma } from "@/lib/prisma";
 
@@ -42,13 +43,14 @@ function formatRevenue(amount: number): string {
 export const dynamic = "force-dynamic";
 
 export default async function AdminDashboard() {
+  const t = await getTranslations("app.admin.dashboard");
   const k = await loadKpis();
 
   return (
     <>
       <PageHeader
-        title="Vue d'ensemble"
-        subtitle="Santé de la plateforme, inscriptions et conformité"
+        title={t("dashboard.title")}
+        subtitle={t("dashboard.subtitle")}
       />
       <div
         style={{
@@ -59,31 +61,31 @@ export default async function AdminDashboard() {
         }}
       >
         <KpiCard
-          label="Candidats"
+          label={t("kpi.candidates.label")}
           value={k.candidates.toString()}
-          unit="profils"
+          unit={t("kpi.candidates.unit")}
           tone="primary"
         />
         <KpiCard
-          label="Entreprises"
+          label={t("kpi.enterprises.label")}
           value={k.enterprises.toString()}
-          unit="comptes"
+          unit={t("kpi.enterprises.unit")}
           tone="primary"
         />
         <KpiCard
-          label="Offres actives"
+          label={t("kpi.activeOffers.label")}
           value={k.activeOffers.toString()}
-          unit="publiées"
+          unit={t("kpi.activeOffers.unit")}
           tone="success"
         />
         <KpiCard
-          label="Interventions ouvertes"
+          label={t("kpi.openInterventions.label")}
           value={k.openInterventions.toString()}
-          unit="à traiter"
+          unit={t("kpi.openInterventions.unit")}
           tone={k.openInterventions > 0 ? "danger" : "success"}
         />
         <KpiCard
-          label="Revenu (payé)"
+          label={t("kpi.revenue.label")}
           value={formatRevenue(k.revenue)}
           tone="success"
         />
@@ -91,7 +93,7 @@ export default async function AdminDashboard() {
       <div style={{ padding: "0 32px 32px" }}>
         <Stack dir="column" gap={8}>
           <span className="mg-caption" style={{ color: "hsl(var(--muted-foreground))" }}>
-            Les indicateurs sont rafraîchis à chaque chargement.
+            {t("dashboard.refreshCaption")}
           </span>
         </Stack>
       </div>

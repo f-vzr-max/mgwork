@@ -2,9 +2,11 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Icon } from "./icon";
 import { Wordmark } from "./wordmark";
 import { Avatar } from "./avatar";
+import { LanguageMenu } from "./language-menu";
 
 export interface CandAppBarProps {
   notify?: boolean;
@@ -13,6 +15,7 @@ export interface CandAppBarProps {
 }
 
 export function CandAppBar({ notify = true, userName = "", onMenuClick }: CandAppBarProps) {
+  const t = useTranslations("common");
   return (
     <div
       style={{
@@ -30,7 +33,7 @@ export function CandAppBar({ notify = true, userName = "", onMenuClick }: CandAp
     >
       <button
         type="button"
-        aria-label="Menu"
+        aria-label={t("aria.menu")}
         onClick={onMenuClick}
         style={{
           border: 0,
@@ -46,9 +49,10 @@ export function CandAppBar({ notify = true, userName = "", onMenuClick }: CandAp
         <Wordmark size={16} />
       </Link>
       <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+        <LanguageMenu />
         <button
           type="button"
-          aria-label="Notifications"
+          aria-label={t("aria.notifications")}
           style={{
             border: 0,
             background: "transparent",

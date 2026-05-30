@@ -9,10 +9,13 @@ import {
   type IconName,
 } from "@/components/mg";
 
-export const metadata = {
-  title: "MG·Work — Nous contacter",
-  description: "Comment joindre l'équipe MG·Work.",
-};
+export async function generateMetadata() {
+  const t = await getTranslations("marketing");
+  return {
+    title: t("contact.metaTitle"),
+    description: t("contact.metaDescription"),
+  };
+}
 
 const CHANNEL_KEYS = ["general", "privacy", "enterprise", "offices"] as const;
 type ChannelKey = (typeof CHANNEL_KEYS)[number];

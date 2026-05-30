@@ -68,9 +68,10 @@ export interface SectorCardProps {
   name: string;
   jobs: number;
   growth: string;
+  jobsSuffix: string;
 }
 
-export function SectorCard({ icon, name, jobs, growth }: SectorCardProps) {
+export function SectorCard({ icon, name, jobs, growth, jobsSuffix }: SectorCardProps) {
   return (
     <Card
       padding={20}
@@ -95,7 +96,7 @@ export function SectorCard({ icon, name, jobs, growth }: SectorCardProps) {
       </div>
       <Stack dir="row" justify="space-between" align="center">
         <span className="mg-caption" style={{ color: "hsl(var(--muted-foreground))" }}>
-          {jobs} postes
+          {jobs} {jobsSuffix}
         </span>
         <Badge tone="success" icon="arrow-up">
           {growth}
@@ -132,7 +133,7 @@ export function CountryCard({ flagColors, name, label, stats }: CountryCardProps
             borderRadius: 4,
             fontSize: 12,
             fontWeight: 600,
-            color: "hsl(var(--foreground))",
+            color: "hsl(222 47% 11%)",
           }}
         >
           {label}
@@ -248,7 +249,7 @@ export function CtaBanner({
       variant="ghost"
       className="w-full md:w-auto"
       style={{
-        color: "hsl(var(--primary-foreground))",
+        color: "hsl(0 0% 100%)",
         border: "1px solid rgba(255,255,255,0.3)",
       }}
     >
@@ -262,8 +263,8 @@ export function CtaBanner({
       iconRight="arrow-right"
       className="w-full md:w-auto"
       style={{
-        background: "hsl(var(--primary-foreground))",
-        color: "hsl(var(--primary))",
+        background: "hsl(0 0% 100%)",
+        color: "hsl(213 62% 27%)",
       }}
     >
       {primary}
@@ -274,8 +275,8 @@ export function CtaBanner({
     <div
       className="grid grid-cols-1 md:grid-cols-[1.5fr_auto] gap-6 md:gap-8 items-center p-8 md:p-12"
       style={{
-        background: "hsl(var(--primary))",
-        color: "hsl(var(--primary-foreground))",
+        background: "hsl(213 62% 27%)",
+        color: "hsl(0 0% 100%)",
         borderRadius: 12,
       }}
     >

@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Icon, type IconName } from "./icon";
 
 export interface CandTab {
@@ -12,12 +13,12 @@ export interface CandTab {
   href: string;
 }
 
-const DEFAULT_TABS: CandTab[] = [
-  { id: "home", icon: "home", label: "Accueil", href: "/candidate" },
-  { id: "docs", icon: "file-text", label: "Docs", href: "/candidate/documents" },
-  { id: "jobs", icon: "briefcase", label: "Offres", href: "/candidate/matches" },
-  { id: "apps", icon: "circle-dot", label: "Apps", href: "/candidate/applications" },
-  { id: "chat", icon: "message-circle", label: "Chat", href: "/candidate/chat" },
+const TAB_DEFS: { id: string; icon: IconName; labelKey: string; href: string }[] = [
+  { id: "home", icon: "home", labelKey: "tabs.home", href: "/candidate" },
+  { id: "docs", icon: "file-text", labelKey: "tabs.docs", href: "/candidate/documents" },
+  { id: "jobs", icon: "briefcase", labelKey: "tabs.jobs", href: "/candidate/matches" },
+  { id: "apps", icon: "circle-dot", labelKey: "tabs.apps", href: "/candidate/applications" },
+  { id: "chat", icon: "message-circle", labelKey: "tabs.chat", href: "/candidate/chat" },
 ];
 
 function isActive(tabHref: string, pathname: string): boolean {
@@ -29,11 +30,14 @@ export interface CandTabBarProps {
   tabs?: CandTab[];
 }
 
-export function CandTabBar({ tabs = DEFAULT_TABS }: CandTabBarProps) {
+export function CandTabBar({ tabs }: CandTabBarProps) {
+  const t = useTranslations("app.candidate");
   const pathname = usePathname() ?? "/candidate";
+  const items: CandTab[] =
+    tabs ?? TAB_DEFS.map((d) => ({ id: d.id, icon: d.icon, href: d.href, label: t(d.labelKey) }));
   return (
     <nav
-      aria-label="Navigation candidat"
+      aria-label={t("nav.ariaLabel")}
       style={{
         position: "fixed",
         left: 0,
@@ -47,12 +51,12 @@ export function CandTabBar({ tabs = DEFAULT_TABS }: CandTabBarProps) {
         zIndex: 10,
       }}
     >
-      {tabs.map((t) => {
-        const active = isActive(t.href, pathname);
+      {items.map((tab) => {
+        const active = isActive(tab.href, pathname);
         return (
           <Link
-            key={t.id}
-            href={t.href}
+            key={tab.id}
+            href={tab.href}
             aria-current={active ? "page" : undefined}
             style={{
               flex: 1,
@@ -80,8 +84,8 @@ export function CandTabBar({ tabs = DEFAULT_TABS }: CandTabBarProps) {
                 }}
               />
             )}
-            <Icon name={t.icon} size={20} />
-            <span style={{ fontSize: 10.5, fontWeight: 600 }}>{t.label}</span>
+            <Icon name={tab.icon} size={20} />
+            <span style={{ fontSize: 10.5, fontWeight: 600 }}>{tab.label}</span>
           </Link>
         );
       })}

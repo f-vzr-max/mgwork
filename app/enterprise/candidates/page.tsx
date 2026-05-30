@@ -13,6 +13,7 @@
 import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import {
@@ -53,7 +54,15 @@ function maskName(first: string, last: string): string {
   return `${a}*** ${b}.`;
 }
 
-const QUICK_SECTORS = ["Hôtellerie", "Cuisine", "Construction", "Santé", "Logistique"];
+// `value` is the DB/URL filter value (stored in French) and stays untranslated;
+// only the displayed `labelKey` is localized so EN users keep working filters.
+const QUICK_SECTORS: { value: string; labelKey: string }[] = [
+  { value: "Hôtellerie", labelKey: "candidates.filter.quickSector.hotellerie" },
+  { value: "Cuisine", labelKey: "candidates.filter.quickSector.cuisine" },
+  { value: "Construction", labelKey: "candidates.filter.quickSector.construction" },
+  { value: "Santé", labelKey: "candidates.filter.quickSector.sante" },
+  { value: "Logistique", labelKey: "candidates.filter.quickSector.logistique" },
+];
 
 export default async function BrowseCandidatesPage({
   searchParams,
@@ -62,6 +71,8 @@ export default async function BrowseCandidatesPage({
 }) {
   const { userId: clerkId } = await auth();
   if (!clerkId) redirect("/sign-in");
+  const t = await getTranslations("app.enterprise");
+  const tc = await getTranslations("common");
 
   const user = await prisma.user.findUnique({
     where: { clerkId },
@@ -71,7 +82,7 @@ export default async function BrowseCandidatesPage({
   const isAdmin = user.role === "ADMIN" || user.role === "SUPER_ADMIN";
   if (!isAdmin && user.role !== "ENTERPRISE") {
     return (
-      <PageHeader title="Accès refusé" subtitle="Un compte Entreprise est requis." />
+      <PageHeader title={t("candidates.accessDenied")} subtitle={t("candidates.accessDeniedSubtitle")} />
     );
   }
 
@@ -113,24 +124,24 @@ export default async function BrowseCandidatesPage({
   return (
     <>
       <PageHeader
-        title="Candidats"
-        subtitle="Filtrez par secteur, langue ou compétences. Identités masquées avant présélection."
+        title={t("candidates.title")}
+        subtitle={t("candidates.subtitle")}
       />
 
       <div style={{ padding: "0 32px 32px", display: "flex", flexDirection: "column", gap: 24 }}>
         <Card padding={20}>
           <form method="get" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <Stack dir="row" gap={8} wrap>
-              {QUICK_SECTORS.map((s) => {
-                const active = sector === s;
+              {QUICK_SECTORS.map((qs) => {
+                const active = sector === qs.value;
                 return (
                   <Link
-                    key={s}
-                    href={buildHref({ sector: active ? "" : s, lang, skills: skillsCsv })}
+                    key={qs.value}
+                    href={buildHref({ sector: active ? "" : qs.value, lang, skills: skillsCsv })}
                     style={{ textDecoration: "none" }}
                   >
                     <Badge tone={active ? "primary" : "neutral"} size="md">
-                      {s}
+                      {t(qs.labelKey)}
                     </Badge>
                   </Link>
                 );
@@ -144,7 +155,7 @@ export default async function BrowseCandidatesPage({
                 alignItems: "center",
               }}
             >
-              <Input name="sector" defaultValue={sector} placeholder="Secteur" />
+              <Input name="sector" defaultValue={sector} placeholder={t("candidates.filter.sectorPlaceholder")} />
               <select
                 name="lang"
                 defaultValue={lang}
@@ -159,22 +170,22 @@ export default async function BrowseCandidatesPage({
                   fontFamily: "inherit",
                 }}
               >
-                <option value="">Langue ≥ 60</option>
+                <option value="">{t("candidates.filter.langDefault")}</option>
                 <option value="FR">FR</option>
                 <option value="EN">EN</option>
               </select>
               <Input
                 name="skills"
                 defaultValue={skillsCsv}
-                placeholder="Compétences (séparées par virgules)"
+                placeholder={t("candidates.filter.skillsPlaceholder")}
               />
               <Stack dir="row" gap={8}>
                 <Button type="submit" iconLeft="filter">
-                  Appliquer
+                  {tc("apply")}
                 </Button>
                 <Link href="/enterprise/candidates" style={{ textDecoration: "none" }}>
                   <Button type="button" variant="outline">
-                    Réinitialiser
+                    {tc("reset")}
                   </Button>
                 </Link>
               </Stack>
@@ -192,11 +203,13 @@ export default async function BrowseCandidatesPage({
             }}
           >
             <h3 className="mg-h4" style={{ margin: 0 }}>
-              {page.length} candidat{page.length > 1 ? "s" : ""}
-              {hasMore ? " (page partielle)" : ""}
+              {t("candidates.list.countLabel", {
+                count: page.length,
+                partial: hasMore ? t("candidates.list.partialSuffix") : "",
+              })}
             </h3>
             <span className="mg-caption" style={{ color: "hsl(var(--muted-foreground))" }}>
-              PII masqué · règle Plan Business
+              {t("candidates.list.piiNotice")}
             </span>
           </div>
           <Hairline />
@@ -205,7 +218,7 @@ export default async function BrowseCandidatesPage({
               className="mg-body-sm"
               style={{ padding: "24px 20px", color: "hsl(var(--muted-foreground))" }}
             >
-              Aucun candidat ne correspond à ces filtres.
+              {t("candidates.list.empty")}
             </div>
           ) : (
             <div>
@@ -243,8 +256,11 @@ export default async function BrowseCandidatesPage({
                           className="mg-caption"
                           style={{ color: "hsl(var(--muted-foreground))", marginTop: 4 }}
                         >
-                          FR {c.langScoreFR ?? "—"} · EN {c.langScoreEN ?? "—"} · Profil{" "}
-                          {c.profileScore}
+                          {t("candidates.card.scoreCaption", {
+                            fr: c.langScoreFR ?? "—",
+                            en: c.langScoreEN ?? "—",
+                            score: c.profileScore,
+                          })}
                         </div>
                       </div>
                     </div>
@@ -252,9 +268,9 @@ export default async function BrowseCandidatesPage({
                       <ScoreGauge value={c.profileScore} size={44} stroke={4} label={false} />
                       <Stack dir="row" gap={6}>
                         <Button variant="ghost" size="sm">
-                          Passer
+                          {t("candidates.card.skip")}
                         </Button>
-                        <Button size="sm">Présélectionner</Button>
+                        <Button size="sm">{t("candidates.card.shortlist")}</Button>
                       </Stack>
                     </div>
                   </div>
@@ -277,7 +293,7 @@ export default async function BrowseCandidatesPage({
                   style={{ textDecoration: "none" }}
                 >
                   <Button variant="outline" iconRight="chevron-right">
-                    Suivant
+                    {tc("next")}
                   </Button>
                 </Link>
               </div>

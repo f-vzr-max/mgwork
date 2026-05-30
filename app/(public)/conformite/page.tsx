@@ -14,11 +14,13 @@ import {
 } from "@/components/mg";
 import { FaqItem } from "../_components";
 
-export const metadata = {
-  title: "MG·Work — Conformité & sécurité des données",
-  description:
-    "Conformité Data Protection Act Mauritius 2017, PII masqué par défaut, hébergement régional. La conformité par construction.",
-};
+export async function generateMetadata() {
+  const t = await getTranslations("marketing");
+  return {
+    title: t("conformite.metaTitle"),
+    description: t("conformite.metaDescription"),
+  };
+}
 
 const PILLAR_KEYS = ["p1", "p2", "p3", "p4"] as const;
 const PILLAR_ICONS: IconName[] = ["shield-check", "eye", "file-text", "globe"];

@@ -3,6 +3,7 @@
 // design system primitives.
 
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { PageHeader, Card, Button, Input, Stack } from "@/components/mg";
 import { prisma } from "@/lib/prisma";
 import { adminUserListQuerySchema } from "@/lib/validation/admin";
@@ -23,6 +24,8 @@ export default async function AdminUsersPage({
 }: {
   searchParams: SearchParams;
 }) {
+  const t = await getTranslations("app.admin");
+  const tc = await getTranslations("common");
   const raw = {
     role: pickFirst(searchParams.role),
     lang: pickFirst(searchParams.lang),
@@ -95,8 +98,8 @@ export default async function AdminUsersPage({
   return (
     <>
       <PageHeader
-        title="Utilisateurs"
-        subtitle="Gérer les rôles, bannir des comptes, dépanner par impersonation."
+        title={t("users.title")}
+        subtitle={t("users.subtitle")}
       />
 
       <div style={{ padding: "0 32px 16px" }}>
@@ -111,13 +114,13 @@ export default async function AdminUsersPage({
             }}
           >
             <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <span className="mg-caption">L&apos;email contient</span>
+              <span className="mg-caption">{t("users.filter.emailContains")}</span>
               <Input name="q" defaultValue={filters.q ?? ""} />
             </label>
             <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <span className="mg-caption">Rôle</span>
+              <span className="mg-caption">{t("users.filter.roleLabel")}</span>
               <select name="role" defaultValue={filters.role ?? ""} style={selectStyle}>
-                <option value="">Tous</option>
+                <option value="">{t("users.filter.allRoles")}</option>
                 {ROLES.map((r) => (
                   <option key={r} value={r}>
                     {r}
@@ -126,28 +129,28 @@ export default async function AdminUsersPage({
               </select>
             </label>
             <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <span className="mg-caption">Langue</span>
+              <span className="mg-caption">{t("users.filter.langLabel")}</span>
               <select name="lang" defaultValue={filters.lang ?? ""} style={selectStyle}>
-                <option value="">Toutes</option>
+                <option value="">{t("users.filter.allLangs")}</option>
                 <option value="FR">FR</option>
                 <option value="EN">EN</option>
                 <option value="MG">MG</option>
               </select>
             </label>
             <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <span className="mg-caption">Vérifié (entreprises)</span>
+              <span className="mg-caption">{t("users.filter.verifiedLabel")}</span>
               <select
                 name="verified"
                 defaultValue={filters.verified ?? ""}
                 style={selectStyle}
               >
-                <option value="">Tous</option>
-                <option value="true">Vérifié</option>
-                <option value="false">Non vérifié</option>
+                <option value="">{t("users.filter.allVerified")}</option>
+                <option value="true">{t("users.filter.verifiedOption")}</option>
+                <option value="false">{t("users.filter.notVerifiedOption")}</option>
               </select>
             </label>
             <Button type="submit" iconLeft="filter">
-              Filtrer
+              {tc("filter")}
             </Button>
           </form>
         </Card>
@@ -166,12 +169,12 @@ export default async function AdminUsersPage({
             }}
             className="mg-micro"
           >
-            <span>Email</span>
-            <span>Nom</span>
-            <span>Rôle</span>
-            <span>Langue</span>
-            <span>Créé</span>
-            <span style={{ textAlign: "right" }}>Actions</span>
+            <span>{t("users.table.colEmail")}</span>
+            <span>{t("users.table.colName")}</span>
+            <span>{t("users.table.colRole")}</span>
+            <span>{t("users.table.colLang")}</span>
+            <span>{t("users.table.colCreated")}</span>
+            <span style={{ textAlign: "right" }}>{t("users.table.colActions")}</span>
           </div>
           {page.length === 0 ? (
             <div
@@ -182,7 +185,7 @@ export default async function AdminUsersPage({
                 fontSize: 14,
               }}
             >
-              Aucun utilisateur ne correspond à ces filtres.
+              {t("users.table.empty")}
             </div>
           ) : (
             page.map((u, i) => {
@@ -254,7 +257,7 @@ export default async function AdminUsersPage({
               href={buildHref({ cursor: undefined })}
               style={{ color: "hsl(var(--primary))", textDecoration: "none" }}
             >
-              Première page
+              {t("users.pagination.firstPage")}
             </Link>
           ) : null}
           {nextCursor ? (
@@ -262,7 +265,7 @@ export default async function AdminUsersPage({
               href={buildHref({ cursor: nextCursor })}
               style={{ color: "hsl(var(--primary))", textDecoration: "none" }}
             >
-              Suivante →
+              {t("users.pagination.next")}
             </Link>
           ) : null}
         </Stack>

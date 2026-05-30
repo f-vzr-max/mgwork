@@ -5,6 +5,7 @@
 
 import * as React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -22,6 +23,8 @@ type Props = {
 };
 
 export function TranslationsManager({ selectedLang, languages, initial }: Props) {
+  const t = useTranslations("app.admin");
+  const tc = useTranslations("common");
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -51,7 +54,7 @@ export function TranslationsManager({ selectedLang, languages, initial }: Props)
       | { ok: boolean; data?: { id: string }; error?: { message?: string } }
       | null;
     if (!res.ok || !data?.ok) {
-      setError(data?.error?.message ?? `Request failed (${res.status})`);
+      setError(data?.error?.message ?? tc("requestFailed", { status: res.status }));
       return null;
     }
     return data.data ?? null;
@@ -112,7 +115,7 @@ export function TranslationsManager({ selectedLang, languages, initial }: Props)
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2">
-        <span className="text-sm font-medium">Language:</span>
+        <span className="text-sm font-medium">{t("i18nManager.languageLabel")}</span>
         {languages.map((l) => (
           <Button
             key={l}
@@ -133,10 +136,10 @@ export function TranslationsManager({ selectedLang, languages, initial }: Props)
       ) : null}
 
       <div>
-        <h2 className="mb-3 text-sm font-semibold">Add or replace key</h2>
+        <h2 className="mb-3 text-sm font-semibold">{t("i18nManager.addTitle")}</h2>
         <form className="flex flex-wrap items-end gap-3" onSubmit={addNew}>
           <label className="flex flex-col gap-1 text-sm">
-            <span>Key</span>
+            <span>{tc("key")}</span>
             <Input
               value={newKey}
               onChange={(e) => setNewKey(e.target.value)}
@@ -146,36 +149,36 @@ export function TranslationsManager({ selectedLang, languages, initial }: Props)
             />
           </label>
           <label className="flex flex-col gap-1 text-sm flex-1 min-w-[280px]">
-            <span>Value</span>
+            <span>{tc("value")}</span>
             <Input
               value={newValue}
               onChange={(e) => setNewValue(e.target.value)}
-              placeholder="Translated value"
+              placeholder={t("i18nManager.valuePlaceholder")}
             />
           </label>
           <Button type="submit" disabled={busy === "__new__"}>
-            Save
+            {tc("save")}
           </Button>
         </form>
       </div>
 
       <div>
         <h2 className="mb-3 text-sm font-semibold">
-          {selectedLang} translations ({rows.length})
+          {t("i18nManager.translationsCount", { lang: selectedLang, count: rows.length })}
         </h2>
         <table className="w-full text-sm">
           <thead className="border-b bg-muted/40 text-left">
             <tr>
-              <th className="p-3 w-1/3">Key</th>
-              <th className="p-3">Value</th>
-              <th className="p-3 text-right w-32">Action</th>
+              <th className="p-3 w-1/3">{tc("key")}</th>
+              <th className="p-3">{tc("value")}</th>
+              <th className="p-3 text-right w-32">{tc("action")}</th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 ? (
               <tr>
                 <td colSpan={3} className="p-6 text-center text-muted-foreground">
-                  No DB overrides. JSON file values are used.
+                  {t("i18nManager.empty")}
                 </td>
               </tr>
             ) : (
@@ -201,7 +204,7 @@ export function TranslationsManager({ selectedLang, languages, initial }: Props)
                         disabled={!dirty || busy === row.id}
                         onClick={() => saveRow(row)}
                       >
-                        {busy === row.id ? "..." : "Save"}
+                        {busy === row.id ? "..." : tc("save")}
                       </Button>
                     </td>
                   </tr>

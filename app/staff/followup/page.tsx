@@ -6,6 +6,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
+import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { canAccess, type Role } from "@/lib/roles";
 import {
@@ -97,6 +98,7 @@ export default async function StaffFollowupPage() {
   });
   if (!user) redirect("/sign-in");
   if (!canAccess(user.role as Role, "staff")) redirect("/");
+  const t = await getTranslations("app.staff");
 
   const rows = await loadDeployed();
   const groups = groupByEnterprise(rows);
@@ -110,8 +112,8 @@ export default async function StaffFollowupPage() {
   return (
     <>
       <PageHeader
-        title="Suivi candidats"
-        subtitle={`${rows.length} candidat${rows.length === 1 ? "" : "s"} déployé${rows.length === 1 ? "" : "s"} · ${totalAlerts} à surveiller`}
+        title={t("followup.title")}
+        subtitle={t("followup.subtitle", { count: rows.length, alerts: totalAlerts })}
       />
 
       <div
@@ -123,21 +125,21 @@ export default async function StaffFollowupPage() {
         }}
       >
         <KpiCard
-          label="Déployés actifs"
+          label={t("followup.kpi.deployed")}
           value={rows.length.toString()}
           tone="success"
         />
         <KpiCard
-          label="À surveiller"
+          label={t("followup.kpi.toMonitor")}
           value={totalAlerts.toString()}
           tone={totalAlerts > 0 ? "danger" : "success"}
         />
         <KpiCard
-          label="Sans checkpoint > 30j"
+          label={t("followup.kpi.stale")}
           value={stale30.toString()}
           tone={stale30 > 0 ? "danger" : "success"}
         />
-        <KpiCard label="Entreprises" value={groups.size.toString()} tone="primary" />
+        <KpiCard label={t("followup.kpi.enterprises")} value={groups.size.toString()} tone="primary" />
       </div>
 
       <div
@@ -151,7 +153,7 @@ export default async function StaffFollowupPage() {
         {rows.length === 0 ? (
           <Card padding={32} style={{ textAlign: "center" }}>
             <span className="mg-body-sm" style={{ color: "hsl(var(--muted-foreground))" }}>
-              Aucun candidat déployé pour le moment.
+              {t("followup.empty")}
             </span>
           </Card>
         ) : (
@@ -174,7 +176,7 @@ export default async function StaffFollowupPage() {
                   className="mg-caption"
                   style={{ color: "hsl(var(--muted-foreground))" }}
                 >
-                  {group.rows.length} candidat{group.rows.length === 1 ? "" : "s"}
+                  {t("followup.enterpriseCandidateCount", { count: group.rows.length })}
                 </span>
               </div>
               <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
@@ -182,10 +184,10 @@ export default async function StaffFollowupPage() {
                   const tone = staleTone(r.daysSinceLatest);
                   const sinceLabel =
                     r.daysSinceLatest === null
-                      ? "aucun checkpoint"
+                      ? t("followup.sinceLabel.noCheckpoint")
                       : r.daysSinceLatest === 0
-                        ? "aujourd'hui"
-                        : `il y a ${r.daysSinceLatest} j`;
+                        ? t("followup.sinceLabel.today")
+                        : t("followup.sinceLabel.daysAgo", { n: r.daysSinceLatest });
                   const sinceColor =
                     tone === "danger"
                       ? "hsl(var(--destructive))"
@@ -231,7 +233,7 @@ export default async function StaffFollowupPage() {
                             className="mg-caption"
                             style={{ color: sinceColor }}
                           >
-                            Dernier point : {sinceLabel}
+                            {t("followup.lastCheckpoint", { since: sinceLabel })}
                           </span>
                         </Stack>
                         {r.latestStatus ? (
@@ -241,7 +243,7 @@ export default async function StaffFollowupPage() {
                             className="mg-caption"
                             style={{ color: "hsl(var(--muted-foreground))" }}
                           >
-                            Aucun point
+                            {t("followup.noStatus")}
                           </span>
                         )}
                       </Link>

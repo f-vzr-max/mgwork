@@ -210,7 +210,10 @@ export function PublicFooter() {
   const t = useTranslations("marketing");
   const year = new Date().getFullYear();
   return (
-    <footer className="bg-[hsl(var(--surface-2))] border-t border-[hsl(var(--border))]">
+    <footer
+      aria-label={t("footer.aria")}
+      className="bg-[hsl(var(--surface-2))] border-t border-[hsl(var(--border))]"
+    >
       <div className="mx-auto w-full max-w-[1120px] px-4 md:px-8 pt-14 pb-8">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-[1.4fr_repeat(4,1fr)] gap-10 md:gap-12">
           <div className="sm:col-span-2 md:col-span-1">
@@ -263,10 +266,19 @@ export function PublicFooter() {
 }
 
 export function PublicShell({ active = null, children }: PublicShellProps) {
+  const t = useTranslations("marketing");
   return (
     <div className="mg-root flex min-h-screen w-full flex-col bg-[hsl(var(--background))] text-[hsl(var(--foreground))]">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-[hsl(var(--background))] focus:px-4 focus:py-2 focus:text-[hsl(var(--foreground))] focus:shadow-md focus:outline focus:outline-2 focus:outline-[hsl(var(--ring))]"
+      >
+        {t("nav.skipToContent")}
+      </a>
       <PublicHeader active={active} />
-      <main className="flex-1">{children}</main>
+      <main id="main-content" className="flex-1">
+        {children}
+      </main>
       <PublicFooter />
     </div>
   );

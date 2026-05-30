@@ -6,6 +6,7 @@
 
 import { auth } from "@clerk/nextjs/server";
 import { notFound, redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { format, isAfter } from "date-fns";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
@@ -31,6 +32,7 @@ export default async function CandidateApplicationDetailPage({
 }) {
   const { userId: clerkId } = await auth();
   if (!clerkId) redirect("/sign-in");
+  const t = await getTranslations("app.candidate");
 
   const user = await prisma.user.findUnique({
     where: { clerkId },
@@ -49,7 +51,7 @@ export default async function CandidateApplicationDetailPage({
   if (user.role !== "CANDIDATE" || !user.candidate) {
     return (
       <div className="p-6 text-sm text-muted-foreground">
-        Candidate profile required.
+        {t("applicationDetail.profileRequired")}
       </div>
     );
   }
@@ -85,7 +87,7 @@ export default async function CandidateApplicationDetailPage({
   if (app.candidateId !== user.candidate.id) {
     return (
       <div className="p-6 text-sm text-muted-foreground">
-        Not your application.
+        {t("applicationDetail.notYourApplication")}
       </div>
     );
   }
@@ -105,13 +107,13 @@ export default async function CandidateApplicationDetailPage({
       />
       <div className="grid gap-6 p-6">
         <section className="rounded-md border bg-card p-4">
-          <h2 className="mb-3 text-sm font-semibold">Status</h2>
+          <h2 className="mb-3 text-sm font-semibold">{t("applicationDetail.statusSection")}</h2>
           <StatusTimeline current={app.status as ApplicationStatus} />
         </section>
 
         {app.status === "INTERVIEW_SCHEDULED" && upcomingInterview && (
           <section className="rounded-md border bg-card p-4">
-            <h2 className="mb-2 text-sm font-semibold">Upcoming interview</h2>
+            <h2 className="mb-2 text-sm font-semibold">{t("applicationDetail.upcomingInterviewSection")}</h2>
             <p className="text-sm">
               <strong>
                 {format(upcomingInterview.scheduledAt, "EEEE d MMMM yyyy, HH:mm")}
@@ -120,14 +122,14 @@ export default async function CandidateApplicationDetailPage({
             </p>
             {upcomingInterview.videoUrl && (
               <p className="mt-2 text-sm">
-                Video link:{" "}
+                {t("applicationDetail.videoLink")}{" "}
                 <a
                   href={upcomingInterview.videoUrl}
                   target="_blank"
                   rel="noreferrer"
                   className="text-primary underline"
                 >
-                  Open
+                  {t("applicationDetail.videoLinkOpen")}
                 </a>
               </p>
             )}
@@ -137,13 +139,13 @@ export default async function CandidateApplicationDetailPage({
         {isDeployed && (
           <>
             <section className="rounded-md border bg-card p-4">
-              <h2 className="mb-3 text-sm font-semibold">Departure checklist</h2>
+              <h2 className="mb-3 text-sm font-semibold">{t("applicationDetail.departureChecklistSection")}</h2>
               <DepartureChecklist initial={checklist} />
             </section>
 
             <section className="rounded-md border bg-card p-4">
               <h2 className="mb-3 text-sm font-semibold">
-                Welcome to Mauritius
+                {t("applicationDetail.welcomeToMauritius")}
               </h2>
               <CountryGuide initialLang={user.lang as GuideLang} />
             </section>

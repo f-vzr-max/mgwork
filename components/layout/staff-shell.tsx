@@ -7,13 +7,8 @@
 
 import * as React from "react";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { WebSidebar, type SidebarItem, type SidebarUser } from "@/components/mg";
-
-const NAV: SidebarItem[] = [
-  { id: "overview", icon: "home", label: "Vue d'ensemble", href: "/staff" },
-  { id: "documents", icon: "file-text", label: "Queue documents", href: "/staff/documents" },
-  { id: "followup", icon: "users", label: "Suivi candidats", href: "/staff/followup" },
-];
 
 function resolveActiveId(pathname: string | null): string {
   if (!pathname) return "overview";
@@ -28,8 +23,14 @@ export interface StaffShellProps {
 }
 
 export function StaffShell({ user, children }: StaffShellProps) {
+  const t = useTranslations("app.staff");
   const pathname = usePathname();
   const activeId = resolveActiveId(pathname);
+  const NAV: SidebarItem[] = [
+    { id: "overview", icon: "home", label: t("nav.overview"), href: "/staff" },
+    { id: "documents", icon: "file-text", label: t("nav.documents"), href: "/staff/documents" },
+    { id: "followup", icon: "users", label: t("nav.followup"), href: "/staff/followup" },
+  ];
 
   return (
     <div
@@ -40,7 +41,7 @@ export function StaffShell({ user, children }: StaffShellProps) {
         background: "hsl(var(--background))",
       }}
     >
-      <WebSidebar role="Staff" items={NAV} activeId={activeId} user={user} />
+      <WebSidebar role={t("role")} items={NAV} activeId={activeId} user={user} />
       <main style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
         {children}
       </main>

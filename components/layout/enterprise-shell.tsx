@@ -8,15 +8,8 @@
 
 import * as React from "react";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { WebSidebar, type SidebarItem, type SidebarUser } from "@/components/mg";
-
-const NAV: SidebarItem[] = [
-  { id: "dashboard", icon: "home", label: "Tableau de bord", href: "/enterprise" },
-  { id: "offers", icon: "briefcase", label: "Offres", href: "/enterprise/offers" },
-  { id: "candidates", icon: "users", label: "Candidats", href: "/enterprise/candidates" },
-  { id: "interviews", icon: "calendar", label: "Entretiens", href: "/enterprise/interviews" },
-  { id: "documents", icon: "file-text", label: "Documents", href: "/enterprise/documents" },
-];
 
 function resolveActiveId(pathname: string | null): string {
   if (!pathname) return "dashboard";
@@ -33,8 +26,16 @@ export interface EnterpriseShellProps {
 }
 
 export function EnterpriseShell({ user, children }: EnterpriseShellProps) {
+  const t = useTranslations("app.enterprise");
   const pathname = usePathname();
   const activeId = resolveActiveId(pathname);
+  const NAV: SidebarItem[] = [
+    { id: "dashboard", icon: "home", label: t("nav.dashboard"), href: "/enterprise" },
+    { id: "offers", icon: "briefcase", label: t("nav.offers"), href: "/enterprise/offers" },
+    { id: "candidates", icon: "users", label: t("nav.candidates"), href: "/enterprise/candidates" },
+    { id: "interviews", icon: "calendar", label: t("nav.interviews"), href: "/enterprise/interviews" },
+    { id: "documents", icon: "file-text", label: t("nav.documents"), href: "/enterprise/documents" },
+  ];
 
   return (
     <div
@@ -45,7 +46,7 @@ export function EnterpriseShell({ user, children }: EnterpriseShellProps) {
         background: "hsl(var(--background))",
       }}
     >
-      <WebSidebar role="Entreprise" items={NAV} activeId={activeId} user={user} />
+      <WebSidebar role={t("roleLabel")} items={NAV} activeId={activeId} user={user} />
       <main style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
         {children}
       </main>

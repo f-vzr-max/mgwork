@@ -337,7 +337,7 @@ export default async function HomePage() {
         />
         <MobileCarousel desktopCols={3} ariaLabel={t("home.sectors.eyebrow")}>
           {sectors.map((s) => (
-            <SectorCard key={s.name} {...s} />
+            <SectorCard key={s.name} {...s} jobsSuffix={t("home.sectors.jobsSuffix")} />
           ))}
         </MobileCarousel>
         <div style={{ marginTop: 32, textAlign: "center" }}>

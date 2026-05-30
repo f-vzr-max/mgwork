@@ -2,6 +2,7 @@
 // preserved; chrome restyled with MG design system primitives.
 
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { PageHeader, Card, Button, Input, Stack, StatusBadge } from "@/components/mg";
 import { prisma } from "@/lib/prisma";
 import { invoiceListQuerySchema } from "@/lib/validation/admin";
@@ -20,6 +21,8 @@ export default async function AdminInvoicesPage({
 }: {
   searchParams: SearchParams;
 }) {
+  const t = await getTranslations("app.admin");
+  const tc = await getTranslations("common");
   const cleaned: Record<string, string> = {};
   for (const [k, v] of Object.entries({
     status: pickFirst(searchParams.status),
@@ -83,11 +86,11 @@ export default async function AdminInvoicesPage({
   return (
     <>
       <PageHeader
-        title="Factures"
-        subtitle="Factures émises et statut de paiement."
+        title={t("invoices.title")}
+        subtitle={t("invoices.subtitle")}
         action={
           <Link href="/admin/invoices/new" style={{ textDecoration: "none" }}>
-            <Button iconLeft="plus">Nouvelle facture</Button>
+            <Button iconLeft="plus">{t("invoices.newButton")}</Button>
           </Link>
         }
       />
@@ -104,27 +107,27 @@ export default async function AdminInvoicesPage({
             }}
           >
             <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <span className="mg-caption">Statut</span>
+              <span className="mg-caption">{t("invoices.filter.statusLabel")}</span>
               <select
                 name="status"
                 defaultValue={filters.status ?? ""}
                 style={selectStyle}
               >
-                <option value="">Tous</option>
-                <option value="PENDING">En attente</option>
-                <option value="PAID">Payée</option>
-                <option value="OVERDUE">En retard</option>
+                <option value="">{t("invoices.filter.statusAll")}</option>
+                <option value="PENDING">{tc("invoiceStatus.PENDING")}</option>
+                <option value="PAID">{tc("invoiceStatus.PAID")}</option>
+                <option value="OVERDUE">{tc("invoiceStatus.OVERDUE")}</option>
               </select>
             </label>
             <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <span className="mg-caption">ID entreprise</span>
+              <span className="mg-caption">{t("invoices.filter.enterpriseIdLabel")}</span>
               <Input
                 name="enterpriseId"
                 defaultValue={filters.enterpriseId ?? ""}
               />
             </label>
             <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <span className="mg-caption">Du</span>
+              <span className="mg-caption">{t("invoices.filter.fromLabel")}</span>
               <Input
                 type="date"
                 name="from"
@@ -134,7 +137,7 @@ export default async function AdminInvoicesPage({
               />
             </label>
             <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <span className="mg-caption">Au</span>
+              <span className="mg-caption">{t("invoices.filter.toLabel")}</span>
               <Input
                 type="date"
                 name="to"
@@ -142,7 +145,7 @@ export default async function AdminInvoicesPage({
               />
             </label>
             <Button type="submit" iconLeft="filter">
-              Filtrer
+              {tc("filter")}
             </Button>
           </form>
         </Card>
@@ -161,12 +164,12 @@ export default async function AdminInvoicesPage({
             }}
             className="mg-micro"
           >
-            <span>Émise</span>
-            <span>Entreprise</span>
-            <span>Montant</span>
-            <span>Méthode</span>
-            <span>Statut</span>
-            <span>Référence</span>
+            <span>{t("invoices.col.issuedAt")}</span>
+            <span>{t("invoices.col.enterprise")}</span>
+            <span>{t("invoices.col.amount")}</span>
+            <span>{t("invoices.col.method")}</span>
+            <span>{t("invoices.col.status")}</span>
+            <span>{t("invoices.col.reference")}</span>
           </div>
           {page.length === 0 ? (
             <div
@@ -177,7 +180,7 @@ export default async function AdminInvoicesPage({
                 fontSize: 14,
               }}
             >
-              Aucune facture ne correspond à ces filtres.
+              {t("invoices.empty")}
             </div>
           ) : (
             page.map((inv, i) => (
@@ -242,7 +245,7 @@ export default async function AdminInvoicesPage({
               href={buildHref({ cursor: undefined })}
               style={{ color: "hsl(var(--primary))", textDecoration: "none" }}
             >
-              Première page
+              {tc("firstPage")}
             </Link>
           ) : null}
           {nextCursor ? (
@@ -250,7 +253,7 @@ export default async function AdminInvoicesPage({
               href={buildHref({ cursor: nextCursor })}
               style={{ color: "hsl(var(--primary))", textDecoration: "none" }}
             >
-              Suivante →
+              {tc("next")} →
             </Link>
           ) : null}
         </Stack>

@@ -7,6 +7,7 @@
 import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { format } from "date-fns";
 import { prisma } from "@/lib/prisma";
 import {
@@ -25,6 +26,7 @@ export const dynamic = "force-dynamic";
 export default async function CandidateApplicationsPage() {
   const { userId: clerkId } = await auth();
   if (!clerkId) redirect("/sign-in");
+  const t = await getTranslations("app.candidate");
 
   const user = await prisma.user.findUnique({
     where: { clerkId },
@@ -36,7 +38,7 @@ export default async function CandidateApplicationsPage() {
       <div style={{ padding: 16 }}>
         <Card padding={16}>
           <div className="mg-body-sm" style={{ color: "hsl(var(--muted-foreground))" }}>
-            Profil candidat requis.
+            {t("applications.missingProfile")}
           </div>
         </Card>
       </div>
@@ -65,18 +67,18 @@ export default async function CandidateApplicationsPage() {
     <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 16 }}>
       <div>
         <h1 className="mg-h1" style={{ margin: 0, fontSize: 26, lineHeight: "32px" }}>
-          Mes candidatures
+          {t("applications.title")}
         </h1>
         <div className="mg-caption" style={{ color: "hsl(var(--muted-foreground))", marginTop: 4 }}>
-          Statut de chaque offre à laquelle vous avez postulé.
+          {t("applications.subtitle")}
         </div>
       </div>
 
       {apps.length === 0 ? (
         <Card padding={16}>
-          <div className="mg-h4" style={{ margin: 0 }}>Pas encore de candidatures</div>
+          <div className="mg-h4" style={{ margin: 0 }}>{t("applications.empty.title")}</div>
           <div className="mg-body-sm" style={{ color: "hsl(var(--muted-foreground))", marginTop: 4 }}>
-            Postulez à une offre depuis la page « Offres » pour la voir apparaître ici.
+            {t("applications.empty.body")}
           </div>
           <Link
             href="/candidate/matches"
@@ -91,7 +93,7 @@ export default async function CandidateApplicationsPage() {
               textDecoration: "none",
             }}
           >
-            Voir les offres
+            {t("applications.empty.cta")}
             <Icon name="arrow-right" size={14} />
           </Link>
         </Card>
@@ -114,7 +116,7 @@ export default async function CandidateApplicationsPage() {
                     {app.jobOffer.title}
                   </Link>
                   <div className="mg-caption" style={{ color: "hsl(var(--muted-foreground))", marginTop: 2 }}>
-                    {app.jobOffer.enterprise.companyName} · {app.jobOffer.location} · MAJ{" "}
+                    {app.jobOffer.enterprise.companyName} · {app.jobOffer.location} · {t("applications.card.updatedAt")}{" "}
                     {format(app.updatedAt, "d MMM yyyy")}
                   </div>
                 </div>

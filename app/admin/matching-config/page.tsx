@@ -12,6 +12,7 @@
 // required).
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 import {
   PageHeader,
   Button,
@@ -41,15 +42,6 @@ const DEFAULT_WEIGHTS: Weights = {
   mobility: 15,
   experience: 5,
   documents: 0,
-};
-
-const LABELS: Record<WeightKey, string> = {
-  skills: "Compétences",
-  languages: "Langues",
-  sector: "Secteur",
-  mobility: "Mobilité géographique",
-  experience: "Expérience",
-  documents: "Documents",
 };
 
 // Synthetic preview scenario — held constant so the score moves with weights.
@@ -113,6 +105,8 @@ function SliderTrack({ value }: { value: number }) {
 }
 
 export default function MatchingConfigPage() {
+  const t = useTranslations("app.admin");
+  const tc = useTranslations("common");
   const [weights, setWeights] = React.useState<Weights>(DEFAULT_WEIGHTS);
   const [initial, setInitial] = React.useState<Weights>(DEFAULT_WEIGHTS);
   const [loading, setLoading] = React.useState(true);
@@ -168,7 +162,7 @@ export default function MatchingConfigPage() {
   async function onSave() {
     setMessage(null);
     if (total <= 0) {
-      setMessage({ tone: "error", text: "Au moins une pondération doit être > 0." });
+      setMessage({ tone: "error", text: t("matchingConfig.errorMinWeight") });
       return;
     }
     setSaving(true);
@@ -185,16 +179,16 @@ export default function MatchingConfigPage() {
         const msg =
           json && "error" in json && json.error?.message
             ? json.error.message
-            : "Impossible d'enregistrer les pondérations";
+            : t("matchingConfig.errorSaveFallback");
         setMessage({ tone: "error", text: msg });
         return;
       }
       setInitial(json.data.weights);
-      setMessage({ tone: "ok", text: "Pondérations enregistrées." });
+      setMessage({ tone: "ok", text: t("matchingConfig.successSave") });
     } catch (e) {
       setMessage({
         tone: "error",
-        text: e instanceof Error ? e.message : "Erreur réseau",
+        text: e instanceof Error ? e.message : t("matchingConfig.errorNetwork"),
       });
     } finally {
       setSaving(false);
@@ -204,8 +198,8 @@ export default function MatchingConfigPage() {
   return (
     <>
       <PageHeader
-        title="Moteur de matching"
-        subtitle="Pondérations globales appliquées au calcul des scores"
+        title={t("matchingConfig.title")}
+        subtitle={t("matchingConfig.subtitle")}
         action={
           <Stack dir="row" gap={8}>
             <Button
@@ -214,7 +208,7 @@ export default function MatchingConfigPage() {
               onClick={restoreDefaults}
               disabled={saving || loading}
             >
-              Restaurer défauts
+              {t("matchingConfig.restoreDefaults")}
             </Button>
             <Button
               size="default"
@@ -222,7 +216,7 @@ export default function MatchingConfigPage() {
               onClick={onSave}
               disabled={saving || loading || !isValid}
             >
-              {saving ? "Enregistrement…" : "Publier la version"}
+              {saving ? t("matchingConfig.saving") : t("matchingConfig.publish")}
             </Button>
           </Stack>
         }
@@ -246,15 +240,15 @@ export default function MatchingConfigPage() {
             style={{ marginBottom: 4 }}
           >
             <h3 className="mg-h4" style={{ margin: 0 }}>
-              Pondérations
+              {t("matchingConfig.sectionWeights")}
             </h3>
-            <Badge tone="info">Brouillon · auto-enregistré localement</Badge>
+            <Badge tone="info">{t("matchingConfig.draftBadge")}</Badge>
           </Stack>
           <p
             className="mg-body-sm"
             style={{ color: "hsl(var(--muted-foreground))", margin: "4px 0 24px" }}
           >
-            La somme doit faire 100. La prévisualisation se met à jour en direct.
+            {t("matchingConfig.sumHint")}
           </p>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
@@ -271,7 +265,7 @@ export default function MatchingConfigPage() {
                     className="mg-body-sm"
                     style={{ fontWeight: 500 }}
                   >
-                    {LABELS[k]}
+                    {tc(`criterion.${k}`)}
                   </label>
                   <span
                     className="mg-tabular"
@@ -299,7 +293,7 @@ export default function MatchingConfigPage() {
                     step={1}
                     value={weights[k]}
                     onChange={(e) => update(k, Number(e.target.value))}
-                    aria-label={`${LABELS[k]} (pondération)`}
+                    aria-label={t("matchingConfig.criterionAriaLabel", { criterion: tc(`criterion.${k}`) })}
                     style={{
                       position: "absolute",
                       inset: 0,
@@ -321,15 +315,15 @@ export default function MatchingConfigPage() {
               className="mg-caption"
               style={{ color: "hsl(var(--muted-foreground))" }}
             >
-              Total
+              {t("matchingConfig.totalLabel")}
             </span>
             {isValid ? (
               <Badge tone="success" icon="check-circle-2">
-                100% · valide
+                {t("matchingConfig.validBadge")}
               </Badge>
             ) : (
               <Badge tone="warning" icon="alert-triangle">
-                {total}% · doit faire 100
+                {t("matchingConfig.invalidBadge", { total })}
               </Badge>
             )}
           </Stack>
@@ -357,7 +351,7 @@ export default function MatchingConfigPage() {
               onClick={reset}
               disabled={saving || loading}
             >
-              Annuler les modifications
+              {t("matchingConfig.cancelChanges")}
             </Button>
           </Stack>
         </Card>
@@ -373,9 +367,9 @@ export default function MatchingConfigPage() {
             }}
           >
             <h3 className="mg-h4" style={{ margin: 0 }}>
-              Prévisualisation
+              {t("matchingConfig.previewTitle")}
             </h3>
-            <Badge tone="neutral">Échantillon · Tahiry R. ↔ Hôtel Lux</Badge>
+            <Badge tone="neutral">{t("matchingConfig.previewSampleBadge")}</Badge>
           </div>
           <Card
             padding={24}
@@ -396,7 +390,7 @@ export default function MatchingConfigPage() {
               className="mg-caption"
               style={{ color: "hsl(var(--muted-foreground))" }}
             >
-              recalculé en direct
+              {t("matchingConfig.previewLiveCaption")}
             </div>
           </Card>
           <div
@@ -410,7 +404,7 @@ export default function MatchingConfigPage() {
             {KEYS.map((k) => {
               const score = PREVIEW_SCORES[k];
               const w = weights[k];
-              const t: "success" | "primary" | "warning" =
+              const barTone: "success" | "primary" | "warning" =
                 score >= 80 ? "success" : score >= 60 ? "primary" : "warning";
               return (
                 <div key={k}>
@@ -420,7 +414,7 @@ export default function MatchingConfigPage() {
                     align="center"
                     style={{ marginBottom: 4 }}
                   >
-                    <span className="mg-body-sm">{LABELS[k]}</span>
+                    <span className="mg-body-sm">{tc(`criterion.${k}`)}</span>
                     <span
                       className="mg-tabular mg-caption"
                       style={{ color: "hsl(var(--muted-foreground))" }}
@@ -433,7 +427,7 @@ export default function MatchingConfigPage() {
                       </span>
                     </span>
                   </Stack>
-                  <Progress value={score} tone={t} height={4} />
+                  <Progress value={score} tone={barTone} height={4} />
                 </div>
               );
             })}

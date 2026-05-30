@@ -12,6 +12,7 @@
 // previous iteration.
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 import {
   Avatar,
   Button,
@@ -29,12 +30,12 @@ export type ChatMessage = {
   at: string;
 };
 
-const QUICK_PROMPTS = [
-  "Préparer entretien",
-  "Suivi documents",
-  "Conditions de voyage",
-  "Logement à Maurice",
-];
+const QUICK_PROMPT_KEYS = [
+  "chat.quickPrompts.prepareInterview",
+  "chat.quickPrompts.documentFollowUp",
+  "chat.quickPrompts.travelConditions",
+  "chat.quickPrompts.housingMauritius",
+] as const;
 
 export function CandChatPanel({
   initialMessages,
@@ -43,6 +44,8 @@ export function CandChatPanel({
   initialMessages: ChatMessage[];
   lang: ChatLang;
 }) {
+  const t = useTranslations("app.candidate");
+  const quickPrompts = QUICK_PROMPT_KEYS.map((k) => t(k));
   const [messages, setMessages] = React.useState<ChatMessage[]>(initialMessages);
   const [text, setText] = React.useState("");
   const [pending, setPending] = React.useState(false);
@@ -74,13 +77,13 @@ export function CandChatPanel({
         body: JSON.stringify({ text: value, lang }),
       });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Network error");
+      setError(e instanceof Error ? e.message : t("chat.error.network"));
       setPending(false);
       return;
     }
 
     if (!res.ok) {
-      let detail = `HTTP ${res.status}`;
+      let detail = t("chat.error.http", { status: res.status });
       try {
         const body = (await res.json()) as { error?: { message?: string } };
         if (body?.error?.message) detail = body.error.message;
@@ -93,7 +96,7 @@ export function CandChatPanel({
     }
 
     if (!res.body) {
-      setError("No response stream");
+      setError(t("chat.error.noStream"));
       setPending(false);
       return;
     }
@@ -135,7 +138,7 @@ export function CandChatPanel({
             });
           }
         } else if (evt.event === "error") {
-          setError(evt.data?.message ?? "Stream error");
+          setError(evt.data?.message ?? t("chat.error.stream"));
         }
       }
     }
@@ -172,12 +175,12 @@ export function CandChatPanel({
           <div style={{ flex: 1, minWidth: 0 }}>
             <div className="mg-body-sm" style={{ fontWeight: 600 }}>Aina Volazara</div>
             <div className="mg-caption" style={{ color: "hsl(var(--success))" }}>
-              ● En ligne · répond en ~2h
+              {t("chat.advisorStatus")}
             </div>
           </div>
           <button
             type="button"
-            aria-label="Plus"
+            aria-label={t("chat.moreOptions")}
             style={{
               border: 0,
               background: "transparent",
@@ -226,7 +229,7 @@ export function CandChatPanel({
               padding: "24px 0",
             }}
           >
-            Posez votre première question au conseiller MG Work.
+            {t("chat.emptyState")}
           </div>
         ) : (
           messages.map((m, i) => <ChatBubble key={i} message={m} />)
@@ -255,7 +258,7 @@ export function CandChatPanel({
             padding: "10px 16px 0",
           }}
         >
-          {QUICK_PROMPTS.map((p) => (
+          {quickPrompts.map((p) => (
             <button
               key={p}
               type="button"
@@ -286,7 +289,7 @@ export function CandChatPanel({
         >
           <button
             type="button"
-            aria-label="Joindre un fichier"
+            aria-label={t("chat.attachFile")}
             style={{
               border: 0,
               background: "transparent",
@@ -302,7 +305,7 @@ export function CandChatPanel({
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={onKeyDown}
-            placeholder="Écrire un message…"
+            placeholder={t("chat.composer.placeholder")}
             rows={1}
             maxLength={MAX_LENGTH + 100}
             disabled={pending}
@@ -325,7 +328,7 @@ export function CandChatPanel({
             type="submit"
             size="icon"
             iconLeft="send"
-            aria-label="Envoyer"
+            aria-label={t("chat.send")}
             disabled={!canSubmit}
           />
         </form>

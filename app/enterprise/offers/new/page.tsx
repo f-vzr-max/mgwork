@@ -9,6 +9,7 @@
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
+import { useTranslations } from "next-intl";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,7 @@ function splitCsv(input: string): string[] {
 }
 
 export default function NewOfferPage() {
+  const t = useTranslations("app.enterprise");
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -76,14 +78,14 @@ export default function NewOfferPage() {
         | { ok: false; error: { message: string } };
       if (!res.ok || !("ok" in json) || !json.ok) {
         const msg =
-          json && "error" in json && json.error?.message ? json.error.message : "Could not create offer";
+          json && "error" in json && json.error?.message ? json.error.message : t("offers.new.error.couldNotCreate");
         setError(msg);
         return;
       }
       router.push(`/enterprise/offers/${json.data.offerId}`);
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Network error");
+      setError(e instanceof Error ? e.message : t("offers.new.error.network"));
     } finally {
       setSubmitting(false);
     }
@@ -91,20 +93,20 @@ export default function NewOfferPage() {
 
   return (
     <>
-      <PageHeader title="New job offer" description="Define the role; AI shortlist will run on first publish." />
+      <PageHeader title={t("offers.new.pageTitle")} description={t("offers.new.pageDescription")} />
       <div className="p-6 max-w-2xl">
         <Card>
           <CardHeader>
-            <CardTitle>Offer details</CardTitle>
+            <CardTitle>{t("offers.new.cardTitle")}</CardTitle>
             <CardDescription>
-              Save as DRAFT to keep tweaking, or publish ACTIVE to receive an AI shortlist.
+              {t("offers.new.cardDescription")}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form className="space-y-4" onSubmit={onSubmit}>
               <div className="space-y-1">
                 <label className="text-sm font-medium" htmlFor="title">
-                  Title
+                  {t("offers.new.field.title")}
                 </label>
                 <Input
                   id="title"
@@ -112,13 +114,13 @@ export default function NewOfferPage() {
                   maxLength={240}
                   value={fields.title}
                   onChange={(e) => update("title", e.target.value)}
-                  placeholder="Solar electrician, residential"
+                  placeholder={t("offers.new.field.titlePlaceholder")}
                 />
               </div>
 
               <div className="space-y-1">
                 <label className="text-sm font-medium" htmlFor="description">
-                  Description
+                  {t("offers.new.field.description")}
                 </label>
                 <textarea
                   id="description"
@@ -133,7 +135,7 @@ export default function NewOfferPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-sm font-medium" htmlFor="sector">
-                    Sector
+                    {t("offers.new.field.sector")}
                   </label>
                   <Input
                     id="sector"
@@ -141,12 +143,12 @@ export default function NewOfferPage() {
                     maxLength={80}
                     value={fields.sector}
                     onChange={(e) => update("sector", e.target.value)}
-                    placeholder="Construction, Hospitality, …"
+                    placeholder={t("offers.new.field.sectorPlaceholder")}
                   />
                 </div>
                 <div className="space-y-1">
                   <label className="text-sm font-medium" htmlFor="location">
-                    Location
+                    {t("offers.new.field.location")}
                   </label>
                   <Input
                     id="location"
@@ -160,7 +162,7 @@ export default function NewOfferPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-sm font-medium" htmlFor="slots">
-                    Slots
+                    {t("offers.new.field.slots")}
                   </label>
                   <Input
                     id="slots"
@@ -173,7 +175,7 @@ export default function NewOfferPage() {
                 </div>
                 <div className="space-y-1">
                   <label className="text-sm font-medium" htmlFor="status">
-                    Status
+                    {t("offers.new.field.status")}
                   </label>
                   <select
                     id="status"
@@ -181,27 +183,27 @@ export default function NewOfferPage() {
                     value={fields.status}
                     onChange={(e) => update("status", e.target.value as "DRAFT" | "ACTIVE")}
                   >
-                    <option value="DRAFT">Draft</option>
-                    <option value="ACTIVE">Active (publish now)</option>
+                    <option value="DRAFT">{t("offers.new.status.DRAFT")}</option>
+                    <option value="ACTIVE">{t("offers.new.status.ACTIVE")}</option>
                   </select>
                 </div>
               </div>
 
               <div className="space-y-1">
                 <label className="text-sm font-medium" htmlFor="requirements">
-                  Requirements (comma- or newline-separated)
+                  {t("offers.new.field.requirements")}
                 </label>
                 <textarea
                   id="requirements"
                   className="flex min-h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  placeholder="welding, forklift, scaffolding"
+                  placeholder={t("offers.new.field.requirementsPlaceholder")}
                   value={fields.requirements}
                   onChange={(e) => update("requirements", e.target.value)}
                 />
               </div>
 
               <fieldset className="space-y-1">
-                <legend className="text-sm font-medium">Languages required</legend>
+                <legend className="text-sm font-medium">{t("offers.new.field.languagesRequired")}</legend>
                 <div className="flex gap-4 pt-1">
                   {LANG_CODES.map((code) => (
                     <label key={code} className="inline-flex items-center gap-2 text-sm">
@@ -220,10 +222,10 @@ export default function NewOfferPage() {
 
               <div className="flex items-center gap-3">
                 <Button type="submit" disabled={submitting}>
-                  {submitting ? "Saving…" : "Save offer"}
+                  {submitting ? t("offers.new.button.saving") : t("offers.new.button.save")}
                 </Button>
                 <Button type="button" variant="outline" asChild>
-                  <Link href="/enterprise/offers">Cancel</Link>
+                  <Link href="/enterprise/offers">{t("offers.new.button.cancel")}</Link>
                 </Button>
               </div>
             </form>

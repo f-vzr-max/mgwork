@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
+import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { canAccess, type Role } from "@/lib/roles";
 import { PageHeader } from "@/components/layout/page-header";
@@ -37,6 +38,7 @@ export default async function FollowupDetailPage({ params }: { params: { applica
   });
   if (!user) redirect("/sign-in");
   if (!canAccess(user.role as Role, "staff")) redirect("/");
+  const t = await getTranslations("app.staff");
 
   const app = await prisma.application.findUnique({
     where: { id: params.applicationId },
@@ -103,7 +105,7 @@ export default async function FollowupDetailPage({ params }: { params: { applica
         description={`${app.jobOffer.title} · ${app.jobOffer.enterprise.companyName}`}
       >
         <Button asChild variant="outline" size="sm">
-          <Link href="/staff/followup">Back</Link>
+          <Link href="/staff/followup">{t("followup.detail.back")}</Link>
         </Button>
       </PageHeader>
 
@@ -111,29 +113,29 @@ export default async function FollowupDetailPage({ params }: { params: { applica
         <div className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Candidate</CardTitle>
+              <CardTitle>{t("followup.detail.candidateCard.title")}</CardTitle>
             </CardHeader>
             <CardContent className="grid grid-cols-2 gap-3 text-sm">
               <div>
-                <div className="text-xs text-muted-foreground">Full name</div>
+                <div className="text-xs text-muted-foreground">{t("followup.detail.candidateCard.fullName")}</div>
                 <div>
                   {app.candidate.firstName} {app.candidate.lastName}
                 </div>
               </div>
               <div>
-                <div className="text-xs text-muted-foreground">Nationality</div>
+                <div className="text-xs text-muted-foreground">{t("followup.detail.candidateCard.nationality")}</div>
                 <div>{app.candidate.nationality}</div>
               </div>
               <div>
-                <div className="text-xs text-muted-foreground">Phone</div>
+                <div className="text-xs text-muted-foreground">{t("followup.detail.candidateCard.phone")}</div>
                 <div>{app.candidate.phone ?? "—"}</div>
               </div>
               <div>
-                <div className="text-xs text-muted-foreground">City</div>
+                <div className="text-xs text-muted-foreground">{t("followup.detail.candidateCard.city")}</div>
                 <div>{app.candidate.city ?? "—"}</div>
               </div>
               <div>
-                <div className="text-xs text-muted-foreground">DOB</div>
+                <div className="text-xs text-muted-foreground">{t("followup.detail.candidateCard.dob")}</div>
                 <div>{app.candidate.dateOfBirth ? fmtDate(app.candidate.dateOfBirth) : "—"}</div>
               </div>
             </CardContent>
@@ -141,27 +143,27 @@ export default async function FollowupDetailPage({ params }: { params: { applica
 
           <Card>
             <CardHeader>
-              <CardTitle>Enterprise</CardTitle>
+              <CardTitle>{t("followup.detail.enterpriseCard.title")}</CardTitle>
             </CardHeader>
             <CardContent className="grid grid-cols-2 gap-3 text-sm">
               <div>
-                <div className="text-xs text-muted-foreground">Company</div>
+                <div className="text-xs text-muted-foreground">{t("followup.detail.enterpriseCard.company")}</div>
                 <div>{app.jobOffer.enterprise.companyName}</div>
               </div>
               <div>
-                <div className="text-xs text-muted-foreground">Sector</div>
+                <div className="text-xs text-muted-foreground">{t("followup.detail.enterpriseCard.sector")}</div>
                 <div>{app.jobOffer.enterprise.sector ?? "—"}</div>
               </div>
               <div>
-                <div className="text-xs text-muted-foreground">Contact</div>
+                <div className="text-xs text-muted-foreground">{t("followup.detail.enterpriseCard.contact")}</div>
                 <div>{app.jobOffer.enterprise.contactName ?? "—"}</div>
               </div>
               <div>
-                <div className="text-xs text-muted-foreground">Contact phone</div>
+                <div className="text-xs text-muted-foreground">{t("followup.detail.enterpriseCard.contactPhone")}</div>
                 <div>{app.jobOffer.enterprise.contactPhone ?? "—"}</div>
               </div>
               <div className="col-span-2">
-                <div className="text-xs text-muted-foreground">Role / location</div>
+                <div className="text-xs text-muted-foreground">{t("followup.detail.enterpriseCard.roleLocation")}</div>
                 <div>
                   {app.jobOffer.title} · {app.jobOffer.location}
                 </div>
@@ -171,7 +173,7 @@ export default async function FollowupDetailPage({ params }: { params: { applica
 
           <Card>
             <CardHeader>
-              <CardTitle>New checkpoint</CardTitle>
+              <CardTitle>{t("followup.detail.checkpointForm.title")}</CardTitle>
             </CardHeader>
             <CardContent>
               <InterventionForm applicationId={app.id} />
@@ -182,11 +184,11 @@ export default async function FollowupDetailPage({ params }: { params: { applica
         <div className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Checkpoint timeline</CardTitle>
+              <CardTitle>{t("followup.detail.timeline.title")}</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               {app.checkpoints.length === 0 ? (
-                <p className="px-6 py-4 text-sm text-muted-foreground">No checkpoints yet.</p>
+                <p className="px-6 py-4 text-sm text-muted-foreground">{t("followup.detail.timeline.empty")}</p>
               ) : (
                 <ul className="divide-y">
                   {app.checkpoints.map((c) => (
@@ -200,7 +202,7 @@ export default async function FollowupDetailPage({ params }: { params: { applica
                       ) : null}
                       {c.interventionLog ? (
                         <p className="mt-2 whitespace-pre-wrap rounded-md bg-amber-50 p-2 text-xs text-amber-900">
-                          <span className="font-medium">Intervention: </span>
+                          <span className="font-medium">{t("followup.detail.timeline.interventionPrefix")}</span>
                           {c.interventionLog}
                         </p>
                       ) : null}
@@ -213,12 +215,12 @@ export default async function FollowupDetailPage({ params }: { params: { applica
 
           <Card>
             <CardHeader>
-              <CardTitle>Private notes</CardTitle>
+              <CardTitle>{t("followup.detail.notesCard.title")}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <NoteForm resourceType="application" resourceId={app.id} />
               {notes.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No notes yet.</p>
+                <p className="text-sm text-muted-foreground">{t("followup.detail.notesCard.empty")}</p>
               ) : (
                 <ul className="space-y-3">
                   {notes.map((n) => (

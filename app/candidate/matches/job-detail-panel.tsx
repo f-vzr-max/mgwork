@@ -7,6 +7,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import {
   Badge,
   Button,
@@ -40,10 +41,10 @@ export interface JobDetailPanelProps {
 
 type TabId = "match" | "desc" | "co";
 
-const TABS: ReadonlyArray<{ id: TabId; label: string }> = [
-  { id: "match", label: "Pourquoi ce match" },
-  { id: "desc", label: "Description" },
-  { id: "co", label: "Entreprise" },
+const TABS: ReadonlyArray<{ id: TabId; labelKey: string }> = [
+  { id: "match", labelKey: "matches.jobDetail.tabs.match" },
+  { id: "desc", labelKey: "matches.jobDetail.tabs.desc" },
+  { id: "co", labelKey: "matches.jobDetail.tabs.co" },
 ];
 
 export function JobDetailPanel({
@@ -58,6 +59,7 @@ export function JobDetailPanel({
   criteria,
   profileScore,
 }: JobDetailPanelProps) {
+  const t = useTranslations("app.candidate");
   const [tab, setTab] = React.useState<TabId>("match");
   const tone = gaugeTone(overall);
   const profileIncomplete = profileScore < 100;
@@ -85,7 +87,7 @@ export function JobDetailPanel({
           }}
         >
           <Icon name="chevron-left" size={16} />
-          Toutes les offres
+          {t("matches.jobDetail.backLink")}
         </Link>
         <Stack dir="row" gap={12} align="center" style={{ marginBottom: 8 }}>
           <div
@@ -114,7 +116,7 @@ export function JobDetailPanel({
           <Badge tone="neutral" icon="map-pin">{location}</Badge>
           <Badge tone="neutral" icon="briefcase">{sector}</Badge>
           <Badge tone="neutral" icon="users">
-            {slots} place{slots > 1 ? "s" : ""}
+            {t("matches.jobDetail.slots", { slots })}
           </Badge>
         </Stack>
       </div>
@@ -124,15 +126,15 @@ export function JobDetailPanel({
         role="tablist"
         style={{ display: "flex", padding: "0 16px", borderBottom: "1px solid hsl(var(--border))" }}
       >
-        {TABS.map((t) => {
-          const active = tab === t.id;
+        {TABS.map((tabItem) => {
+          const active = tab === tabItem.id;
           return (
             <button
-              key={t.id}
+              key={tabItem.id}
               type="button"
               role="tab"
               aria-selected={active}
-              onClick={() => setTab(t.id)}
+              onClick={() => setTab(tabItem.id)}
               style={{
                 padding: "12px 12px",
                 border: 0,
@@ -145,7 +147,7 @@ export function JobDetailPanel({
                 cursor: "pointer",
               }}
             >
-              {t.label}
+              {t(tabItem.labelKey)}
             </button>
           );
         })}
@@ -159,20 +161,20 @@ export function JobDetailPanel({
                 <ScoreGauge value={overall} size={88} stroke={6} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div className="mg-micro" style={{ color: "hsl(var(--muted-foreground))" }}>
-                    Score global
+                    {t("matches.jobDetail.scoreLabel")}
                   </div>
                   <div className="mg-h3" style={{ margin: "4px 0 0", color: tone.color }}>
                     {tone.label}
                   </div>
                   <div className="mg-caption" style={{ color: "hsl(var(--muted-foreground))", marginTop: 2 }}>
-                    Pondéré par {criteria.length} critères
+                    {t("matches.jobDetail.scoreCriteria", { n: criteria.length })}
                   </div>
                 </div>
               </Stack>
             </Card>
 
             <Card padding={20}>
-              <h3 className="mg-h4" style={{ margin: 0, marginBottom: 16 }}>Détail du match</h3>
+              <h3 className="mg-h4" style={{ margin: 0, marginBottom: 16 }}>{t("matches.jobDetail.matchDetailTitle")}</h3>
               <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                 {criteria.map((c) => (
                   <div key={c.key}>
@@ -206,11 +208,11 @@ export function JobDetailPanel({
                 <Stack dir="row" align="center" gap={10} style={{ marginBottom: 4 }}>
                   <Icon name="alert-triangle" size={14} style={{ color: "hsl(var(--warning))" }} />
                   <span className="mg-caption" style={{ color: "hsl(var(--muted-foreground))" }}>
-                    Profil incomplet à {profileScore}%
+                    {t("matches.jobDetail.profileIncompleteLabel", { pct: profileScore })}
                   </span>
                 </Stack>
                 <div className="mg-body-sm" style={{ color: "hsl(var(--muted-foreground))" }}>
-                  Augmentez vos chances en finissant votre profil avant de postuler.
+                  {t("matches.jobDetail.profileIncompleteHint")}
                 </div>
               </Card>
             )}
@@ -219,12 +221,12 @@ export function JobDetailPanel({
 
         {tab === "desc" && (
           <Card padding={20}>
-            <h3 className="mg-h4" style={{ margin: 0, marginBottom: 12 }}>Description du poste</h3>
+            <h3 className="mg-h4" style={{ margin: 0, marginBottom: 12 }}>{t("matches.jobDetail.descTitle")}</h3>
             <div
               className="mg-body"
               style={{ whiteSpace: "pre-wrap", color: "hsl(var(--foreground))" }}
             >
-              {description || "Aucune description fournie pour cette offre."}
+              {description || t("matches.jobDetail.descEmpty")}
             </div>
           </Card>
         )}
@@ -255,7 +257,7 @@ export function JobDetailPanel({
               </div>
             </Stack>
             <div className="mg-body-sm" style={{ color: "hsl(var(--muted-foreground))" }}>
-              Recrute via MG Work pour le poste « {title} ».
+              {t("matches.jobDetail.companyRecruiting", { jobTitle: title })}
             </div>
           </Card>
         )}
@@ -281,7 +283,7 @@ export function JobDetailPanel({
           variant="outline"
           size="lg"
           iconLeft="star"
-          aria-label="Enregistrer"
+          aria-label={t("matches.jobDetail.saveAriaLabel")}
           style={{ flex: "0 0 auto" }}
         />
         {/* Apply button — POST /api/applications endpoint not yet wired.
@@ -290,11 +292,11 @@ export function JobDetailPanel({
         <Button
           size="lg"
           fullWidth
-          aria-label={`Postuler à ${title}`}
+          aria-label={t("matches.jobDetail.applyAriaLabel", { jobTitle: title })}
           data-offer-id={offerId}
           disabled={profileIncomplete}
         >
-          {profileIncomplete ? "Finir profil pour postuler" : "Postuler"}
+          {profileIncomplete ? t("matches.jobDetail.finishProfileButton") : t("matches.jobDetail.applyButton")}
         </Button>
       </div>
     </div>

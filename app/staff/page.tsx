@@ -2,6 +2,7 @@
 // Server component that pulls a handful of counts so the team can see what's
 // in the queue before drilling into the dedicated views.
 
+import { getTranslations } from "next-intl/server";
 import { PageHeader, KpiCard, Card, Stack, StatusBadge } from "@/components/mg";
 import { prisma } from "@/lib/prisma";
 
@@ -18,13 +19,14 @@ async function loadKpis() {
 }
 
 export default async function StaffDashboard() {
+  const t = await getTranslations("app.staff.dashboard");
   const k = await loadKpis();
 
   return (
     <>
       <PageHeader
-        title="Vue d'ensemble"
-        subtitle="Vérification documentaire et suivi post-déploiement."
+        title={t("dashboard.title")}
+        subtitle={t("dashboard.subtitle")}
       />
       <div
         style={{
@@ -35,24 +37,24 @@ export default async function StaffDashboard() {
         }}
       >
         <KpiCard
-          label="Documents en file"
+          label={t("kpi.documentsQueue.label")}
           value={k.pending.toString()}
-          unit="à vérifier"
+          unit={t("kpi.documentsQueue.unit")}
           tone={k.pending > 0 ? "primary" : "success"}
         />
         <KpiCard
-          label="Candidats déployés"
+          label={t("kpi.deployedCandidates.label")}
           value={k.deployed.toString()}
-          unit="actifs"
+          unit={t("kpi.deployedCandidates.unit")}
           tone="success"
         />
         <KpiCard
-          label="Alertes ouvertes"
+          label={t("kpi.openAlerts.label")}
           value={k.alerts.toString()}
           tone={k.alerts > 0 ? "danger" : "success"}
         />
         <KpiCard
-          label="Interventions requises"
+          label={t("kpi.interventionsRequired.label")}
           value={k.interventions.toString()}
           tone={k.interventions > 0 ? "danger" : "success"}
         />
@@ -62,29 +64,28 @@ export default async function StaffDashboard() {
         <Card padding={20}>
           <Stack dir="column" gap={12}>
             <h3 className="mg-h4" style={{ margin: 0 }}>
-              Actions du jour
+              {t("actions.sectionTitle")}
             </h3>
             <Stack dir="row" gap={8} wrap>
-              <StatusBadge status="PENDING" label={`${k.pending} en attente`} />
+              <StatusBadge status="PENDING" label={t("actions.badge.pending", { n: k.pending })} />
               {k.alerts > 0 && (
-                <StatusBadge status="ALERT" label={`${k.alerts} alertes`} />
+                <StatusBadge status="ALERT" label={t("actions.badge.alerts", { n: k.alerts })} />
               )}
               {k.interventions > 0 && (
                 <StatusBadge
                   status="INTERVENTION_REQUIRED"
-                  label={`${k.interventions} interventions`}
+                  label={t("actions.badge.interventions", { n: k.interventions })}
                 />
               )}
               {k.alerts === 0 && k.interventions === 0 && k.pending === 0 && (
-                <StatusBadge status="OK" label="Tout est à jour" />
+                <StatusBadge status="OK" label={t("actions.badge.allClear")} />
               )}
             </Stack>
             <p
               className="mg-body-sm"
               style={{ color: "hsl(var(--muted-foreground))", margin: 0 }}
             >
-              Utilisez la file documents pour traiter les pièces en attente, ou
-              suivez les candidats déployés depuis l&apos;onglet « Suivi candidats ».
+              {t("actions.helperText")}
             </p>
           </Stack>
         </Card>

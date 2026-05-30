@@ -9,6 +9,7 @@
 import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
 import { notFound, redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { recomputeMatchings } from "@/lib/matching";
 import { getMatchingWeights } from "@/lib/matching-config";
@@ -18,18 +19,11 @@ import { Button } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
 
-const CRITERION_LABELS: Record<string, string> = {
-  skills: "Skills",
-  languages: "Languages",
-  sector: "Sector",
-  mobility: "Mobility",
-  experience: "Experience",
-  documents: "Documents",
-};
-
 export default async function OfferDetailPage({ params }: { params: { id: string } }) {
   const { userId: clerkId } = await auth();
   if (!clerkId) redirect("/sign-in");
+  const t = await getTranslations("app.enterprise");
+  const tc = await getTranslations("common");
 
   const user = await prisma.user.findUnique({
     where: { clerkId },
@@ -65,7 +59,7 @@ export default async function OfferDetailPage({ params }: { params: { id: string
   if (!isAdmin && !isOwner) {
     return (
       <>
-        <PageHeader title="Forbidden" description="You don't own this offer." />
+        <PageHeader title={t("offerDetail.forbidden.title")} description={t("offerDetail.forbidden.description")} />
       </>
     );
   }
@@ -94,7 +88,7 @@ export default async function OfferDetailPage({ params }: { params: { id: string
 
   return (
     <>
-      <PageHeader title={offer.title} description={`${offer.sector} · ${offer.location} · ${offer.slots} slot${offer.slots === 1 ? "" : "s"}`}>
+      <PageHeader title={offer.title} description={t("offerDetail.header.slotCount", { sector: offer.sector, location: offer.location, n: offer.slots })}>
         <span
           className={
             "rounded-full px-2 py-0.5 text-xs font-medium " +
@@ -111,20 +105,20 @@ export default async function OfferDetailPage({ params }: { params: { id: string
       <div className="p-6 space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle>Offer details</CardTitle>
+            <CardTitle>{t("offerDetail.details.title")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             <p className="whitespace-pre-wrap">{offer.description}</p>
             <div>
-              <span className="font-medium">Requirements: </span>
-              {offer.requirements.length ? offer.requirements.join(", ") : <span className="text-muted-foreground">none</span>}
+              <span className="font-medium">{t("offerDetail.details.requirementsLabel")} </span>
+              {offer.requirements.length ? offer.requirements.join(", ") : <span className="text-muted-foreground">{tc("none")}</span>}
             </div>
             <div>
-              <span className="font-medium">Languages required: </span>
-              {offer.langRequired.length ? offer.langRequired.join(", ") : <span className="text-muted-foreground">none</span>}
+              <span className="font-medium">{t("offerDetail.details.languagesLabel")} </span>
+              {offer.langRequired.length ? offer.langRequired.join(", ") : <span className="text-muted-foreground">{tc("none")}</span>}
             </div>
             <div className="text-xs text-muted-foreground">
-              {offer._count.applications} application{offer._count.applications === 1 ? "" : "s"}
+              {t("offerDetail.details.applicationCount", { n: offer._count.applications })}
             </div>
           </CardContent>
         </Card>
@@ -133,18 +127,18 @@ export default async function OfferDetailPage({ params }: { params: { id: string
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>AI shortlist (top 5)</CardTitle>
-                <CardDescription>Recomputed using current matching weights.</CardDescription>
+                <CardTitle>{t("offerDetail.shortlist.title")}</CardTitle>
+                <CardDescription>{t("offerDetail.shortlist.description")}</CardDescription>
               </div>
               <Button asChild variant="outline" size="sm">
-                <Link href="/enterprise/candidates">Browse all candidates</Link>
+                <Link href="/enterprise/candidates">{t("offerDetail.shortlist.browseAll")}</Link>
               </Button>
             </div>
           </CardHeader>
           <CardContent>
             {top.length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                No candidates yet. Once candidates onboard and complete their profiles, they will appear here.
+                {t("offerDetail.shortlist.empty")}
               </p>
             ) : (
               <ul className="divide-y">
@@ -160,22 +154,22 @@ export default async function OfferDetailPage({ params }: { params: { id: string
                             {c.city ? <span className="text-muted-foreground"> — {c.city}</span> : null}
                           </div>
                           <div className="text-xs text-muted-foreground">
-                            {c.skills.slice(0, 6).join(", ") || "no skills listed"}
+                            {c.skills.slice(0, 6).join(", ") || t("offerDetail.candidate.noSkills")}
                             {c.sectors.length ? ` · ${c.sectors.slice(0, 3).join(", ")}` : ""}
                           </div>
                           <div className="text-xs text-muted-foreground">
-                            FR: {c.langScoreFR ?? "—"} · EN: {c.langScoreEN ?? "—"}
+                            {t("offerDetail.candidate.langScorePrefix.fr")} {c.langScoreFR ?? "—"} · {t("offerDetail.candidate.langScorePrefix.en")} {c.langScoreEN ?? "—"}
                           </div>
                         </div>
                         <div className="text-right">
                           <div className="text-xl font-semibold">{m.score}</div>
-                          <div className="text-[11px] uppercase tracking-wide text-muted-foreground">match</div>
+                          <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{t("offerDetail.candidate.matchLabel")}</div>
                         </div>
                       </div>
                       <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted-foreground md:grid-cols-3">
                         {Object.entries(m.breakdown).map(([k, v]) => (
                           <div key={k}>
-                            <span className="font-medium text-foreground">{CRITERION_LABELS[k] ?? k}:</span>{" "}
+                            <span className="font-medium text-foreground">{tc(`criterion.${k}`)}:</span>{" "}
                             {Number(v).toFixed(1)}
                           </div>
                         ))}

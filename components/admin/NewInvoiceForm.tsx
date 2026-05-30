@@ -5,6 +5,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -16,6 +17,8 @@ const CURRENCIES = ["MUR", "MGA", "EUR", "USD"] as const;
 const METHODS = ["WIRE", "MOBILE_MONEY"] as const;
 
 export function NewInvoiceForm({ enterprises }: Props) {
+  const t = useTranslations("app.admin");
+  const tc = useTranslations("common");
   const router = useRouter();
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -52,7 +55,7 @@ export function NewInvoiceForm({ enterprises }: Props) {
           }
         | null;
       if (!res.ok || !data?.ok) {
-        setError(data?.error?.message ?? `Request failed (${res.status})`);
+        setError(data?.error?.message ?? tc("requestFailed", { status: res.status }));
         setFieldErrors(data?.error?.fieldErrors ?? {});
         return;
       }
@@ -65,13 +68,13 @@ export function NewInvoiceForm({ enterprises }: Props) {
   return (
     <form className="grid gap-4 md:grid-cols-2" onSubmit={onSubmit}>
       <label className="flex flex-col gap-1 text-sm md:col-span-2">
-        <span>Enterprise</span>
+        <span>{t("invoices.newForm.enterprise")}</span>
         <select
           name="enterpriseId"
           required
           className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
         >
-          <option value="">Select enterprise</option>
+          <option value="">{t("invoices.newForm.selectEnterprise")}</option>
           {enterprises.map((e) => (
             <option key={e.id} value={e.id}>
               {e.companyName}
@@ -86,7 +89,7 @@ export function NewInvoiceForm({ enterprises }: Props) {
       </label>
 
       <label className="flex flex-col gap-1 text-sm">
-        <span>Amount</span>
+        <span>{t("invoices.newForm.amount")}</span>
         <Input name="amount" type="number" step="0.01" min="0.01" required />
         {fieldErrors.amount ? (
           <span className="text-xs text-destructive">
@@ -96,7 +99,7 @@ export function NewInvoiceForm({ enterprises }: Props) {
       </label>
 
       <label className="flex flex-col gap-1 text-sm">
-        <span>Currency</span>
+        <span>{t("invoices.newForm.currency")}</span>
         <select
           name="currency"
           defaultValue="MUR"
@@ -111,7 +114,7 @@ export function NewInvoiceForm({ enterprises }: Props) {
       </label>
 
       <label className="flex flex-col gap-1 text-sm">
-        <span>Payment method</span>
+        <span>{t("invoices.newForm.paymentMethod")}</span>
         <select
           name="paymentMethod"
           defaultValue="WIRE"
@@ -126,12 +129,12 @@ export function NewInvoiceForm({ enterprises }: Props) {
       </label>
 
       <label className="flex flex-col gap-1 text-sm">
-        <span>Reference</span>
-        <Input name="reference" placeholder="Internal ref or PO number" />
+        <span>{t("invoices.newForm.reference")}</span>
+        <Input name="reference" placeholder={t("invoices.newForm.referencePlaceholder")} />
       </label>
 
       <label className="flex flex-col gap-1 text-sm md:col-span-2">
-        <span>Notes</span>
+        <span>{t("invoices.newForm.notes")}</span>
         <textarea
           name="notes"
           rows={3}
@@ -147,7 +150,7 @@ export function NewInvoiceForm({ enterprises }: Props) {
 
       <div className="md:col-span-2 flex justify-end gap-2">
         <Button type="submit" disabled={busy}>
-          {busy ? "Creating..." : "Create invoice"}
+          {busy ? tc("creating") : t("invoices.new.title")}
         </Button>
       </div>
     </form>

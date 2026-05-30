@@ -9,6 +9,7 @@
 import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { getOfferQuota } from "@/lib/billing";
 import {
@@ -118,6 +119,7 @@ const PLACEHOLDER_MATCHES: MatchRow[] = [
 export default async function EnterpriseDashboardPage() {
   const { userId: clerkId } = await auth();
   if (!clerkId) redirect("/sign-in");
+  const t = await getTranslations("app.enterprise.dashboard");
 
   const user = await prisma.user.findUnique({
     where: { clerkId },
@@ -139,12 +141,12 @@ export default async function EnterpriseDashboardPage() {
   let offersUsed = 4;
   let matches: MatchRow[] = PLACEHOLDER_MATCHES;
   let kycExpiringSoon = 1;
-  let companyName = "Votre entreprise";
-  let planLabel = "Plan Business";
+  let companyName = t("dashboard.companyFallback");
+  let planLabel = t("dashboard.planFallback", { tier: "Business" });
 
   if (enterprise) {
     companyName = enterprise.companyName;
-    planLabel = `Plan ${enterprise.plan ?? "FREE"}`;
+    planLabel = t("dashboard.planFallback", { tier: enterprise.plan ?? "FREE" });
 
     const [offersAgg, applicationsAgg, weekStart, quota, recentApps, docs] = await Promise.all([
       prisma.jobOffer.count({
@@ -225,15 +227,15 @@ export default async function EnterpriseDashboardPage() {
   return (
     <>
       <PageHeader
-        title="Vue d'ensemble"
-        subtitle={`${companyName} · ${planLabel} · Renouvellement dans 47 jours`}
+        title={t("dashboard.title")}
+        subtitle={t("dashboard.subtitle", { companyName, planLabel, days: 47 })}
         action={
           <Stack dir="row" gap={8}>
             <Button variant="outline" iconLeft="download">
-              Exporter
+              {t("dashboard.exportButton")}
             </Button>
             <Link href="/enterprise/offers/new" style={{ textDecoration: "none" }}>
-              <Button iconLeft="plus">Nouvelle offre</Button>
+              <Button iconLeft="plus">{t("dashboard.newOfferButton")}</Button>
             </Link>
           </Stack>
         }
@@ -250,27 +252,27 @@ export default async function EnterpriseDashboardPage() {
         {/* KPI row */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
           <KpiCard
-            label="Offres actives"
+            label={t("kpi.activeOffers")}
             value={String(activeOffersCount)}
             delta="+1"
             sparkline={[2, 2, 3, 3, 4, 3, 4]}
           />
           <KpiCard
-            label="Candidats matchés"
+            label={t("kpi.matchedCandidates")}
             value={String(matchedCount)}
             delta="+14"
             sparkline={[80, 92, 110, 118, 128, 135, 142]}
           />
           <KpiCard
-            label="Entretiens cette sem."
+            label={t("kpi.interviewsThisWeek")}
             value={String(interviewsThisWeek)}
             delta="+2"
             sparkline={[3, 5, 6, 4, 7, 8, 9]}
           />
           <KpiCard
-            label="Délai moyen"
+            label={t("kpi.avgDelay")}
             value={String(avgDays)}
-            unit="jours"
+            unit={t("kpi.avgDelayUnit")}
             delta="-1"
             deltaTone="success"
             sparkline={[14, 13, 13, 12, 12, 12, 11]}
@@ -291,21 +293,21 @@ export default async function EnterpriseDashboardPage() {
             >
               <div style={{ minWidth: 0 }}>
                 <h3 className="mg-h4" style={{ margin: 0 }}>
-                  Matchs récents
+                  {t("matches.title")}
                 </h3>
                 <div
                   className="mg-caption"
                   style={{ color: "hsl(var(--muted-foreground))", marginTop: 2 }}
                 >
-                  PII masqué jusqu&apos;à présélection · règle {planLabel}
+                  {t("matches.piiNotice", { planLabel })}
                 </div>
               </div>
               <Stack dir="row" gap={6}>
                 <Badge tone="primary" size="md">
-                  Tous · {matchedCount}
+                  {t("matches.badgeAll", { count: matchedCount })}
                 </Badge>
                 <Badge tone="neutral" size="md">
-                  Nouveaux · 14
+                  {t("matches.badgeNew", { count: 14 })}
                 </Badge>
               </Stack>
             </div>
@@ -316,7 +318,7 @@ export default async function EnterpriseDashboardPage() {
                   className="mg-body-sm"
                   style={{ padding: "24px 20px", color: "hsl(var(--muted-foreground))" }}
                 >
-                  Aucun match pour le moment. Publiez une offre pour démarrer.
+                  {t("matches.empty")}
                 </div>
               ) : (
                 matches.map((m, i) => {
@@ -351,10 +353,7 @@ export default async function EnterpriseDashboardPage() {
                             className="mg-caption"
                             style={{ color: "hsl(var(--muted-foreground))", marginTop: 2 }}
                           >
-                            Pour{" "}
-                            <span style={{ color: "hsl(var(--foreground))" }}>
-                              {m.offerTitle}
-                            </span>
+                            {t("matches.forOffer", { offerTitle: m.offerTitle })}
                           </div>
                         </div>
                       </div>
@@ -362,13 +361,13 @@ export default async function EnterpriseDashboardPage() {
                         <ScoreGauge value={m.score} size={44} stroke={4} label={false} />
                         <Stack dir="row" gap={6}>
                           <Button variant="ghost" size="sm">
-                            Passer
+                            {t("matches.skipButton")}
                           </Button>
                           <Link
                             href={`/enterprise/offers`}
                             style={{ textDecoration: "none" }}
                           >
-                            <Button size="sm">Voir le profil</Button>
+                            <Button size="sm">{t("matches.viewProfileButton")}</Button>
                           </Link>
                         </Stack>
                       </div>
@@ -387,7 +386,7 @@ export default async function EnterpriseDashboardPage() {
                   {planLabel}
                 </span>
                 <Badge tone="success" icon="check-circle-2">
-                  Actif
+                  {t("plan.activeStatus")}
                 </Badge>
               </Stack>
               <div className="mg-h2" style={{ margin: "8px 0 0" }}>
@@ -397,12 +396,12 @@ export default async function EnterpriseDashboardPage() {
                 className="mg-caption"
                 style={{ color: "hsl(var(--muted-foreground))", marginBottom: 12 }}
               >
-                présélections utilisées ce mois
+                {t("plan.preselectionsUsed")}
               </div>
               <Progress value={presetPct} />
               <Hairline style={{ margin: "16px 0" }} />
               <div className="mg-body-sm" style={{ fontWeight: 600, marginBottom: 8 }}>
-                Offres actives
+                {t("plan.activeOffersLabel")}
               </div>
               <div className="mg-h2" style={{ margin: 0 }}>
                 {offersUsed} / {activeOffersLimit ?? "∞"}
@@ -414,31 +413,31 @@ export default async function EnterpriseDashboardPage() {
                 style={{ marginTop: 16 }}
                 iconRight="arrow-up-right"
               >
-                Mettre à niveau
+                {t("plan.upgradeButton")}
               </Button>
             </Card>
 
             <Card padding={20}>
               <Stack dir="row" justify="space-between" align="center" style={{ marginBottom: 12 }}>
                 <h3 className="mg-h4" style={{ margin: 0 }}>
-                  Documents KYC
+                  {t("kyc.title")}
                 </h3>
                 {kycExpiringSoon > 0 ? (
                   <Badge tone="warning" icon="alert-triangle">
-                    {kycExpiringSoon} à renouveler
+                    {t("kyc.expiringSoon", { count: kycExpiringSoon })}
                   </Badge>
                 ) : (
                   <Badge tone="success" icon="check-circle-2">
-                    À jour
+                    {t("kyc.upToDate")}
                   </Badge>
                 )}
               </Stack>
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {[
-                  { name: "Cert. d'incorporation", icon: "building-2", status: "APPROVED" },
-                  { name: "Pouvoir signataire", icon: "file-text", status: "APPROVED" },
+                  { name: t("kyc.docIncorporation"), icon: "building-2", status: "APPROVED" },
+                  { name: t("kyc.docSignatoryPower"), icon: "file-text", status: "APPROVED" },
                   {
-                    name: "Attestation fiscale",
+                    name: t("kyc.docTaxClearance"),
                     icon: "file-text",
                     status: kycExpiringSoon > 0 ? "EXPIRING_SOON" : "APPROVED",
                   },
@@ -470,7 +469,7 @@ export default async function EnterpriseDashboardPage() {
                 style={{ textDecoration: "none", display: "block", marginTop: 16 }}
               >
                 <Button variant="outline" fullWidth iconRight="arrow-right">
-                  Gérer les documents
+                  {t("kyc.manageButton")}
                 </Button>
               </Link>
             </Card>

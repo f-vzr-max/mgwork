@@ -7,6 +7,7 @@
 // and a Card around the row list.
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 import { Button, Card, Icon, Stack } from "@/components/mg";
 import { DocumentRow } from "@/components/documents/DocumentRow";
 import { UploadDialog } from "@/components/documents/UploadDialog";
@@ -25,6 +26,8 @@ type ListResponse =
   | { ok: false; error: { message: string } };
 
 export default function CandidateDocumentsPage(): React.ReactElement {
+  const t = useTranslations("app.candidate");
+  const tc = useTranslations("common");
   const [docs, setDocs] = React.useState<DocumentDto[] | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -36,7 +39,7 @@ export default function CandidateDocumentsPage(): React.ReactElement {
     try {
       const res = await fetch("/api/documents", { credentials: "same-origin" });
       if (!res.ok) {
-        setError(`Erreur de chargement (HTTP ${res.status})`);
+        setError(t("documents.loadError", { status: res.status }));
         setDocs([]);
         return;
       }
@@ -53,7 +56,7 @@ export default function CandidateDocumentsPage(): React.ReactElement {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   React.useEffect(() => {
     void fetchDocs();
@@ -64,10 +67,10 @@ export default function CandidateDocumentsPage(): React.ReactElement {
       <Stack dir="row" justify="space-between" align="center">
         <div style={{ minWidth: 0, flex: 1 }}>
           <h1 className="mg-h1" style={{ margin: 0, fontSize: 26, lineHeight: "32px" }}>
-            Mes documents
+            {t("documents.title")}
           </h1>
           <div className="mg-caption" style={{ color: "hsl(var(--muted-foreground))", marginTop: 4 }}>
-            Passeport, visite médicale, permis — gardés en sécurité.
+            {t("documents.subtitle")}
           </div>
         </div>
         <Button
@@ -75,7 +78,7 @@ export default function CandidateDocumentsPage(): React.ReactElement {
           iconLeft="plus"
           onClick={() => setUploadOpen(true)}
         >
-          Ajouter
+          {t("documents.addButton")}
         </Button>
       </Stack>
 
@@ -86,9 +89,9 @@ export default function CandidateDocumentsPage(): React.ReactElement {
             borderBottom: "1px solid hsl(var(--border))",
           }}
         >
-          <div className="mg-h4" style={{ margin: 0 }}>Mon portefeuille</div>
+          <div className="mg-h4" style={{ margin: 0 }}>{t("documents.walletTitle")}</div>
           <div className="mg-caption" style={{ color: "hsl(var(--muted-foreground))", marginTop: 2 }}>
-            Rouge = expire dans 30 jours · Orange = dans 90 jours.
+            {t("documents.expiryLegend")}
           </div>
         </div>
 
@@ -109,17 +112,17 @@ export default function CandidateDocumentsPage(): React.ReactElement {
         {loading && docs == null ? (
           <EmptyState
             icon="circle-dashed"
-            title="Chargement…"
-            hint="Récupération de vos documents."
+            title={t("documents.loadingTitle")}
+            hint={t("documents.loadingHint")}
           />
         ) : docs && docs.length === 0 ? (
           <EmptyState
             icon="file-text"
-            title="Aucun document"
-            hint="Ajoutez votre passeport et vos permis pour commencer."
+            title={t("documents.emptyTitle")}
+            hint={t("documents.emptyHint")}
             action={
               <Button size="sm" variant="outline" iconLeft="upload" onClick={() => setUploadOpen(true)}>
-                Téléverser
+                {t("documents.uploadButton")}
               </Button>
             }
           />
@@ -140,7 +143,7 @@ export default function CandidateDocumentsPage(): React.ReactElement {
         disabled={loading}
         style={{ alignSelf: "center" }}
       >
-        Rafraîchir
+        {tc("refresh")}
       </Button>
 
       <UploadDialog

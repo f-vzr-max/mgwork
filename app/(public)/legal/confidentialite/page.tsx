@@ -1,72 +1,101 @@
+import { getTranslations } from "next-intl/server";
+import Link from "next/link";
 import { PublicShell, Section, SectionHeader, Card, Stack, Badge } from "@/components/mg";
+import { LEGAL_ENTITY } from "@/lib/legal-entity";
 
-export const metadata = {
-  title: "MG·Work — Confidentialité",
-  description:
-    "Politique de confidentialité MG·Work, conforme Data Protection Act Mauritius 2017.",
-};
+export async function generateMetadata() {
+  const t = await getTranslations("marketing");
+  return {
+    title: t("legal.confidentialite.metaTitle"),
+    description: t("legal.confidentialite.metaDescription"),
+  };
+}
 
-export default function ConfidentialitePage() {
+export default async function ConfidentialitePage() {
+  const t = await getTranslations("marketing");
   return (
     <PublicShell active={null}>
       <Section padY={80}>
-        <SectionHeader title="Politique de confidentialité" align="left" />
+        <SectionHeader title={t("legal.confidentialite.title")} align="left" />
         <Stack gap={24} style={{ marginTop: 32, maxWidth: 720 }}>
           <Stack dir="row" gap={8} wrap>
             <Badge tone="success" icon="shield-check">
-              DPA Mauritius 2017
+              {t("legal.confidentialite.badge.dpa")}
             </Badge>
             <Badge tone="neutral" icon="globe">
-              Hébergement océan Indien
+              {t("legal.confidentialite.badge.hosting")}
             </Badge>
           </Stack>
           <Card padding={32} surface={1}>
-            <h2 className="mg-heading-md" style={{ marginTop: 0 }}>
-              Données collectées
+            <h2 className="mg-h3" style={{ marginTop: 0 }}>
+              {t("legal.confidentialite.controller.title")}
             </h2>
             <p className="mg-body">
-              Nous collectons uniquement les données nécessaires au matching et
-              à l&apos;embauche : identité, parcours professionnel, langues,
-              localisation souhaitée, pièces justificatives (passeport, diplômes)
-              pour les candidats engagés dans un recrutement.
+              {t("legal.confidentialite.controller.body", {
+                legalName: LEGAL_ENTITY.legalName,
+                address: LEGAL_ENTITY.registeredAddress,
+                dpo: LEGAL_ENTITY.email.dpo,
+              })}
             </p>
           </Card>
           <Card padding={32} surface={1}>
-            <h2 className="mg-heading-md" style={{ marginTop: 0 }}>
-              Finalités du traitement
+            <h2 className="mg-h3" style={{ marginTop: 0 }}>
+              {t("legal.confidentialite.collecte.title")}
+            </h2>
+            <p className="mg-body">{t("legal.confidentialite.collecte.body")}</p>
+          </Card>
+          <Card padding={32} surface={1}>
+            <h2 className="mg-h3" style={{ marginTop: 0 }}>
+              {t("legal.confidentialite.finalites.title")}
+            </h2>
+            <p className="mg-body">{t("legal.confidentialite.finalites.body")}</p>
+          </Card>
+          <Card padding={32} surface={1}>
+            <h2 className="mg-h3" style={{ marginTop: 0 }}>
+              {t("legal.confidentialite.subprocessors.title")}
+            </h2>
+            <p className="mg-body">{t("legal.confidentialite.subprocessors.body")}</p>
+          </Card>
+          <Card padding={32} surface={1}>
+            <h2 className="mg-h3" style={{ marginTop: 0 }}>
+              {t("legal.confidentialite.automated.title")}
+            </h2>
+            <p className="mg-body">{t("legal.confidentialite.automated.body")}</p>
+          </Card>
+          <Card padding={32} surface={1}>
+            <h2 className="mg-h3" style={{ marginTop: 0 }}>
+              {t("legal.confidentialite.droits.title")}
             </h2>
             <p className="mg-body">
-              Mise en relation candidat-entreprise, vérification d&apos;identité,
-              accompagnement administratif au départ (visa, contrat,
-              logement), respect des obligations légales (notamment KYC pour les
-              entreprises).
+              {t("legal.confidentialite.droits.body", {
+                email: LEGAL_ENTITY.email.privacy,
+              })}
             </p>
           </Card>
           <Card padding={32} surface={1}>
-            <h2 className="mg-heading-md" style={{ marginTop: 0 }}>
-              Vos droits
+            <h2 className="mg-h3" style={{ marginTop: 0 }}>
+              {t("legal.confidentialite.authority.title")}
             </h2>
-            <p className="mg-body">
-              Conformément au Data Protection Act Mauritius 2017, vous disposez
-              d&apos;un droit d&apos;accès, de rectification, d&apos;effacement,
-              d&apos;opposition et de portabilité de vos données. Adressez votre
-              demande à privacy@mgwork.io ; nous répondons sous 30 jours.
-            </p>
+            <p className="mg-body">{t("legal.confidentialite.authority.body")}</p>
           </Card>
           <Card padding={32} surface={1}>
-            <h2 className="mg-heading-md" style={{ marginTop: 0 }}>
-              Conservation
+            <h2 className="mg-h3" style={{ marginTop: 0 }}>
+              {t("legal.confidentialite.conservation.title")}
             </h2>
-            <p className="mg-body">
-              Les pièces sensibles (passeport, médical) sont supprimées 90 jours
-              après le recrutement. Les profils candidat inactifs sont anonymisés
-              après 24 mois. Voir la page{" "}
-              <a href="/conformite" className="underline">
-                Conformité
-              </a>{" "}
-              pour le détail du cycle de vie des données.
+            <p className="mg-body" style={{ marginBottom: 12 }}>
+              {t("legal.confidentialite.conservation.body")}
             </p>
+            <Link
+              href="/conformite"
+              className="mg-body-sm"
+              style={{ color: "hsl(var(--primary))", textDecoration: "underline" }}
+            >
+              {t("legal.confidentialite.conservation.linkLabel")}
+            </Link>
           </Card>
+          <p className="mg-caption" style={{ color: "hsl(var(--muted-foreground))" }}>
+            {t("legal.confidentialite.updated")} {LEGAL_ENTITY.lastUpdated}
+          </p>
         </Stack>
       </Section>
     </PublicShell>

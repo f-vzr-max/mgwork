@@ -6,6 +6,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
+import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { canAccess, type Role } from "@/lib/roles";
 import {
@@ -76,24 +77,15 @@ const TYPE_ICON: Record<string, IconName> = {
   OTHER: "file-text",
 };
 
-const TYPE_LABEL: Record<string, string> = {
-  PASSPORT: "Passeport",
-  MEDICAL_AUTHORIZATION: "Médical",
-  WORK_PERMIT: "Permis de travail",
-  VISA: "Visa",
-  INCORPORATION_CERTIFICATE: "Constitution",
-  OTHER: "Autre",
-};
-
-function formatAge(d: Date): string {
+function formatAge(d: Date, t: Awaited<ReturnType<typeof getTranslations>>): string {
   const ms = Date.now() - d.getTime();
   const m = Math.floor(ms / 60_000);
-  if (m < 1) return "à l'instant";
-  if (m < 60) return `${m} min`;
+  if (m < 1) return t("documents.age.justNow");
+  if (m < 60) return t("documents.age.minutes", { m });
   const h = Math.floor(m / 60);
-  if (h < 24) return `${h} h`;
+  if (h < 24) return t("documents.age.hours", { h });
   const days = Math.floor(h / 24);
-  return `${days} j`;
+  return t("documents.age.days", { days });
 }
 
 export default async function StaffDocumentsQueuePage() {
@@ -106,6 +98,8 @@ export default async function StaffDocumentsQueuePage() {
   });
   if (!user) redirect("/sign-in");
   if (!canAccess(user.role as Role, "staff")) redirect("/");
+  const t = await getTranslations("app.staff");
+  const tc = await getTranslations("common");
 
   const pending = await loadPending();
   const candidateIds = pending
@@ -145,14 +139,14 @@ export default async function StaffDocumentsQueuePage() {
   return (
     <>
       <PageHeader
-        title="File de documents"
-        subtitle="Premier entré, premier servi · prioritaires d'abord"
+        title={t("documents.title")}
+        subtitle={t("documents.subtitle")}
         action={
           <Stack dir="row" gap={8}>
             <Button variant="outline" iconLeft="filter">
-              Filtres avancés
+              {t("documents.actions.advancedFilters")}
             </Button>
-            <Button iconLeft="check-circle-2">Réclamer le suivant</Button>
+            <Button iconLeft="check-circle-2">{t("documents.actions.claimNext")}</Button>
           </Stack>
         }
       />
@@ -167,22 +161,22 @@ export default async function StaffDocumentsQueuePage() {
         }}
       >
         <KpiCard
-          label="En attente"
+          label={t("documents.kpi.pending")}
           value={rows.length.toString()}
           tone="primary"
         />
         <KpiCard
-          label="Prioritaires"
+          label={t("documents.kpi.priority")}
           value={pinnedCount.toString()}
           tone={pinnedCount > 0 ? "danger" : "success"}
         />
         <KpiCard
-          label="Traités (7j)"
+          label={t("documents.kpi.processed7d")}
           value={processed7d.toString()}
           tone="success"
         />
         <KpiCard
-          label="Types distincts"
+          label={t("documents.kpi.distinctTypes")}
           value={Object.keys(typeCounts).length.toString()}
         />
       </div>
@@ -197,16 +191,16 @@ export default async function StaffDocumentsQueuePage() {
         }}
       >
         <Badge tone="primary" size="md">
-          Tous · {rows.length}
+          {t("documents.chips.all", { count: rows.length })}
         </Badge>
         {pinnedCount > 0 && (
           <Badge tone="warning" size="md" icon="alert-triangle">
-            Prioritaires · {pinnedCount}
+            {t("documents.chips.priority", { count: pinnedCount })}
           </Badge>
         )}
-        {Object.entries(typeCounts).map(([t, n]) => (
-          <Badge key={t} tone="neutral" size="md">
-            {TYPE_LABEL[t] ?? t} · {n}
+        {Object.entries(typeCounts).map(([type, n]) => (
+          <Badge key={type} tone="neutral" size="md">
+            {t("documents.chips.typeCount", { label: tc(`docType.${type}`), count: n })}
           </Badge>
         ))}
       </div>
@@ -226,12 +220,12 @@ export default async function StaffDocumentsQueuePage() {
             }}
             className="mg-micro"
           >
-            <span>Réf.</span>
-            <span>Candidat · Type</span>
-            <span>Statut</span>
-            <span>Âge file</span>
-            <span>Priorité</span>
-            <span style={{ textAlign: "right" }}>Action</span>
+            <span>{t("documents.table.colRef")}</span>
+            <span>{t("documents.table.colCandidateType")}</span>
+            <span>{t("documents.table.colStatus")}</span>
+            <span>{t("documents.table.colAge")}</span>
+            <span>{t("documents.table.colPriority")}</span>
+            <span style={{ textAlign: "right" }}>{t("documents.table.colAction")}</span>
           </div>
           {rows.length === 0 ? (
             <div
@@ -242,13 +236,14 @@ export default async function StaffDocumentsQueuePage() {
                 fontSize: 14,
               }}
             >
-              La file est vide. Rien à vérifier pour l&apos;instant.
+              {t("documents.table.empty")}
             </div>
           ) : (
             rows.map(({ doc, pinned }, i) => {
               const ownerLabel = doc.candidate
                 ? `${doc.candidate.firstName} ${doc.candidate.lastName}`
                 : doc.enterprise?.companyName ?? "—";
+              const typeLabel = tc(`docType.${doc.type}`);
               const icon: IconName = TYPE_ICON[doc.type] ?? "file-text";
               return (
                 <div
@@ -309,7 +304,7 @@ export default async function StaffDocumentsQueuePage() {
                           textTransform: "uppercase",
                         }}
                       >
-                        {TYPE_LABEL[doc.type] ?? doc.type}
+                        {typeLabel}
                       </div>
                     </div>
                   </Stack>
@@ -318,12 +313,12 @@ export default async function StaffDocumentsQueuePage() {
                     className="mg-tabular mg-body-sm"
                     style={{ color: "hsl(var(--muted-foreground))" }}
                   >
-                    {formatAge(doc.createdAt)}
+                    {formatAge(doc.createdAt, t)}
                   </span>
                   <span>
                     {pinned ? (
                       <Badge tone="warning" icon="alert-triangle">
-                        Prioritaire
+                        {t("documents.table.priorityBadge")}
                       </Badge>
                     ) : (
                       <span
@@ -340,14 +335,14 @@ export default async function StaffDocumentsQueuePage() {
                       style={{ textDecoration: "none" }}
                     >
                       <Button variant="ghost" size="sm" iconLeft="eye">
-                        Aperçu
+                        {t("documents.table.actionPreview")}
                       </Button>
                     </Link>
                     <Link
                       href={`/staff/documents/${doc.id}`}
                       style={{ textDecoration: "none" }}
                     >
-                      <Button size="sm">Réclamer</Button>
+                      <Button size="sm">{t("documents.table.actionClaim")}</Button>
                     </Link>
                   </Stack>
                 </div>

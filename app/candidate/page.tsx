@@ -9,6 +9,7 @@
 import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import type { DocumentStatus, DocumentType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { findOffersForCandidate } from "@/lib/matching";
@@ -26,15 +27,6 @@ import {
 } from "@/components/mg";
 
 export const dynamic = "force-dynamic";
-
-const DOC_TYPE_LABEL: Record<DocumentType, string> = {
-  PASSPORT: "Passeport",
-  MEDICAL_AUTHORIZATION: "Visite méd.",
-  WORK_PERMIT: "Permis",
-  VISA: "Visa",
-  INCORPORATION_CERTIFICATE: "Incorporation",
-  OTHER: "Autre",
-};
 
 const DOC_TYPE_ICON: Record<DocumentType, IconName> = {
   PASSPORT: "book-user",
@@ -59,6 +51,8 @@ function tileStatus(doc: { status: DocumentStatus; expiresAt: Date | null }): st
 export default async function CandidateDashboard() {
   const { userId: clerkId } = await auth();
   if (!clerkId) redirect("/sign-in");
+  const t = await getTranslations("app.candidate.dashboard");
+  const tc = await getTranslations("common");
 
   const user = await prisma.user.findUnique({
     where: { clerkId },
@@ -82,12 +76,12 @@ export default async function CandidateDashboard() {
     return (
       <div style={{ padding: 16 }}>
         <Card padding={16}>
-          <div className="mg-h3" style={{ margin: 0 }}>Profil candidat requis</div>
+          <div className="mg-h3" style={{ margin: 0 }}>{t("noProfile.title")}</div>
           <div className="mg-body-sm" style={{ color: "hsl(var(--muted-foreground))", marginTop: 4 }}>
-            Terminez votre onboarding pour accéder au tableau de bord.
+            {t("noProfile.body")}
           </div>
           <Link href="/onboarding" style={{ textDecoration: "none" }}>
-            <Button style={{ marginTop: 12 }} iconRight="arrow-right">Continuer</Button>
+            <Button style={{ marginTop: 12 }} iconRight="arrow-right">{t("noProfile.cta")}</Button>
           </Link>
         </Card>
       </div>
@@ -123,10 +117,10 @@ export default async function CandidateDashboard() {
 
   // Find what's missing from the profile to surface the right CTA hint.
   const missing: string[] = [];
-  if (!c.dateOfBirth) missing.push("Date de naissance");
-  if (c.langScoreFR == null && c.langScoreEN == null) missing.push("Langues");
-  if (!c.city) missing.push("Ville");
-  const missingPreview = missing.slice(0, 3).join(" · ") || "Disponibilités";
+  if (!c.dateOfBirth) missing.push(t("profile.missingDob"));
+  if (c.langScoreFR == null && c.langScoreEN == null) missing.push(t("profile.missingLanguages"));
+  if (!c.city) missing.push(t("profile.missingCity"));
+  const missingPreview = missing.slice(0, 3).join(" · ") || t("profile.missingAvailability");
 
   // "Fresh" = match surfaced in the last 7 days. The matching layer doesn't
   // persist a createdAt, so we fall back to the offer.createdAt.
@@ -151,12 +145,12 @@ export default async function CandidateDashboard() {
           <ScoreGauge value={c.profileScore} size={88} stroke={6} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div className="mg-micro" style={{ color: "hsl(var(--muted-foreground))" }}>
-              Profil complété
+              {t("profile.completedLabel")}
             </div>
             <div className="mg-h3" style={{ margin: "4px 0 0" }}>
               {c.profileScore >= 100
-                ? "Profil prêt à postuler"
-                : `Encore ${Math.max(1, missing.length || 1)} étape${(missing.length || 1) > 1 ? "s" : ""} pour postuler`}
+                ? t("profile.ready")
+                : t("profile.stepsRemaining", { n: Math.max(1, missing.length || 1) })}
             </div>
             <div className="mg-caption" style={{ color: "hsl(var(--muted-foreground))", marginTop: 4 }}>
               {missingPreview}
@@ -166,7 +160,7 @@ export default async function CandidateDashboard() {
         {c.profileScore < 100 && (
           <Link href="/onboarding" style={{ textDecoration: "none", display: "block", marginTop: 16 }}>
             <Button size="lg" fullWidth iconRight="arrow-right">
-              Finir mon profil
+              {t("profile.finishCta")}
             </Button>
           </Link>
         )}
@@ -175,7 +169,7 @@ export default async function CandidateDashboard() {
       {/* Documents strip ------------------------------------------------ */}
       <div>
         <Stack dir="row" justify="space-between" align="center" style={{ marginBottom: 10 }}>
-          <h3 className="mg-h4" style={{ margin: 0 }}>Mes documents</h3>
+          <h3 className="mg-h4" style={{ margin: 0 }}>{t("documents.title")}</h3>
           <Link
             href="/candidate/documents"
             style={{
@@ -185,16 +179,16 @@ export default async function CandidateDashboard() {
               textDecoration: "none",
             }}
           >
-            Tout voir
+            {t("documents.viewAll")}
           </Link>
         </Stack>
         {docs.length === 0 ? (
           <Card padding={14}>
             <div className="mg-body-sm" style={{ color: "hsl(var(--muted-foreground))" }}>
-              Aucun document pour l&apos;instant. Commencez par ajouter votre passeport.
+              {t("documents.empty")}
             </div>
             <Link href="/candidate/documents" style={{ textDecoration: "none", display: "inline-block", marginTop: 10 }}>
-              <Button size="sm" variant="outline" iconLeft="upload">Ajouter</Button>
+              <Button size="sm" variant="outline" iconLeft="upload">{t("documents.addCta")}</Button>
             </Link>
           </Card>
         ) : (
@@ -223,7 +217,7 @@ export default async function CandidateDashboard() {
                   <StatusBadge status={tileStatus(d)} />
                 </Stack>
                 <div className="mg-body-sm" style={{ fontWeight: 600 }}>
-                  {DOC_TYPE_LABEL[d.type]}
+                  {tc(`docType.${d.type}`)}
                 </div>
               </Card>
             ))}
@@ -234,15 +228,15 @@ export default async function CandidateDashboard() {
       {/* Matches feed --------------------------------------------------- */}
       <div>
         <Stack dir="row" justify="space-between" align="center" style={{ marginBottom: 10 }}>
-          <h3 className="mg-h4" style={{ margin: 0 }}>Nouveaux matchs</h3>
+          <h3 className="mg-h4" style={{ margin: 0 }}>{t("matches.title")}</h3>
           <span className="mg-caption" style={{ color: "hsl(var(--muted-foreground))" }}>
-            {topMatches.length} cette semaine
+            {t("matches.thisWeek", { n: topMatches.length })}
           </span>
         </Stack>
         {topMatches.length === 0 ? (
           <Card padding={14}>
             <div className="mg-body-sm" style={{ color: "hsl(var(--muted-foreground))" }}>
-              Aucun match pour le moment. Complétez votre profil pour augmenter vos chances.
+              {t("matches.empty")}
             </div>
           </Card>
         ) : (
@@ -260,7 +254,7 @@ export default async function CandidateDashboard() {
                         <span className="mg-body-sm" style={{ fontWeight: 600 }}>{o.title}</span>
                         {fresh && (
                           <Badge tone="primary" className="mg-pulse-soft">
-                            Nouveau
+                            {t("matches.newBadge")}
                           </Badge>
                         )}
                       </Stack>
@@ -295,13 +289,13 @@ export default async function CandidateDashboard() {
             <Icon name="message-circle" size={18} />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div className="mg-body-sm" style={{ fontWeight: 600 }}>Une question ?</div>
+            <div className="mg-body-sm" style={{ fontWeight: 600 }}>{t("chat.question")}</div>
             <div className="mg-caption" style={{ color: "hsl(var(--muted-foreground))" }}>
-              Un conseiller répond en moyenne en 2h
+              {t("chat.responseTime")}
             </div>
           </div>
           <Link href="/candidate/chat" style={{ textDecoration: "none" }}>
-            <Button variant="outline" size="sm" iconRight="arrow-right">Écrire</Button>
+            <Button variant="outline" size="sm" iconRight="arrow-right">{t("chat.writeCta")}</Button>
           </Link>
         </Stack>
       </Card>

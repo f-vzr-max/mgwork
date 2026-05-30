@@ -7,6 +7,8 @@ import { Wordmark } from "./wordmark";
 import { Hairline } from "./hairline";
 import { Avatar } from "./avatar";
 import { Badge, type BadgeTone } from "./badge";
+import { LanguageMenu } from "./language-menu";
+import { ThemeToggle } from "./theme-toggle";
 
 export type SidebarItem =
   | { section: string; id?: undefined }
@@ -198,6 +200,11 @@ export function WebSidebar({
           </>
         )}
         {!user && footer}
+      </div>
+      <Hairline />
+      <div style={{ padding: 12, display: "flex", alignItems: "center", gap: 8 }}>
+        <LanguageMenu />
+        <ThemeToggle />
       </div>
     </aside>
   );

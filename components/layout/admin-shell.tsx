@@ -8,20 +8,8 @@
 
 import * as React from "react";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { WebSidebar, type SidebarItem, type SidebarUser } from "@/components/mg";
-
-const NAV: SidebarItem[] = [
-  { id: "overview", icon: "home", label: "Vue d'ensemble", href: "/admin" },
-  { section: "Plateforme" },
-  { id: "users", icon: "users", label: "Utilisateurs", href: "/admin/users" },
-  { id: "matching", icon: "sliders", label: "Matching", href: "/admin/matching-config" },
-  { id: "disputes", icon: "octagon-alert", label: "Litiges", href: "/admin/disputes" },
-  { section: "Conformité & finance" },
-  { id: "audit", icon: "shield-check", label: "Journal d'audit", href: "/admin/audit" },
-  { id: "invoices", icon: "file-text", label: "Factures", href: "/admin/invoices" },
-  { id: "i18n", icon: "globe", label: "Traductions", href: "/admin/i18n" },
-  { id: "flags", icon: "settings", label: "Feature flags", href: "/admin/feature-flags" },
-];
 
 function resolveActiveId(pathname: string | null): string {
   if (!pathname) return "overview";
@@ -41,8 +29,21 @@ export interface AdminShellProps {
 }
 
 export function AdminShell({ user, children }: AdminShellProps) {
+  const t = useTranslations("app.admin");
   const pathname = usePathname();
   const activeId = resolveActiveId(pathname);
+  const NAV: SidebarItem[] = [
+    { id: "overview", icon: "home", label: t("nav.overview"), href: "/admin" },
+    { section: t("nav.section.platform") },
+    { id: "users", icon: "users", label: t("nav.users"), href: "/admin/users" },
+    { id: "matching", icon: "sliders", label: t("nav.matching"), href: "/admin/matching-config" },
+    { id: "disputes", icon: "octagon-alert", label: t("nav.disputes"), href: "/admin/disputes" },
+    { section: t("nav.section.complianceFinance") },
+    { id: "audit", icon: "shield-check", label: t("nav.audit"), href: "/admin/audit" },
+    { id: "invoices", icon: "file-text", label: t("nav.invoices"), href: "/admin/invoices" },
+    { id: "i18n", icon: "globe", label: t("nav.i18n"), href: "/admin/i18n" },
+    { id: "flags", icon: "settings", label: t("nav.flags"), href: "/admin/feature-flags" },
+  ];
 
   return (
     <div
@@ -53,7 +54,7 @@ export function AdminShell({ user, children }: AdminShellProps) {
         background: "hsl(var(--background))",
       }}
     >
-      <WebSidebar role="Admin" items={NAV} activeId={activeId} user={user} />
+      <WebSidebar role={t("role")} items={NAV} activeId={activeId} user={user} />
       <main style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
         {children}
       </main>

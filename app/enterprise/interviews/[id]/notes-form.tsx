@@ -5,6 +5,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
@@ -28,6 +29,7 @@ export function InterviewNotesForm({
   initialStatus,
   initialVideoUrl,
 }: InterviewNotesFormProps) {
+  const t = useTranslations("app.enterprise");
   const router = useRouter();
   const [notes, setNotes] = React.useState(initialNotes);
   const [status, setStatus] = React.useState(initialStatus);
@@ -53,13 +55,13 @@ export function InterviewNotesForm({
       });
       const data = await res.json();
       if (!res.ok || data?.ok !== true) {
-        setError(data?.error?.message ?? "Save failed.");
+        setError(data?.error?.message ?? t("interviews.notesForm.errorSaveFailed"));
         return;
       }
       setSaved(true);
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Network error.");
+      setError(err instanceof Error ? err.message : t("interviews.notesForm.errorNetwork"));
     } finally {
       setSubmitting(false);
     }
@@ -68,7 +70,7 @@ export function InterviewNotesForm({
   return (
     <form onSubmit={onSubmit} className="grid gap-3">
       <label className="block text-sm font-medium">
-        Status
+        {t("interviews.notesForm.statusLabel")}
         <select
           value={status}
           onChange={(e) => setStatus(e.target.value)}
@@ -83,18 +85,18 @@ export function InterviewNotesForm({
       </label>
 
       <label className="block text-sm font-medium">
-        Video URL
+        {t("interviews.notesForm.videoUrlLabel")}
         <Input
           type="url"
           value={videoUrl}
           onChange={(e) => setVideoUrl(e.target.value)}
-          placeholder="https://meet.example.com/..."
+          placeholder={t("interviews.notesForm.videoUrlPlaceholder")}
           className="mt-1"
         />
       </label>
 
       <label className="block text-sm font-medium">
-        Notes (visible to enterprise team only)
+        {t("interviews.notesForm.notesLabel")}
         <textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
@@ -105,11 +107,11 @@ export function InterviewNotesForm({
       </label>
 
       {error && <p className="text-sm text-destructive">{error}</p>}
-      {saved && <p className="text-sm text-success">Saved.</p>}
+      {saved && <p className="text-sm text-success">{t("interviews.notesForm.savedSuccess")}</p>}
 
       <div>
         <Button type="submit" disabled={submitting}>
-          {submitting ? "Saving…" : "Save"}
+          {submitting ? t("interviews.notesForm.savingButton") : t("interviews.notesForm.saveButton")}
         </Button>
       </div>
     </form>

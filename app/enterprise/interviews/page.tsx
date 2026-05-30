@@ -8,6 +8,7 @@
 import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { format, addMonths, subMonths } from "date-fns";
 import { prisma } from "@/lib/prisma";
 import { MonthGrid, type CalendarItem } from "@/components/calendar/MonthGrid";
@@ -55,8 +56,10 @@ export default async function EnterpriseInterviewsPage({
   });
   if (!user) redirect("/sign-in");
 
+  const t = await getTranslations("app.enterprise.interviews");
+
   if (user.role !== "ENTERPRISE" && user.role !== "ADMIN" && user.role !== "SUPER_ADMIN") {
-    return <PageHeader title="Accès refusé" subtitle="Permission insuffisante." />;
+    return <PageHeader title={t("accessDenied.title")} subtitle={t("accessDenied.subtitle")} />;
   }
 
   const month = parseMonth(searchParams?.month);
@@ -110,8 +113,8 @@ export default async function EnterpriseInterviewsPage({
   return (
     <>
       <PageHeader
-        title="Entretiens"
-        subtitle={`Planning du mois · ${format(month, "MMMM yyyy")}`}
+        title={t("title")}
+        subtitle={t("subtitle", { monthLabel: format(month, "MMMM yyyy") })}
         action={
           <Stack dir="row" gap={8}>
             <Link
@@ -119,7 +122,7 @@ export default async function EnterpriseInterviewsPage({
               style={{ textDecoration: "none" }}
             >
               <Button variant="outline" iconLeft="chevron-left">
-                Précédent
+                {t("nav.prev")}
               </Button>
             </Link>
             <Link
@@ -127,7 +130,7 @@ export default async function EnterpriseInterviewsPage({
               style={{ textDecoration: "none" }}
             >
               <Button variant="outline" iconRight="chevron-right">
-                Suivant
+                {t("nav.next")}
               </Button>
             </Link>
           </Stack>
@@ -138,13 +141,13 @@ export default async function EnterpriseInterviewsPage({
         <Card padding={20}>
           <Stack dir="row" gap={8} style={{ marginBottom: 12 }}>
             <Badge tone="info" size="md">
-              Planifiés · {scheduledCount}
+              {t("stats.scheduled", { count: scheduledCount })}
             </Badge>
             <Badge tone="success" size="md">
-              Terminés · {doneCount}
+              {t("stats.done", { count: doneCount })}
             </Badge>
             <Badge tone="neutral" size="md">
-              Total · {interviews.length}
+              {t("stats.total", { count: interviews.length })}
             </Badge>
           </Stack>
           <MonthGrid month={month} items={items} />
@@ -153,13 +156,13 @@ export default async function EnterpriseInterviewsPage({
         <Card padding={0}>
           <div style={{ padding: "14px 20px" }}>
             <h3 className="mg-h4" style={{ margin: 0 }}>
-              Ce mois-ci
+              {t("list.title")}
             </h3>
             <div
               className="mg-caption"
               style={{ color: "hsl(var(--muted-foreground))", marginTop: 2 }}
             >
-              Identités masquées avant entretien · règle PII Plan Business
+              {t("list.piiCaption")}
             </div>
           </div>
           <Hairline />
@@ -168,7 +171,7 @@ export default async function EnterpriseInterviewsPage({
               className="mg-body-sm"
               style={{ padding: "16px 20px", color: "hsl(var(--muted-foreground))" }}
             >
-              Aucun entretien planifié pour ce mois.
+              {t("list.empty")}
             </p>
           ) : (
             <ul style={{ margin: 0, padding: 0, listStyle: "none" }}>

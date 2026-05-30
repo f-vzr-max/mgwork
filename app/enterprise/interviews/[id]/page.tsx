@@ -6,6 +6,7 @@
 
 import { auth } from "@clerk/nextjs/server";
 import { notFound, redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { format } from "date-fns";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/layout/page-header";
@@ -20,6 +21,8 @@ export default async function EnterpriseInterviewDetailPage({
 }) {
   const { userId: clerkId } = await auth();
   if (!clerkId) redirect("/sign-in");
+
+  const t = await getTranslations("app.enterprise");
 
   const user = await prisma.user.findUnique({
     where: { clerkId },
@@ -37,7 +40,7 @@ export default async function EnterpriseInterviewDetailPage({
   ) {
     return (
       <div className="p-6 text-sm text-muted-foreground">
-        You do not have access to this page.
+        {t("interviews.detail.accessDenied")}
       </div>
     );
   }
@@ -74,7 +77,7 @@ export default async function EnterpriseInterviewDetailPage({
   ) {
     return (
       <div className="p-6 text-sm text-muted-foreground">
-        Not your interview.
+        {t("interviews.detail.notYourInterview")}
       </div>
     );
   }
@@ -82,23 +85,36 @@ export default async function EnterpriseInterviewDetailPage({
   return (
     <>
       <PageHeader
-        title={`Interview — ${interview.application.candidate.firstName} ${interview.application.candidate.lastName}`}
+        title={t("interviews.detail.pageTitle", {
+          firstName: interview.application.candidate.firstName,
+          lastName: interview.application.candidate.lastName,
+        })}
         description={interview.application.jobOffer.title}
       />
 
       <div className="grid gap-6 p-6 md:grid-cols-2">
         <div className="rounded-md border bg-card p-4">
-          <h2 className="mb-3 text-sm font-semibold">Details</h2>
+          <h2 className="mb-3 text-sm font-semibold">
+            {t("interviews.detail.detailsSection")}
+          </h2>
           <dl className="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-2 text-sm">
-            <dt className="text-muted-foreground">Scheduled</dt>
+            <dt className="text-muted-foreground">
+              {t("interviews.detail.scheduledLabel")}
+            </dt>
             <dd>{format(interview.scheduledAt, "EEE d MMM yyyy, HH:mm")}</dd>
-            <dt className="text-muted-foreground">Type</dt>
+            <dt className="text-muted-foreground">
+              {t("interviews.detail.typeLabel")}
+            </dt>
             <dd>{interview.type}</dd>
-            <dt className="text-muted-foreground">Status</dt>
+            <dt className="text-muted-foreground">
+              {t("interviews.detail.statusLabel")}
+            </dt>
             <dd>{interview.status}</dd>
             {interview.videoUrl && (
               <>
-                <dt className="text-muted-foreground">Video URL</dt>
+                <dt className="text-muted-foreground">
+                  {t("interviews.detail.videoUrlLabel")}
+                </dt>
                 <dd className="break-all">
                   <a
                     href={interview.videoUrl}
@@ -116,24 +132,28 @@ export default async function EnterpriseInterviewDetailPage({
 
         {interview.videoUrl && (
           <div className="rounded-md border bg-card p-4">
-            <h2 className="mb-3 text-sm font-semibold">Live video</h2>
+            <h2 className="mb-3 text-sm font-semibold">
+              {t("interviews.detail.liveVideoSection")}
+            </h2>
             <div className="aspect-video w-full overflow-hidden rounded-md border">
               <iframe
                 src={interview.videoUrl}
-                title="Interview video"
+                title={t("interviews.detail.iframeTitle")}
                 className="h-full w-full"
                 allow="camera; microphone; fullscreen; speaker; display-capture"
                 sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
               />
             </div>
             <p className="mt-2 text-xs text-muted-foreground">
-              Provider-agnostic embed. Some providers require additional auth.
+              {t("interviews.detail.embedCaption")}
             </p>
           </div>
         )}
 
         <div className="rounded-md border bg-card p-4 md:col-span-2">
-          <h2 className="mb-3 text-sm font-semibold">Notes & status</h2>
+          <h2 className="mb-3 text-sm font-semibold">
+            {t("interviews.detail.notesSection")}
+          </h2>
           <InterviewNotesForm
             interviewId={interview.id}
             initialNotes={interview.enterpriseNotes ?? ""}

@@ -7,6 +7,7 @@
 import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { getOfferQuota } from "@/lib/billing";
 import {
@@ -36,28 +37,30 @@ export default async function EnterpriseOffersPage() {
   });
   if (!user) redirect("/onboarding");
 
+  const t = await getTranslations("app.enterprise");
+
   if (!user.enterprise) {
     return (
       <>
         <PageHeader
-          title="Offres"
-          subtitle="Publiez et suivez vos postes ouverts."
+          title={t("offers.title")}
+          subtitle={t("offers.subtitleNoEnterprise")}
         />
         <div style={{ padding: "0 32px 32px" }}>
           <Card padding={24}>
             <Stack gap={12}>
               <h3 className="mg-h3" style={{ margin: 0 }}>
-                Complétez votre profil entreprise
+                {t("offers.noProfile.heading")}
               </h3>
               <p
                 className="mg-body-sm"
                 style={{ margin: 0, color: "hsl(var(--muted-foreground))" }}
               >
-                Un profil société est requis avant de publier des offres.
+                {t("offers.noProfile.body")}
               </p>
               <div>
                 <Link href="/onboarding" style={{ textDecoration: "none" }}>
-                  <Button iconRight="arrow-right">Terminer l&apos;onboarding</Button>
+                  <Button iconRight="arrow-right">{t("offers.noProfile.cta")}</Button>
                 </Link>
               </div>
             </Stack>
@@ -91,20 +94,20 @@ export default async function EnterpriseOffersPage() {
   return (
     <>
       <PageHeader
-        title="Offres"
-        subtitle={`Publiées pour ${user.enterprise.companyName}.`}
+        title={t("offers.title")}
+        subtitle={t("offers.subtitle", { companyName: user.enterprise.companyName })}
         action={
           canCreate ? (
             <Link href="/enterprise/offers/new" style={{ textDecoration: "none" }}>
-              <Button iconLeft="plus">Nouvelle offre</Button>
+              <Button iconLeft="plus">{t("offers.createButton")}</Button>
             </Link>
           ) : (
             <Button
               iconLeft="plus"
               disabled
-              title="Quota atteint. Mettez à niveau ou mettez en pause une offre existante."
+              title={t("offers.createButtonDisabledTitle")}
             >
-              Nouvelle offre
+              {t("offers.createButton")}
             </Button>
           )
         }
@@ -115,15 +118,15 @@ export default async function EnterpriseOffersPage() {
           <Card padding={20}>
             <Stack dir="row" justify="space-between" align="center" style={{ marginBottom: 4 }}>
               <span className="mg-micro" style={{ color: "hsl(var(--muted-foreground))" }}>
-                Plan {quota.plan}
+                {t("offers.quota.plan", { plan: quota.plan })}
               </span>
               {canCreate ? (
                 <Badge tone="success" icon="check-circle-2">
-                  Quota OK
+                  {t("offers.quota.badgeOk")}
                 </Badge>
               ) : (
                 <Badge tone="warning" icon="alert-triangle">
-                  Quota atteint
+                  {t("offers.quota.badgeReached")}
                 </Badge>
               )}
             </Stack>
@@ -134,10 +137,10 @@ export default async function EnterpriseOffersPage() {
               className="mg-caption"
               style={{ color: "hsl(var(--muted-foreground))", marginBottom: 12 }}
             >
-              offres actives
+              {t("offers.quota.activeOffers")}{" "}
               {quota.limit != null
-                ? ` · ${quota.remaining ?? 0} restantes`
-                : " · illimité"}
+                ? t("offers.quota.remaining", { remaining: quota.remaining ?? 0 })
+                : t("offers.quota.unlimited")}
             </div>
             {quota.limit != null && <Progress value={usagePct} />}
             {!canCreate && (
@@ -145,8 +148,7 @@ export default async function EnterpriseOffersPage() {
                 className="mg-body-sm"
                 style={{ marginTop: 12, color: "hsl(var(--muted-foreground))" }}
               >
-                Le plan gratuit limite les offres actives. Mettez en pause une offre existante ou
-                passez au plan STARTER / PRO.
+                {t("offers.quota.upgradeHint")}
               </p>
             )}
           </Card>
@@ -156,18 +158,18 @@ export default async function EnterpriseOffersPage() {
           <Card padding={24}>
             <Stack gap={12}>
               <h3 className="mg-h3" style={{ margin: 0 }}>
-                Aucune offre pour l&apos;instant
+                {t("offers.empty.heading")}
               </h3>
               <p
                 className="mg-body-sm"
                 style={{ margin: 0, color: "hsl(var(--muted-foreground))" }}
               >
-                Publiez votre première offre pour commencer à recevoir une présélection IA.
+                {t("offers.empty.body")}
               </p>
               {canCreate ? (
                 <div>
                   <Link href="/enterprise/offers/new" style={{ textDecoration: "none" }}>
-                    <Button iconLeft="plus">Créer la première offre</Button>
+                    <Button iconLeft="plus">{t("offers.empty.cta")}</Button>
                   </Link>
                 </div>
               ) : null}
@@ -177,13 +179,13 @@ export default async function EnterpriseOffersPage() {
           <Card padding={0}>
             <div style={{ padding: "14px 20px" }}>
               <h3 className="mg-h4" style={{ margin: 0 }}>
-                Vos offres
+                {t("offers.list.heading")}
               </h3>
               <div
                 className="mg-caption"
                 style={{ color: "hsl(var(--muted-foreground))", marginTop: 2 }}
               >
-                {offers.length} offre{offers.length > 1 ? "s" : ""} au total
+                {t("offers.list.totalCount", { count: offers.length })}
               </div>
             </div>
             <Hairline />
@@ -218,13 +220,13 @@ export default async function EnterpriseOffersPage() {
                         className="mg-caption"
                         style={{ color: "hsl(var(--muted-foreground))", marginTop: 4 }}
                       >
-                        {o.sector} · {o.location} · {o.slots} poste{o.slots === 1 ? "" : "s"}
+                        {o.sector} · {o.location} · {t("offers.list.slots", { count: o.slots })}
                       </div>
                     </div>
                     <Stack dir="row" gap={6} align="center">
-                      <Badge tone="info">{o._count.applications} candidat{o._count.applications === 1 ? "" : "s"}</Badge>
+                      <Badge tone="info">{t("offers.list.applications", { count: o._count.applications })}</Badge>
                       <Badge tone="primary">
-                        {o._count.matchings} présélection{o._count.matchings === 1 ? "" : "s"}
+                        {t("offers.list.matchings", { count: o._count.matchings })}
                       </Badge>
                     </Stack>
                   </Link>

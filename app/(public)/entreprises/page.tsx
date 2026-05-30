@@ -14,11 +14,13 @@ import {
 } from "@/components/mg";
 import { CtaBanner, StepCard } from "../_components";
 
-export const metadata = {
-  title: "MG·Work — Pour les entreprises",
-  description:
-    "Recrutez à Madagascar en confiance : profils vérifiés et notés, KYC entreprise en 48h, conformité DPA Mauritius 2017.",
-};
+export async function generateMetadata() {
+  const t = await getTranslations("marketing");
+  return {
+    title: t("entreprises.metaTitle"),
+    description: t("entreprises.metaDescription"),
+  };
+}
 
 const WHY_KEYS = ["w1", "w2", "w3"] as const;
 const WHY_ICONS = ["shield-check", "sparkles", "users"] as const;

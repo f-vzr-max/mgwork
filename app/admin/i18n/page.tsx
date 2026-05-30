@@ -1,6 +1,7 @@
 // Admin i18n / translations page — view & edit Translation rows. Filterable
 // by language. Business logic preserved; chrome restyled with MG primitives.
 
+import { getTranslations } from "next-intl/server";
 import { PageHeader, Card } from "@/components/mg";
 import { prisma } from "@/lib/prisma";
 import { TranslationsManager } from "@/components/admin/TranslationsManager";
@@ -27,23 +28,24 @@ export default async function AdminI18nPage({
     orderBy: { key: "asc" },
     take: 1000,
   });
+  const t = await getTranslations("app.admin");
 
   return (
     <>
       <PageHeader
-        title="Traductions"
-        subtitle="Surcharger ou compléter les dictionnaires JSON via la base. La valeur en base prime à la lecture."
+        title={t("i18n.title")}
+        subtitle={t("i18n.subtitle")}
       />
       <div style={{ padding: "0 32px 32px" }}>
         <Card padding={24}>
           <TranslationsManager
             selectedLang={selectedLang}
             languages={LANGS}
-            initial={translations.map((t) => ({
-              id: t.id,
-              lang: t.lang,
-              key: t.key,
-              value: t.value,
+            initial={translations.map((row) => ({
+              id: row.id,
+              lang: row.lang,
+              key: row.key,
+              value: row.value,
             }))}
           />
         </Card>

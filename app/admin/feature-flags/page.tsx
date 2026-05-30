@@ -2,6 +2,7 @@
 // new ones. SUPER_ADMIN-only writes are enforced server-side. Business logic
 // preserved; chrome restyled with MG design system primitives.
 
+import { getTranslations } from "next-intl/server";
 import { PageHeader, Card } from "@/components/mg";
 import { prisma } from "@/lib/prisma";
 import { FeatureFlagsManager } from "@/components/admin/FeatureFlagsManager";
@@ -9,6 +10,7 @@ import { FeatureFlagsManager } from "@/components/admin/FeatureFlagsManager";
 export const dynamic = "force-dynamic";
 
 export default async function FeatureFlagsPage() {
+  const t = await getTranslations("app.admin");
   const flags = await prisma.featureFlag.findMany({
     orderBy: { key: "asc" },
   });
@@ -16,8 +18,8 @@ export default async function FeatureFlagsPage() {
   return (
     <>
       <PageHeader
-        title="Feature flags"
-        subtitle="Activer / désactiver des capacités globales. Les effets se propagent immédiatement."
+        title={t("featureFlags.title")}
+        subtitle={t("featureFlags.subtitle")}
       />
       <div style={{ padding: "0 32px 32px" }}>
         <Card padding={24}>

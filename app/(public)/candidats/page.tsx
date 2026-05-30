@@ -20,11 +20,13 @@ import {
   TestimonialCard,
 } from "../_components";
 
-export const metadata = {
-  title: "MG·Work — Pour les candidats",
-  description:
-    "Postulez à des offres vérifiées en Maurice, La Réunion et Seychelles. Inscription gratuite, conseiller dédié, suivi jusqu'au départ.",
-};
+export async function generateMetadata() {
+  const t = await getTranslations("marketing");
+  return {
+    title: t("candidats.metaTitle"),
+    description: t("candidats.metaDescription"),
+  };
+}
 
 const STEP_KEYS = ["step1", "step2", "step3", "step4", "step5"] as const;
 const STEP_ICONS = ["users", "file-text", "shield-check", "sparkles", "arrow-up-right"] as const;

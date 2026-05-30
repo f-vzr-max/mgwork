@@ -4,6 +4,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -14,6 +15,8 @@ export function MarkPaidForm({
   invoiceId: string;
   defaultMethod?: string;
 }) {
+  const t = useTranslations("app.admin");
+  const tc = useTranslations("common");
   const router = useRouter();
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -38,7 +41,7 @@ export function MarkPaidForm({
         | { ok: boolean; error?: { message?: string } }
         | null;
       if (!res.ok || !data?.ok) {
-        setError(data?.error?.message ?? `Request failed (${res.status})`);
+        setError(data?.error?.message ?? tc("requestFailed", { status: res.status }));
         return;
       }
       router.refresh();
@@ -50,7 +53,7 @@ export function MarkPaidForm({
   return (
     <form className="space-y-3" onSubmit={onSubmit}>
       <label className="flex flex-col gap-1 text-sm">
-        <span>Payment method</span>
+        <span>{t("invoices.markPaidForm.paymentMethod")}</span>
         <select
           name="paymentMethod"
           defaultValue={defaultMethod ?? "WIRE"}
@@ -61,8 +64,8 @@ export function MarkPaidForm({
         </select>
       </label>
       <label className="flex flex-col gap-1 text-sm">
-        <span>Reference</span>
-        <Input name="reference" required placeholder="Bank transfer ref / mobile money txn id" />
+        <span>{t("invoices.markPaidForm.reference")}</span>
+        <Input name="reference" required placeholder={t("invoices.markPaidForm.referencePlaceholder")} />
       </label>
       {error ? (
         <div className="rounded border border-destructive/40 bg-destructive/10 p-2 text-sm text-destructive">
@@ -70,7 +73,7 @@ export function MarkPaidForm({
         </div>
       ) : null}
       <Button type="submit" variant="success" disabled={busy}>
-        {busy ? "Saving..." : "Mark as paid"}
+        {busy ? tc("saving") : t("invoices.detail.markPaidTitle")}
       </Button>
     </form>
   );

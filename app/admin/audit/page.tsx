@@ -3,6 +3,7 @@
 // MG design system primitives.
 
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { PageHeader, Card, Button, Input, Stack } from "@/components/mg";
 import { prisma } from "@/lib/prisma";
 import { auditQuerySchema } from "@/lib/validation/admin";
@@ -21,6 +22,8 @@ export default async function AdminAuditPage({
 }: {
   searchParams: SearchParams;
 }) {
+  const t = await getTranslations("app.admin");
+  const tc = await getTranslations("common");
   const cleaned: Record<string, string> = {};
   for (const [k, v] of Object.entries({
     userId: pickFirst(searchParams.userId),
@@ -76,8 +79,8 @@ export default async function AdminAuditPage({
   return (
     <>
       <PageHeader
-        title="Journal d'audit"
-        subtitle="Piste de conformité pour les actions sensibles."
+        title={t("audit.title")}
+        subtitle={t("audit.subtitle")}
       />
 
       <div style={{ padding: "0 32px 16px" }}>
@@ -92,23 +95,23 @@ export default async function AdminAuditPage({
             }}
           >
             <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <span className="mg-caption">ID utilisateur</span>
+              <span className="mg-caption">{t("audit.filter.userId")}</span>
               <Input name="userId" defaultValue={filters.userId ?? ""} />
             </label>
             <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <span className="mg-caption">Action contient</span>
+              <span className="mg-caption">{t("audit.filter.action")}</span>
               <Input name="action" defaultValue={filters.action ?? ""} />
             </label>
             <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <span className="mg-caption">Ressource</span>
+              <span className="mg-caption">{t("audit.filter.resourceType")}</span>
               <Input
                 name="resourceType"
                 defaultValue={filters.resourceType ?? ""}
-                placeholder="user, invoice, document..."
+                placeholder={t("audit.filter.resourceTypePlaceholder")}
               />
             </label>
             <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <span className="mg-caption">Du</span>
+              <span className="mg-caption">{t("audit.filter.from")}</span>
               <Input
                 type="date"
                 name="from"
@@ -118,7 +121,7 @@ export default async function AdminAuditPage({
               />
             </label>
             <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <span className="mg-caption">Au</span>
+              <span className="mg-caption">{t("audit.filter.to")}</span>
               <Input
                 type="date"
                 name="to"
@@ -126,7 +129,7 @@ export default async function AdminAuditPage({
               />
             </label>
             <Button type="submit" iconLeft="filter">
-              Filtrer
+              {tc("filter")}
             </Button>
           </form>
         </Card>
@@ -145,12 +148,12 @@ export default async function AdminAuditPage({
             }}
             className="mg-micro"
           >
-            <span>Quand</span>
-            <span>Acteur</span>
-            <span>Action</span>
-            <span>Ressource</span>
-            <span>IP</span>
-            <span>Métadonnées</span>
+            <span>{t("audit.table.when")}</span>
+            <span>{t("audit.table.actor")}</span>
+            <span>{t("audit.table.action")}</span>
+            <span>{t("audit.table.resource")}</span>
+            <span>{t("audit.table.ip")}</span>
+            <span>{t("audit.table.metadata")}</span>
           </div>
           {page.length === 0 ? (
             <div
@@ -161,7 +164,7 @@ export default async function AdminAuditPage({
                 fontSize: 14,
               }}
             >
-              Aucune entrée ne correspond à ces filtres.
+              {t("audit.empty")}
             </div>
           ) : (
             page.map((a, i) => (
@@ -247,7 +250,7 @@ export default async function AdminAuditPage({
               href={buildHref({ cursor: undefined })}
               style={{ color: "hsl(var(--primary))", textDecoration: "none" }}
             >
-              Première page
+              {t("audit.pagination.firstPage")}
             </Link>
           ) : null}
           {nextCursor ? (
@@ -255,7 +258,7 @@ export default async function AdminAuditPage({
               href={buildHref({ cursor: nextCursor })}
               style={{ color: "hsl(var(--primary))", textDecoration: "none" }}
             >
-              Suivante →
+              {t("audit.pagination.next")}
             </Link>
           ) : null}
         </Stack>

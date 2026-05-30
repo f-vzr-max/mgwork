@@ -13,6 +13,7 @@
 import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { findOffersForCandidate, type OfferMatch } from "@/lib/matching";
 import { getMatchingWeights } from "@/lib/matching-config";
@@ -30,25 +31,18 @@ import { JobDetailPanel } from "./job-detail-panel";
 export const dynamic = "force-dynamic";
 
 // Criterion order + display labels. We sort the breakdown by descending
-// weight so the most impactful criterion lands at the top.
-const CRITERION_LABEL: Record<string, string> = {
-  skills: "Compétences",
-  languages: "Langues",
-  sector: "Secteur",
-  mobility: "Mobilité",
-  experience: "Expérience",
-  documents: "Documents",
-};
-
+// weight so the most impactful criterion lands at the top. Labels are resolved
+// from the shared `common.criterion.*` catalog so they translate per locale.
 type CriterionRow = { key: string; label: string; score: number; weight: number };
 
 function buildCriteriaRows(
   match: OfferMatch,
   weights: Record<string, number>,
+  labelFor: (k: string) => string,
 ): CriterionRow[] {
   const rows: CriterionRow[] = Object.entries(match.breakdown).map(([k, v]) => ({
     key: k,
-    label: CRITERION_LABEL[k] ?? k,
+    label: labelFor(k),
     score: Math.round(Number(v)),
     weight: Math.round((weights[k] ?? 0) * 100),
   }));
@@ -63,6 +57,9 @@ export default async function CandidateMatchesPage({
 }) {
   const { userId: clerkId } = await auth();
   if (!clerkId) redirect("/sign-in");
+  const t = await getTranslations("app.candidate");
+  const tc = await getTranslations("common");
+  const labelFor = (k: string) => tc(`criterion.${k}`);
 
   const user = await prisma.user.findUnique({
     where: { clerkId },
@@ -74,7 +71,7 @@ export default async function CandidateMatchesPage({
       <div style={{ padding: 16 }}>
         <Card padding={16}>
           <div className="mg-body-sm" style={{ color: "hsl(var(--muted-foreground))" }}>
-            Profil candidat requis pour voir les offres.
+            {t("matches.roleGuard")}
           </div>
         </Card>
       </div>
@@ -111,7 +108,7 @@ export default async function CandidateMatchesPage({
         <div style={{ padding: 16 }}>
           <Card padding={16}>
             <div className="mg-body-sm" style={{ color: "hsl(var(--muted-foreground))" }}>
-              Offre introuvable ou plus disponible.
+              {t("matches.notFound")}
             </div>
             <Link
               href="/candidate/matches"
@@ -122,13 +119,13 @@ export default async function CandidateMatchesPage({
                 textDecoration: "none",
               }}
             >
-              ← Toutes les offres
+              {t("matches.backToAll")}
             </Link>
           </Card>
         </div>
       );
     }
-    const rows = buildCriteriaRows(match, weights as unknown as Record<string, number>);
+    const rows = buildCriteriaRows(match, weights as unknown as Record<string, number>, labelFor);
     return (
       <JobDetailPanel
         offerId={offer.id}
@@ -150,18 +147,18 @@ export default async function CandidateMatchesPage({
     <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 16 }}>
       <div>
         <h1 className="mg-h1" style={{ margin: 0, fontSize: 26, lineHeight: "32px" }}>
-          Mes offres
+          {t("matches.title")}
         </h1>
         <div className="mg-caption" style={{ color: "hsl(var(--muted-foreground))", marginTop: 4 }}>
-          Classées par compatibilité — pondéré par {Object.keys(weights).length} critères
+          {t("matches.subtitle", { n: Object.keys(weights).length })}
         </div>
       </div>
 
       {ranked.length === 0 ? (
         <Card padding={16}>
-          <div className="mg-h4" style={{ margin: 0 }}>Pas encore d&apos;offres</div>
+          <div className="mg-h4" style={{ margin: 0 }}>{t("matches.empty.title")}</div>
           <div className="mg-body-sm" style={{ color: "hsl(var(--muted-foreground))", marginTop: 4 }}>
-            Dès qu&apos;une entreprise publie une offre adaptée à votre profil, elle apparaîtra ici.
+            {t("matches.empty.body")}
           </div>
         </Card>
       ) : (
@@ -198,7 +195,7 @@ export default async function CandidateMatchesPage({
                       <div key={k}>
                         <Stack dir="row" justify="space-between" align="center" style={{ marginBottom: 4 }}>
                           <span className="mg-caption" style={{ color: "hsl(var(--muted-foreground))" }}>
-                            {CRITERION_LABEL[k] ?? k}
+                            {tc(`criterion.${k}`)}
                           </span>
                           <Badge tone="neutral">{Math.round(Number(v))}</Badge>
                         </Stack>

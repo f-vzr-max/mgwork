@@ -6,6 +6,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { ROLES, type Role } from "@/lib/roles";
 
@@ -16,6 +17,8 @@ type Props = {
 };
 
 export function UserActionsMenu({ userId, email, role }: Props) {
+  const t = useTranslations("app.admin");
+  const tc = useTranslations("common");
   const router = useRouter();
   const [busy, setBusy] = React.useState(false);
   const [open, setOpen] = React.useState(false);
@@ -35,7 +38,7 @@ export function UserActionsMenu({ userId, email, role }: Props) {
         | { ok: boolean; data?: unknown; error?: { message?: string } }
         | null;
       if (!res.ok || !data?.ok) {
-        setError(data?.error?.message ?? `Request failed (${res.status})`);
+        setError(data?.error?.message ?? tc("requestFailed", { status: res.status }));
         return null;
       }
       return data.data ?? null;
@@ -45,19 +48,22 @@ export function UserActionsMenu({ userId, email, role }: Props) {
   }
 
   async function ban(banned: boolean) {
-    if (!confirm(`${banned ? "Ban" : "Unban"} ${email}?`)) return;
+    const message = banned
+      ? t("userActions.confirmBan", { email })
+      : t("userActions.confirmUnban", { email });
+    if (!confirm(message)) return;
     const ok = await postJson(`/api/admin/users/${userId}/ban`, { banned });
     if (ok) router.refresh();
   }
 
   async function changeRole() {
     const next = window.prompt(
-      `New role for ${email} (one of: ${ROLES.join(", ")})`,
+      t("userActions.promptRole", { email, roles: ROLES.join(", ") }),
       role,
     );
     if (!next) return;
     if (!ROLES.includes(next as Role)) {
-      setError("Invalid role");
+      setError(t("userActions.invalidRole"));
       return;
     }
     const ok = await postJson(`/api/admin/users/${userId}/role`, {
@@ -67,7 +73,7 @@ export function UserActionsMenu({ userId, email, role }: Props) {
   }
 
   async function impersonate() {
-    if (!confirm(`Open impersonation for ${email}?`)) return;
+    if (!confirm(t("userActions.confirmImpersonate", { email }))) return;
     const data = (await postJson(
       `/api/admin/users/${userId}/impersonate`,
       {},
@@ -86,7 +92,7 @@ export function UserActionsMenu({ userId, email, role }: Props) {
         disabled={busy}
         onClick={() => setOpen((v) => !v)}
       >
-        {busy ? "..." : "Actions"}
+        {busy ? "..." : tc("actions")}
       </Button>
       {open ? (
         <div
@@ -97,35 +103,35 @@ export function UserActionsMenu({ userId, email, role }: Props) {
             href={`/admin/users/${userId}`}
             className="block rounded px-3 py-1.5 hover:bg-accent"
           >
-            View detail
+            {t("userActions.viewDetail")}
           </Link>
           <button
             type="button"
             className="block w-full rounded px-3 py-1.5 text-left hover:bg-accent"
             onClick={() => ban(true)}
           >
-            Ban
+            {t("userActions.ban")}
           </button>
           <button
             type="button"
             className="block w-full rounded px-3 py-1.5 text-left hover:bg-accent"
             onClick={() => ban(false)}
           >
-            Unban
+            {t("userActions.unban")}
           </button>
           <button
             type="button"
             className="block w-full rounded px-3 py-1.5 text-left hover:bg-accent"
             onClick={changeRole}
           >
-            Change role
+            {t("userActions.changeRole")}
           </button>
           <button
             type="button"
             className="block w-full rounded px-3 py-1.5 text-left hover:bg-accent"
             onClick={impersonate}
           >
-            Impersonate
+            {t("userActions.impersonate")}
           </button>
         </div>
       ) : null}

@@ -13,6 +13,7 @@ import {
   Icon,
 } from "@/components/mg";
 import type { StatusKey } from "@/components/mg";
+import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -28,16 +29,21 @@ type DisputeCard = {
 
 type Column = {
   id: "new" | "inprogress" | "resolved";
-  title: string;
   tone: string;
   cards: DisputeCard[];
 };
 
-function maskName(first: string | null | undefined, last: string | null | undefined): string {
+type T = Awaited<ReturnType<typeof getTranslations>>;
+
+function maskName(
+  first: string | null | undefined,
+  last: string | null | undefined,
+  t: T,
+): string {
   const f = (first ?? "").trim();
   const l = (last ?? "").trim();
   const lastMasked = l ? `${l.charAt(0).toUpperCase()}.` : "";
-  return [f, lastMasked].filter(Boolean).join(" ") || "Candidat";
+  return [f, lastMasked].filter(Boolean).join(" ") || t("disputes.card.unknownCandidate");
 }
 
 function daysSince(d: Date): number {
@@ -48,7 +54,7 @@ const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
 type LoadResult = { columns: Column[]; open: number; priority: number };
 
-async function loadColumns(): Promise<LoadResult> {
+async function loadColumns(t: T): Promise<LoadResult> {
   const [openRows, resolvedRows] = await Promise.all([
     prisma.checkpoint.findMany({
       where: { status: "INTERVENTION_REQUIRED" },
@@ -88,7 +94,7 @@ async function loadColumns(): Promise<LoadResult> {
   for (const r of openRows) {
     const card: DisputeCard = {
       id: r.id,
-      name: maskName(r.candidate?.firstName, r.candidate?.lastName),
+      name: maskName(r.candidate?.firstName, r.candidate?.lastName, t),
       co: r.application?.jobOffer?.enterprise?.companyName ?? "—",
       days: daysSince(r.date),
       status: "INTERVENTION_REQUIRED",
@@ -100,7 +106,7 @@ async function loadColumns(): Promise<LoadResult> {
 
   const resolvedCol: DisputeCard[] = resolvedRows.map((r) => ({
     id: r.id,
-    name: maskName(r.candidate?.firstName, r.candidate?.lastName),
+    name: maskName(r.candidate?.firstName, r.candidate?.lastName, t),
     co: r.application?.jobOffer?.enterprise?.companyName ?? "—",
     days: daysSince(r.date),
     status: "COMPLETED",
@@ -108,9 +114,9 @@ async function loadColumns(): Promise<LoadResult> {
   }));
 
   const columns: Column[] = [
-    { id: "new", title: "Ouverts", tone: "hsl(var(--info))", cards: newCol },
-    { id: "inprogress", title: "En cours", tone: "hsl(var(--warning))", cards: progCol },
-    { id: "resolved", title: "Résolus", tone: "hsl(var(--success))", cards: resolvedCol },
+    { id: "new", tone: "hsl(var(--info))", cards: newCol },
+    { id: "inprogress", tone: "hsl(var(--warning))", cards: progCol },
+    { id: "resolved", tone: "hsl(var(--success))", cards: resolvedCol },
   ];
 
   return {
@@ -121,19 +127,20 @@ async function loadColumns(): Promise<LoadResult> {
 }
 
 export default async function AdminDisputesPage() {
-  const { columns, open, priority } = await loadColumns();
+  const t = await getTranslations("app.admin");
+  const { columns, open, priority } = await loadColumns(t);
 
   return (
     <>
       <PageHeader
-        title="Litiges"
-        subtitle={`${open} dossier${open === 1 ? "" : "s"} ouvert${open === 1 ? "" : "s"} · ${priority} prioritaire${priority === 1 ? "" : "s"}`}
+        title={t("disputes.title")}
+        subtitle={`${t("disputes.subtitle.dossiers", { open })} · ${t("disputes.subtitle.priority", { priority })}`}
         action={
           <Stack dir="row" gap={8}>
             <Button variant="outline" iconLeft="filter">
-              Filtres
+              {t("disputes.actions.filter")}
             </Button>
-            <Button iconLeft="plus">Nouveau dossier</Button>
+            <Button iconLeft="plus">{t("disputes.actions.newFile")}</Button>
           </Stack>
         }
       />
@@ -167,12 +174,12 @@ export default async function AdminDisputesPage() {
                     background: col.tone,
                   }}
                 />
-                <span className="mg-h4">{col.title}</span>
+                <span className="mg-h4">{t(`disputes.column.${col.id}`)}</span>
                 <Badge tone="neutral">{col.cards.length}</Badge>
               </Stack>
               <button
                 type="button"
-                aria-label="Plus d'actions"
+                aria-label={t("disputes.column.moreActions")}
                 style={{
                   border: 0,
                   background: "transparent",
@@ -196,7 +203,7 @@ export default async function AdminDisputesPage() {
                     fontSize: 13,
                   }}
                 >
-                  Aucun dossier
+                  {t("disputes.card.empty")}
                 </Card>
               ) : (
                 col.cards.map((c) => (
@@ -212,7 +219,7 @@ export default async function AdminDisputesPage() {
                           borderRadius: 9999,
                           background: "hsl(var(--destructive))",
                         }}
-                        aria-label="Priorité haute"
+                        aria-label={t("disputes.card.priorityDot")}
                       />
                     )}
                     <Stack
@@ -253,8 +260,8 @@ export default async function AdminDisputesPage() {
                         style={{ color: "hsl(var(--muted-foreground))" }}
                       >
                         {col.id === "resolved"
-                          ? `Résolu il y a ${c.days} j`
-                          : `Ouvert depuis ${c.days} j`}
+                          ? t("disputes.card.resolvedAgo", { days: c.days })
+                          : t("disputes.card.openSince", { days: c.days })}
                       </span>
                       <StatusBadge status={c.status} />
                     </Stack>
@@ -279,7 +286,7 @@ export default async function AdminDisputesPage() {
                     gap: 6,
                   }}
                 >
-                  <Icon name="plus" size={14} /> Ajouter
+                  <Icon name="plus" size={14} /> {t("disputes.column.add")}
                 </button>
               )}
             </div>
