@@ -103,6 +103,43 @@ describe("candidateCreateSchema", () => {
     expect(r.phone).toBe("+261341234567");
   });
 
+  it("preserves an already-normalised +230 (Mauritius) phone", () => {
+    const r = candidateCreateSchema.parse({
+      firstName: "Jean",
+      lastName: "Rakoto",
+      phone: "+23051234567",
+    });
+    expect(r.phone).toBe("+23051234567");
+  });
+
+  it("normalises a separated +230 (Mauritius) phone", () => {
+    const r = candidateCreateSchema.parse({
+      firstName: "Jean",
+      lastName: "Rakoto",
+      phone: "+230 5123 4567",
+    });
+    expect(r.phone).toBe("+23051234567");
+  });
+
+  it("rejects a too-short +230 phone (fewer than 8 digits)", () => {
+    expect(() =>
+      candidateCreateSchema.parse({
+        firstName: "Jean",
+        lastName: "Rakoto",
+        phone: "+2305123",
+      }),
+    ).toThrow();
+  });
+
+  it("treats a bare 9-digit number starting 230 as Madagascar (no Mauritius shadow)", () => {
+    const r = candidateCreateSchema.parse({
+      firstName: "Jean",
+      lastName: "Rakoto",
+      phone: "230123456",
+    });
+    expect(r.phone).toBe("+261230123456");
+  });
+
   it("rejects a too-short phone (less than 9 digits after +261)", () => {
     expect(() =>
       candidateCreateSchema.parse({

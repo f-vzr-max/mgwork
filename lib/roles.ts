@@ -26,6 +26,8 @@ export function dashboardPathForRole(role: Role): string {
     case "ADMIN":
     case "SUPER_ADMIN":
       return "/admin";
+    default:
+      return "/onboarding";
   }
 }
 
