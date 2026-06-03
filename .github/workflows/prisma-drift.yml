@@ -1,0 +1,66 @@
+name: Prisma Drift
+
+# Fails CI when prisma/schema.prisma has changed without a matching migration in
+# prisma/migrations (the failure mode that caused the OnboardingDraft outage:
+# the model existed in the client but no migration created the table).
+#
+# For a PostgreSQL datasource, `migrate diff --from-migrations` replays the
+# migration history into a SHADOW database, so a live Postgres is required
+# (provided here as a service container) and --shadow-database-url must be
+# passed. The diff is computed against that ephemeral shadow DB — never the real
+# one — so no production/staging DATABASE_URL is involved.
+#   exit 0 = migrations and schema are in sync
+#   exit 2 = non-empty diff => un-migrated schema change => this step fails
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+
+jobs:
+  drift-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    services:
+      shadow:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: shadow
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      # `npm ci` runs the repo's `postinstall: prisma generate`, installing the
+      # Prisma engines that `migrate diff` needs. `prisma generate` does not
+      # connect to a database, so no DATABASE_URL is required at this step.
+      - name: Install dependencies
+        run: npm ci
+
+      # Compare the committed migration history against the current datamodel.
+      # --from-migrations replays prisma/migrations into the shadow DB, then
+      # diffs the result against prisma/schema.prisma. --exit-code makes a
+      # non-empty diff (drift) fail the job with exit code 2.
+      - name: Check for un-migrated schema changes
+        run: >-
+          npx prisma migrate diff
+          --from-migrations prisma/migrations
+          --to-schema-datamodel prisma/schema.prisma
+          --shadow-database-url postgresql://postgres:postgres@localhost:5432/shadow
+          --exit-code

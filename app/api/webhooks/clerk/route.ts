@@ -129,11 +129,40 @@ export async function POST(req: Request) {
   const lang: Language =
     metaLang === 'EN' || metaLang === 'MG' ? (metaLang as Language) : 'FR';
 
-  await prisma.user.upsert({
+  // Reconcile by clerkId first, then by email. A recreated Clerk user keeps the
+  // same primary email but gets a NEW clerkId. Upserting on { clerkId } alone
+  // would take the create branch and violate the unique email constraint
+  // (User_email_key), orphaning the existing row so the live user has no record.
+  // So: (1) if a row already matches this clerkId, update it as before;
+  //     (2) else if a row exists for this email, re-link it to the new clerkId;
+  //     (3) else create. Idempotent on webhook re-fire — a re-link makes the row
+  //     match this clerkId, so the next delivery is a plain step-(1) update.
+  const byClerkId = await prisma.user.findUnique({
     where: { clerkId: data.id },
-    create: { clerkId: data.id, email: primaryEmail, role, lang },
-    update: { email: primaryEmail, role, lang },
   });
+
+  if (byClerkId) {
+    await prisma.user.update({
+      where: { clerkId: data.id },
+      data: { email: primaryEmail, role, lang },
+    });
+  } else {
+    const byEmail = await prisma.user.findUnique({
+      where: { email: primaryEmail },
+    });
+
+    if (byEmail) {
+      // Re-link the orphaned row to the recreated Clerk user.
+      await prisma.user.update({
+        where: { email: primaryEmail },
+        data: { clerkId: data.id, role, lang },
+      });
+    } else {
+      await prisma.user.create({
+        data: { clerkId: data.id, email: primaryEmail, role, lang },
+      });
+    }
+  }
 
   return NextResponse.json({ status: 'ok' });
 }
