@@ -1,19 +1,7 @@
 import { z } from "zod";
-import { normaliseMgPhone } from "./candidate";
+import { phoneSchema } from "./candidate";
 
 const PLAN = z.enum(["FREE", "STARTER", "PRO"]);
-
-const PHONE_INPUT_RE = /^(\+261|0)?[\s.\-()]*[0-9](?:[\s.\-()]*[0-9]){5,12}$/;
-const NORMALISED_PHONE_RE = /^\+261\d{9}$/;
-
-const phoneSchema = z
-  .string()
-  .trim()
-  .regex(PHONE_INPUT_RE)
-  .transform((v) => normaliseMgPhone(v))
-  .refine((v) => NORMALISED_PHONE_RE.test(v), {
-    message: "Numéro Madagascar invalide (9 chiffres attendus)",
-  });
 
 export const enterpriseCreateSchema = z
   .object({

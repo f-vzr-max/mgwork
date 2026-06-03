@@ -30,7 +30,11 @@ import {
   type EnterpriseFormValues,
 } from "@/components/onboarding/enterprise-form-values";
 
-const PHONE_INPUT_RE = /^(\+261|0)?[\s.\-()]*[0-9](?:[\s.\-()]*[0-9]){5,12}$/;
+// Mirror of the server-side input gate (lib/validation/candidate.ts): accept
+// Madagascar (+261) and Mauritius (+230) country codes, or a trunk-0 / bare
+// number. The contact-phone field placeholder advertises +230, so the client
+// must let it through to the server normaliser.
+const PHONE_INPUT_RE = /^(\+261|\+230|0)?[\s.\-()]*[0-9](?:[\s.\-()]*[0-9]){5,12}$/;
 
 const stepSchemas = [
   // Step 1: company

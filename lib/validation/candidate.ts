@@ -12,33 +12,38 @@ const isAtLeast18 = (d: Date) => {
   return d.getTime() <= cutoff.getTime();
 };
 
-// Phone normaliser. Accepts:
-//   - +261 prefix (with or without separators)
+// Phone normaliser. Accepts Madagascar (+261, 9 subscriber digits) and
+// Mauritius (+230, 8 subscriber digits). Accepts:
+//   - +261 / +230 prefix (with or without separators)
 //   - 0XXXXXXXXX (Madagascar national format with leading zero)
 //   - bare digits (assumed Madagascar)
-// Always emits +261 followed by exactly 9 digits.
-const PHONE_INPUT_RE = /^(\+261|0)?[\s.\-()]*[0-9](?:[\s.\-()]*[0-9]){5,12}$/;
+// Emits +261 followed by 9 digits, or +230 followed by 8 digits.
+const PHONE_INPUT_RE = /^(\+261|\+230|0)?[\s.\-()]*[0-9](?:[\s.\-()]*[0-9]){5,12}$/;
 
-// Final canonical shape: +261 followed by 9 digits. Madagascar mobile / fixed
-// subscriber numbers are 9 digits long once the country code or trunk-0 is
+// Final canonical shape: +261 followed by 9 digits (Madagascar) or +230
+// followed by 8 digits (Mauritius), once the country code or trunk-0 is
 // stripped.
-const NORMALISED_PHONE_RE = /^\+261\d{9}$/;
+const NORMALISED_PHONE_RE = /^(?:\+261\d{9}|\+230\d{8})$/;
 
 export function normaliseMgPhone(input: string): string {
   const digits = input.replace(/[\s.\-()]/g, "");
+  if (digits.startsWith("+230")) return digits;
+  // Bare "230..." is Mauritius only at the exact +230 length (8 subscriber
+  // digits); otherwise fall through so a bare MG number starting 230 stays MG.
+  if (digits.startsWith("230") && digits.length === 11) return "+" + digits;
   if (digits.startsWith("+261")) return digits;
   if (digits.startsWith("0")) return "+261" + digits.slice(1);
   if (digits.startsWith("261")) return "+" + digits;
   return "+261" + digits;
 }
 
-const phoneSchema = z
+export const phoneSchema = z
   .string()
   .trim()
   .regex(PHONE_INPUT_RE)
   .transform((v) => normaliseMgPhone(v))
   .refine((v) => NORMALISED_PHONE_RE.test(v), {
-    message: "Numéro Madagascar invalide (9 chiffres attendus)",
+    message: "Numéro invalide (Madagascar +261 ou Maurice +230)",
   });
 
 export const candidateCreateSchema = z

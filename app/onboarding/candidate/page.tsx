@@ -47,7 +47,10 @@ const isAtLeast18Iso = (v: string): boolean => {
   return d.getTime() <= cutoff.getTime();
 };
 
-const PHONE_INPUT_RE = /^(\+261|0)?[\s.\-()]*[0-9](?:[\s.\-()]*[0-9]){5,12}$/;
+// Mirror of the server-side input gate (lib/validation/candidate.ts): accept
+// Madagascar (+261) and Mauritius (+230) country codes, or a trunk-0 / bare
+// number. Kept in sync so the client never rejects a number the server accepts.
+const PHONE_INPUT_RE = /^(\+261|\+230|0)?[\s.\-()]*[0-9](?:[\s.\-()]*[0-9]){5,12}$/;
 
 // Per-step validation schema. The full server-side schema lives in
 // lib/validation/candidate.ts; here we only validate fields the user can see.

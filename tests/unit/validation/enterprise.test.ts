@@ -37,6 +37,14 @@ describe("enterpriseCreateSchema", () => {
     expect(r.contactPhone).toBe("+261341234567");
   });
 
+  it("normalises a +230 (Mauritius) contact phone", () => {
+    const r = enterpriseCreateSchema.parse({
+      companyName: "Acme Co",
+      contactPhone: "+230 5123 4567",
+    });
+    expect(r.contactPhone).toBe("+23051234567");
+  });
+
   it("rejects when companyName missing", () => {
     expect(() => enterpriseCreateSchema.parse({})).toThrow();
   });
