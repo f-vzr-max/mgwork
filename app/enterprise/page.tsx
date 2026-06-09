@@ -267,17 +267,12 @@ export default async function EnterpriseDashboardPage() {
           <KpiCard
             label={t("kpi.interviewsThisWeek")}
             value={String(interviewsThisWeek)}
-            delta="+2"
-            deltaLabel={t("kpi.vsLastWeek")}
             sparkline={[3, 5, 6, 4, 7, 8, 9]}
           />
           <KpiCard
             label={t("kpi.avgDelay")}
             value={String(avgDays)}
             unit={t("kpi.avgDelayUnit")}
-            delta="-1"
-            deltaTone="success"
-            deltaLabel={t("kpi.vsLastWeek")}
             sparkline={[14, 13, 13, 12, 12, 12, 11]}
           />
         </div>
