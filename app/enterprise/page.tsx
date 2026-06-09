@@ -133,13 +133,19 @@ export default async function EnterpriseDashboardPage() {
   const enterprise = user.enterprise;
 
   // Live numbers when available — falls back to artboard-style placeholders.
-  let activeOffersCount = 4;
   let matchedCount = 142;
   let interviewsThisWeek = 9;
   let avgDays = 11;
-  let activeOffersLimit: number | null = 6;
-  let offersUsed = 4;
+  // Active-offers KPI and the rail are single-sourced from getOfferQuota():
+  // `offersUsed` is the quota's `active` count and drives both the KPI value
+  // and the rail "used / limit" line, so they can never disagree.
+  let activeOffersLimit: number | null = null;
+  let offersUsed = 0;
   let matches: MatchRow[] = PLACEHOLDER_MATCHES;
+  // PLACEHOLDER_MATCHES carry synthetic candidateIds (c1..c6) that do not exist
+  // in the DB. Only link "View profile" to a real /enterprise/candidates/[id]
+  // when these rows came from real Applications — otherwise the link 404s.
+  let matchesAreReal = false;
   let kycExpiringSoon = 1;
   let companyName = t("dashboard.companyFallback");
   let planLabel = t("dashboard.planFallback", { tier: "Business" });
@@ -148,10 +154,7 @@ export default async function EnterpriseDashboardPage() {
     companyName = enterprise.companyName;
     planLabel = t("dashboard.planFallback", { tier: enterprise.plan ?? "FREE" });
 
-    const [offersAgg, applicationsAgg, weekStart, quota, recentApps, docs] = await Promise.all([
-      prisma.jobOffer.count({
-        where: { enterpriseId: enterprise.id, status: "ACTIVE" },
-      }),
+    const [applicationsAgg, weekStart, quota, recentApps, docs] = await Promise.all([
       prisma.application.count({
         where: { jobOffer: { enterpriseId: enterprise.id } },
       }),
@@ -177,7 +180,6 @@ export default async function EnterpriseDashboardPage() {
       }),
     ]);
 
-    activeOffersCount = offersAgg;
     matchedCount = applicationsAgg || matchedCount;
 
     interviewsThisWeek = await prisma.interview.count({
@@ -193,6 +195,7 @@ export default async function EnterpriseDashboardPage() {
     }
 
     if (recentApps.length > 0) {
+      matchesAreReal = true;
       matches = recentApps.map((a) => ({
         applicationId: a.id,
         candidateId: a.candidate.id,
@@ -253,20 +256,19 @@ export default async function EnterpriseDashboardPage() {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
           <KpiCard
             label={t("kpi.activeOffers")}
-            value={String(activeOffersCount)}
-            delta="+1"
+            value={String(offersUsed)}
             sparkline={[2, 2, 3, 3, 4, 3, 4]}
           />
           <KpiCard
             label={t("kpi.matchedCandidates")}
             value={String(matchedCount)}
-            delta="+14"
             sparkline={[80, 92, 110, 118, 128, 135, 142]}
           />
           <KpiCard
             label={t("kpi.interviewsThisWeek")}
             value={String(interviewsThisWeek)}
             delta="+2"
+            deltaLabel={t("kpi.vsLastWeek")}
             sparkline={[3, 5, 6, 4, 7, 8, 9]}
           />
           <KpiCard
@@ -275,6 +277,7 @@ export default async function EnterpriseDashboardPage() {
             unit={t("kpi.avgDelayUnit")}
             delta="-1"
             deltaTone="success"
+            deltaLabel={t("kpi.vsLastWeek")}
             sparkline={[14, 13, 13, 12, 12, 12, 11]}
           />
         </div>
@@ -363,12 +366,18 @@ export default async function EnterpriseDashboardPage() {
                           <Button variant="ghost" size="sm">
                             {t("matches.skipButton")}
                           </Button>
-                          <Link
-                            href={`/enterprise/offers`}
-                            style={{ textDecoration: "none" }}
-                          >
-                            <Button size="sm">{t("matches.viewProfileButton")}</Button>
-                          </Link>
+                          {matchesAreReal ? (
+                            <Link
+                              href={`/enterprise/candidates/${m.candidateId}`}
+                              style={{ textDecoration: "none" }}
+                            >
+                              <Button size="sm">{t("matches.viewProfileButton")}</Button>
+                            </Link>
+                          ) : (
+                            <Button size="sm" disabled>
+                              {t("matches.viewProfileButton")}
+                            </Button>
+                          )}
                         </Stack>
                       </div>
                     </div>
@@ -407,14 +416,14 @@ export default async function EnterpriseDashboardPage() {
                 {offersUsed} / {activeOffersLimit ?? "∞"}
               </div>
               <Progress value={offerPct} style={{ marginTop: 8 }} />
-              <Button
-                variant="outline"
-                fullWidth
-                style={{ marginTop: 16 }}
-                iconRight="arrow-up-right"
+              <Link
+                href="/tarifs"
+                style={{ textDecoration: "none", display: "block", marginTop: 16 }}
               >
-                {t("plan.upgradeButton")}
-              </Button>
+                <Button variant="outline" fullWidth iconRight="arrow-up-right">
+                  {t("plan.upgradeButton")}
+                </Button>
+              </Link>
             </Card>
 
             <Card padding={20}>

@@ -85,7 +85,12 @@ body {
     --surface-2: 220 38% 12%;
     --surface-3: 220 32% 16%;
 
-    --primary: 213 65% 57%;
+    /* W6-A dark-mode contrast: 57%->63% lightness lifts two failing pairings to
+       AA. (a) primary-foreground/light-fg label on this primary button bg:
+       5.05->6.19 (worst-case rgb(15,23,41)) / 5.59->6.86 (token fg). (b) active
+       nav: --primary text on --primary-bg tint 4.03->4.95 (>=4.5 normal text).
+       Lightening --primary in dark mode only improves every dark-surface usage. */
+    --primary: 213 65% 63%;
     --primary-foreground: 222 60% 5%;
     --success: 163 60% 45%;
     --success-foreground: 222 60% 5%;

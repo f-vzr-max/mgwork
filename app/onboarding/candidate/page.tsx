@@ -47,6 +47,14 @@ const isAtLeast18Iso = (v: string): boolean => {
   return d.getTime() <= cutoff.getTime();
 };
 
+// Reject DOBs in the future (client mirror of the server `isNotFuture` gate).
+const isNotFutureIso = (v: string): boolean => {
+  if (!v) return true;
+  const d = new Date(v);
+  if (Number.isNaN(d.getTime())) return false;
+  return d.getTime() <= Date.now();
+};
+
 // Mirror of the server-side input gate (lib/validation/candidate.ts): accept
 // Madagascar (+261) and Mauritius (+230) country codes, or a trunk-0 / bare
 // number. Kept in sync so the client never rejects a number the server accepts.
@@ -64,6 +72,9 @@ const stepSchemas = [
         .string()
         .optional()
         .or(z.literal(""))
+        .refine((v) => !v || isNotFutureIso(v), {
+          message: "La date de naissance ne peut pas être future",
+        })
         .refine((v) => !v || isAtLeast18Iso(v), {
           message: "Vous devez avoir au moins 18 ans",
         }),

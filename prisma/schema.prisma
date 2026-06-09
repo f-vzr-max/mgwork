@@ -114,6 +114,7 @@ model Candidate {
   langScoreFR        Int?
   langScoreEN        Int?
   cvFileUrl          String?
+  avatarUrl          String?
   bio                String?
   skills             String[]
   sectors            String[]
@@ -199,6 +200,8 @@ model Application {
   interviews   Interview[]
   checkpoints  Checkpoint[]
   checkinPings CheckinPing[]
+
+  @@unique([candidateId, jobOfferId])
 }
 
 model Matching {

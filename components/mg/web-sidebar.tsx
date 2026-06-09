@@ -9,6 +9,7 @@ import { Avatar } from "./avatar";
 import { Badge, type BadgeTone } from "./badge";
 import { LanguageMenu } from "./language-menu";
 import { ThemeToggle } from "./theme-toggle";
+import { SidebarActionsMenu } from "./sidebar-actions-menu";
 
 export type SidebarItem =
   | { section: string; id?: undefined }
@@ -183,20 +184,7 @@ export function WebSidebar({
                 {user.email}
               </div>
             </div>
-            <button
-              type="button"
-              aria-label="Actions"
-              style={{
-                border: 0,
-                background: "transparent",
-                color: "hsl(var(--muted-foreground))",
-                padding: 4,
-                cursor: "pointer",
-                borderRadius: 4,
-              }}
-            >
-              <Icon name="more-vertical" size={16} />
-            </button>
+            <SidebarActionsMenu />
           </>
         )}
         {!user && footer}

@@ -27,6 +27,12 @@ import {
   ScoreGauge,
   Stack,
 } from "@/components/mg";
+import {
+  CandidateActionBar,
+  OfferSelector,
+  OfferSelectorProvider,
+  type OfferOption,
+} from "@/components/mg/candidate-action-bar";
 
 export const dynamic = "force-dynamic";
 
@@ -86,6 +92,20 @@ export default async function BrowseCandidatesPage({
     );
   }
 
+  // Target-offer selector source: the enterprise's own ACTIVE offers. Admins
+  // (no enterprise profile) get no offers, so the Pass/Shortlist actions stay
+  // disabled — they only browse. The owning enterprise is the session user's.
+  let activeOffers: OfferOption[] = [];
+  if (user.role === "ENTERPRISE" && user.enterprise) {
+    const offers = await prisma.jobOffer.findMany({
+      where: { enterpriseId: user.enterprise.id, status: "ACTIVE" },
+      orderBy: { updatedAt: "desc" },
+      select: { id: true, title: true },
+      take: 100,
+    });
+    activeOffers = offers.map((o) => ({ id: o.id, title: o.title }));
+  }
+
   const sector = (searchParams.sector ?? "").trim();
   const lang = (searchParams.lang ?? "").toUpperCase();
   const skillsCsv = (searchParams.skills ?? "").trim();
@@ -122,7 +142,7 @@ export default async function BrowseCandidatesPage({
   const nextCursor = hasMore ? page[page.length - 1]?.id : undefined;
 
   return (
-    <>
+    <OfferSelectorProvider offers={activeOffers}>
       <PageHeader
         title={t("candidates.title")}
         subtitle={t("candidates.subtitle")}
@@ -208,9 +228,12 @@ export default async function BrowseCandidatesPage({
                 partial: hasMore ? t("candidates.list.partialSuffix") : "",
               })}
             </h3>
-            <span className="mg-caption" style={{ color: "hsl(var(--muted-foreground))" }}>
-              {t("candidates.list.piiNotice")}
-            </span>
+            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+              <OfferSelector />
+              <span className="mg-caption" style={{ color: "hsl(var(--muted-foreground))" }}>
+                {t("candidates.list.piiNotice")}
+              </span>
+            </div>
           </div>
           <Hairline />
           {page.length === 0 ? (
@@ -266,12 +289,7 @@ export default async function BrowseCandidatesPage({
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                       <ScoreGauge value={c.profileScore} size={44} stroke={4} label={false} />
-                      <Stack dir="row" gap={6}>
-                        <Button variant="ghost" size="sm">
-                          {t("candidates.card.skip")}
-                        </Button>
-                        <Button size="sm">{t("candidates.card.shortlist")}</Button>
-                      </Stack>
+                      <CandidateActionBar candidateId={c.id} />
                     </div>
                   </div>
                 );
@@ -301,6 +319,6 @@ export default async function BrowseCandidatesPage({
           )}
         </Card>
       </div>
-    </>
+    </OfferSelectorProvider>
   );
 }

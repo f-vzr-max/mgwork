@@ -21,6 +21,10 @@ import {
 } from "@/components/mg";
 
 const MAX_LENGTH = 4000;
+// Hard ceiling on a single send (request + full SSE drain). Without this an
+// unresponsive `/api/chat` (the bridge calls an upstream LLM) would leave the
+// composer stuck in `pending` forever with no error shown.
+const REQUEST_TIMEOUT_MS = 30_000;
 
 type ChatLang = "FR" | "EN" | "MG";
 
@@ -69,81 +73,100 @@ export function CandChatPanel({
     setMessages((prev) => [...prev, { role: "user", text: value, at: now }]);
     setText("");
 
-    let res: Response;
+    // Abort the request + stream drain if it runs past the ceiling. `timedOut`
+    // lets us distinguish a deliberate timeout abort from a generic network
+    // failure so we can show the right message.
+    const controller = new AbortController();
+    let timedOut = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, REQUEST_TIMEOUT_MS);
+
     try {
-      res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ text: value, lang }),
-      });
-    } catch (e) {
-      setError(e instanceof Error ? e.message : t("chat.error.network"));
-      setPending(false);
-      return;
-    }
-
-    if (!res.ok) {
-      let detail = t("chat.error.http", { status: res.status });
+      let res: Response;
       try {
-        const body = (await res.json()) as { error?: { message?: string } };
-        if (body?.error?.message) detail = body.error.message;
-      } catch {
-        /* ignore */
+        res = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ text: value, lang }),
+          signal: controller.signal,
+        });
+      } catch (e) {
+        if (timedOut) setError(t("chat.error.timeout"));
+        else setError(e instanceof Error ? e.message : t("chat.error.network"));
+        return;
       }
-      setError(detail);
-      setPending(false);
-      return;
-    }
 
-    if (!res.body) {
-      setError(t("chat.error.noStream"));
-      setPending(false);
-      return;
-    }
-
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = "";
-    const replyAt = new Date().toISOString();
-    let replyText = "";
-    let appended = false;
-
-    while (true) {
-      const { value: chunk, done } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(chunk, { stream: true });
-      let idx;
-      while ((idx = buffer.indexOf("\n\n")) >= 0) {
-        const block = buffer.slice(0, idx);
-        buffer = buffer.slice(idx + 2);
-        const evt = parseSseBlock(block);
-        if (!evt) continue;
-        if (evt.event === "chunk") {
-          replyText += evt.data?.text ?? "";
-          if (!appended) {
-            appended = true;
-            setMessages((prev) => [
-              ...prev,
-              { role: "assistant", text: replyText, at: replyAt },
-            ]);
-          } else {
-            setMessages((prev) => {
-              const next = prev.slice();
-              next[next.length - 1] = {
-                role: "assistant",
-                text: replyText,
-                at: replyAt,
-              };
-              return next;
-            });
-          }
-        } else if (evt.event === "error") {
-          setError(evt.data?.message ?? t("chat.error.stream"));
+      if (!res.ok) {
+        let detail = t("chat.error.http", { status: res.status });
+        try {
+          const body = (await res.json()) as { error?: { message?: string } };
+          if (body?.error?.message) detail = body.error.message;
+        } catch {
+          /* ignore */
         }
+        setError(detail);
+        return;
       }
+
+      if (!res.body) {
+        setError(t("chat.error.noStream"));
+        return;
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      const replyAt = new Date().toISOString();
+      let replyText = "";
+      let appended = false;
+
+      try {
+        while (true) {
+          const { value: chunk, done } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(chunk, { stream: true });
+          let idx;
+          while ((idx = buffer.indexOf("\n\n")) >= 0) {
+            const block = buffer.slice(0, idx);
+            buffer = buffer.slice(idx + 2);
+            const evt = parseSseBlock(block);
+            if (!evt) continue;
+            if (evt.event === "chunk") {
+              replyText += evt.data?.text ?? "";
+              if (!appended) {
+                appended = true;
+                setMessages((prev) => [
+                  ...prev,
+                  { role: "assistant", text: replyText, at: replyAt },
+                ]);
+              } else {
+                setMessages((prev) => {
+                  const next = prev.slice();
+                  next[next.length - 1] = {
+                    role: "assistant",
+                    text: replyText,
+                    at: replyAt,
+                  };
+                  return next;
+                });
+              }
+            } else if (evt.event === "error") {
+              setError(evt.data?.message ?? t("chat.error.stream"));
+            }
+          }
+        }
+      } catch (e) {
+        if (timedOut) setError(t("chat.error.timeout"));
+        else setError(e instanceof Error ? e.message : t("chat.error.stream"));
+        return;
+      }
+    } finally {
+      clearTimeout(timer);
+      setPending(false);
+      requestAnimationFrame(() => taRef.current?.focus());
     }
-    setPending(false);
-    requestAnimationFrame(() => taRef.current?.focus());
   }
 
   function onKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {

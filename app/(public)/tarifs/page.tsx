@@ -32,9 +32,9 @@ const TIER_META: Record<
 };
 
 const TIER_FEATURE_FLAGS: Record<TierKey, boolean[]> = {
-  t1: [true, true, true, true, false, false],
-  t2: [true, true, true, true, true, false],
-  t3: [true, true, true, true, true, true],
+  t1: [true, true, true, true, false],
+  t2: [true, true, true, true, true],
+  t3: [true, true, true, true, true],
 };
 
 type FeatureValue = string | boolean;
@@ -49,13 +49,12 @@ type FeatureRowKey =
   | "r7"
   | "r8"
   | "r9"
-  | "r10"
   | "r11"
   | "r12"
   | "r13";
 
 const FEATURE_ROW_DEFS: { key: FeatureRowKey; s: FeatureValue; b: FeatureValue; e: FeatureValue }[] = [
-  { key: "r1", s: "1", b: "6", e: "__unlimited__" },
+  { key: "r1", s: "3", b: "10", e: "__unlimited__" },
   { key: "r2", s: "3", b: "15", e: "__unlimited__" },
   { key: "r3", s: true, b: true, e: true },
   { key: "r4", s: true, b: true, e: true },
@@ -64,7 +63,6 @@ const FEATURE_ROW_DEFS: { key: FeatureRowKey; s: FeatureValue; b: FeatureValue; 
   { key: "r7", s: false, b: true, e: true },
   { key: "r8", s: "__r8.s__", b: "__r8.b__", e: "__r8.e__" },
   { key: "r9", s: false, b: false, e: true },
-  { key: "r10", s: false, b: false, e: true },
   { key: "r11", s: false, b: false, e: true },
   { key: "r12", s: false, b: false, e: true },
   { key: "r13", s: "__r13.s__", b: "__r13.b__", e: "__r13.e__" },

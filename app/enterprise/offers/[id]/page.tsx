@@ -10,6 +10,7 @@ import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
 import { notFound, redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import type { ApplicationStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { recomputeMatchings } from "@/lib/matching";
 import { getMatchingWeights } from "@/lib/matching-config";
@@ -18,6 +19,25 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
+
+// PII reveal threshold: SHORTLISTED and beyond. The AI shortlist below is a
+// LIVE matching recompute (a ranking signal) — it is NOT a formal shortlist, so
+// a candidate appearing here does not unlock their identity. Reveal requires a
+// real Application at SHORTLISTED+ under THIS enterprise's offers (DB-level).
+const REVEAL_STATUSES: ApplicationStatus[] = [
+  "SHORTLISTED",
+  "INTERVIEW_SCHEDULED",
+  "INTERVIEW_DONE",
+  "OFFER_MADE",
+  "DEPLOYED",
+  "COMPLETED",
+];
+
+function maskName(first: string, last: string): string {
+  const a = first?.[0]?.toUpperCase() ?? "?";
+  const b = last?.[0]?.toUpperCase() ?? "?";
+  return `${a}*** ${b}.`;
+}
 
 export default async function OfferDetailPage({ params }: { params: { id: string } }) {
   const { userId: clerkId } = await auth();
@@ -86,6 +106,26 @@ export default async function OfferDetailPage({ params }: { params: { id: string
     : [];
   const byId = new Map(candidates.map((c) => [c.id, c]));
 
+  // Per-candidate PII gate. Admins see every name. The owning enterprise sees a
+  // name only for candidates with an Application at SHORTLISTED+ under one of
+  // its own offers — a DB-level relationship check, never a client flag and
+  // never the live-ranking presence in this list. Resolved in a single query
+  // scoped to this enterprise's offers, then turned into a reveal set.
+  const revealedIds = new Set<string>();
+  if (isAdmin) {
+    for (const id of candidateIds) revealedIds.add(id);
+  } else if (isOwner && user.enterprise && candidateIds.length) {
+    const apps = await prisma.application.findMany({
+      where: {
+        candidateId: { in: candidateIds },
+        status: { in: REVEAL_STATUSES },
+        jobOffer: { enterpriseId: user.enterprise.id },
+      },
+      select: { candidateId: true },
+    });
+    for (const a of apps) revealedIds.add(a.candidateId);
+  }
+
   return (
     <>
       <PageHeader title={offer.title} description={t("offerDetail.header.slotCount", { sector: offer.sector, location: offer.location, n: offer.slots })}>
@@ -145,12 +185,26 @@ export default async function OfferDetailPage({ params }: { params: { id: string
                 {top.map((m) => {
                   const c = byId.get(m.candidateId);
                   if (!c) return null;
+                  const revealed = revealedIds.has(c.id);
+                  const displayName = revealed
+                    ? `${c.firstName} ${c.lastName}`
+                    : maskName(c.firstName, c.lastName);
                   return (
                     <li key={m.candidateId} className="py-3">
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <div className="font-medium">
-                            {c.firstName} {c.lastName}
+                            <Link
+                              href={`/enterprise/candidates/${c.id}`}
+                              className={revealed ? "hover:underline" : "font-mono hover:underline"}
+                            >
+                              {displayName}
+                            </Link>
+                            {!revealed ? (
+                              <span className="ml-2 text-xs font-normal text-muted-foreground">
+                                {t("offerDetail.candidate.masked")}
+                              </span>
+                            ) : null}
                             {c.city ? <span className="text-muted-foreground"> — {c.city}</span> : null}
                           </div>
                           <div className="text-xs text-muted-foreground">

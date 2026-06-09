@@ -63,7 +63,10 @@ export async function getLocale(): Promise<Locale> {
 export type TranslationFn = (key: string, fallback?: string) => string;
 
 export function tFor(lang: Locale): TranslationFn {
-  const dict = MESSAGES[lang] ?? MESSAGES[DEFAULT_LOCALE];
+  // Fall through to the default-locale baseline for any key missing from the
+  // requested locale (e.g. MG ships only a partial dictionary) so we never
+  // surface a raw dotted key. See `mergedFlatFor` for the merge semantics.
+  const dict = mergedFlatFor(lang);
   return (key, fallback) => dict[key] ?? fallback ?? key;
 }
 
@@ -76,6 +79,39 @@ export function tFor(lang: Locale): TranslationFn {
 // flat dictionary to a nested object here so both translators stay correct
 // against the same source files.
 type NestedMessages = { [key: string]: string | NestedMessages };
+
+// Recursive deep-merge of `override` onto `base`. Plain objects merge key by
+// key; any other value (string leaf, array) on `override` wins. `base` is
+// never mutated. Used so a partial locale (e.g. MG) inherits every key it does
+// not define from the default-locale baseline.
+function deepMerge(base: NestedMessages, override: NestedMessages): NestedMessages {
+  const out: NestedMessages = { ...base };
+  for (const [key, value] of Object.entries(override)) {
+    const existing = out[key];
+    if (
+      isPlainObject(existing) &&
+      isPlainObject(value)
+    ) {
+      out[key] = deepMerge(existing, value);
+    } else {
+      out[key] = value;
+    }
+  }
+  return out;
+}
+
+function isPlainObject(v: unknown): v is NestedMessages {
+  return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
+// Flat-dictionary merge: the requested locale's keys overlaid on the default
+// locale's keys. Our catalogs are flat dotted strings, so this single spread is
+// a complete deep-merge at the dotted-key granularity — every key the locale
+// omits falls through to the default. The default locale is returned as-is.
+function mergedFlatFor(lang: Locale): Messages {
+  if (lang === DEFAULT_LOCALE) return MESSAGES[DEFAULT_LOCALE];
+  return { ...MESSAGES[DEFAULT_LOCALE], ...(MESSAGES[lang] ?? {}) };
+}
 
 function expandFlatToNested(flat: Messages): NestedMessages {
   const out: NestedMessages = {};
@@ -98,12 +134,22 @@ function expandFlatToNested(flat: Messages): NestedMessages {
   return out;
 }
 
+// Each locale's nested dictionary is built from its FLAT dict merged over the
+// default-locale baseline (see `mergedFlatFor`), so every locale resolves every
+// key. The default-locale nested dict is the deep-merge identity, kept explicit
+// via `deepMerge` so a future locale shipping nested (non-flat) overrides still
+// inherits correctly.
+const FR_BASELINE = expandFlatToNested(MESSAGES[DEFAULT_LOCALE]);
+
 const NESTED_MESSAGES: Record<Locale, NestedMessages> = {
-  FR: expandFlatToNested(MESSAGES.FR),
-  EN: expandFlatToNested(MESSAGES.EN),
-  MG: expandFlatToNested(MESSAGES.MG),
+  FR: FR_BASELINE,
+  EN: deepMerge(FR_BASELINE, expandFlatToNested(mergedFlatFor("EN"))),
+  MG: deepMerge(FR_BASELINE, expandFlatToNested(mergedFlatFor("MG"))),
 };
 
+// Returns the nested message tree for a locale. Because every entry is already
+// merged over the default-locale baseline, the requested locale always resolves
+// — the `?? DEFAULT_LOCALE` guard only covers an out-of-range `lang`.
 export function messagesFor(lang: Locale): NestedMessages {
   return NESTED_MESSAGES[lang] ?? NESTED_MESSAGES[DEFAULT_LOCALE];
 }

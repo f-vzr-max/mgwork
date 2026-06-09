@@ -105,7 +105,11 @@ export default async function RootLayout({
   const htmlLang = locale.toLowerCase();
 
   return (
-    <ClerkProvider localization={clerkLocalization} appearance={clerkAppearance}>
+    <ClerkProvider
+      localization={clerkLocalization}
+      appearance={clerkAppearance}
+      afterSignOutUrl="/"
+    >
       <html lang={htmlLang} suppressHydrationWarning>
         <body
           className={`${inter.variable} ${jetBrainsMono.variable} font-sans antialiased overflow-x-hidden`}

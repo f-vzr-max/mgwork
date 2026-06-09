@@ -12,6 +12,17 @@ const isAtLeast18 = (d: Date) => {
   return d.getTime() <= cutoff.getTime();
 };
 
+// Reject DOBs in the future. The client is not a trust boundary, so the same
+// "no future date" gate that the onboarding selects enforce is mirrored here.
+const isNotFuture = (d: Date) => d.getTime() <= Date.now();
+
+// Shared DOB schema: coerces the ISO string the form composes, rejects future
+// dates and under-18s. Used by both create and self-update.
+const dateOfBirthSchema = z.coerce
+  .date()
+  .refine(isNotFuture, { message: "La date de naissance ne peut pas être future" })
+  .refine(isAtLeast18, { message: "Vous devez avoir au moins 18 ans" });
+
 // Phone normaliser. Accepts Madagascar (+261, 9 subscriber digits) and
 // Mauritius (+230, 8 subscriber digits). Accepts:
 //   - +261 / +230 prefix (with or without separators)
@@ -50,10 +61,7 @@ export const candidateCreateSchema = z
   .object({
     firstName: z.string().trim().min(1).max(120),
     lastName: z.string().trim().min(1).max(120),
-    dateOfBirth: z.coerce
-      .date()
-      .refine(isAtLeast18, { message: "Vous devez avoir au moins 18 ans" })
-      .optional(),
+    dateOfBirth: dateOfBirthSchema.optional(),
     nationality: z.string().trim().length(2).default("MG"),
     phone: phoneSchema.optional(),
     city: z.string().trim().max(120).optional(),
@@ -68,5 +76,29 @@ export const candidateCreateSchema = z
 
 export const candidateUpdateSchema = candidateCreateSchema.partial();
 
+// Self-service profile update (PATCH /api/candidates/me). Candidates may edit
+// only their own descriptive text fields and preference lists. Server-managed /
+// derived columns are NOT accepted here:
+//   - avatarUrl   → written ONLY by /api/candidates/me/avatar (upload path)
+//   - cvFileUrl   → written via the documents pipeline
+//   - profileScore, langScoreFR, langScoreEN → derived/scored server-side
+// `.strict()` rejects any of those (or unknown keys) outright, so a crafted
+// body can never smuggle in an avatarUrl override through this route.
+export const candidateSelfUpdateSchema = z
+  .object({
+    firstName: z.string().trim().min(1).max(120),
+    lastName: z.string().trim().min(1).max(120),
+    dateOfBirth: dateOfBirthSchema.nullable(),
+    nationality: z.string().trim().length(2),
+    phone: phoneSchema.nullable(),
+    city: z.string().trim().max(120).nullable(),
+    bio: z.string().trim().max(2000).nullable(),
+    skills: z.array(SKILL).max(50),
+    sectors: z.array(SECTOR).max(20),
+  })
+  .strict()
+  .partial();
+
 export type CandidateCreateInput = z.infer<typeof candidateCreateSchema>;
 export type CandidateUpdateInput = z.infer<typeof candidateUpdateSchema>;
+export type CandidateSelfUpdateInput = z.infer<typeof candidateSelfUpdateSchema>;

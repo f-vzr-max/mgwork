@@ -9,6 +9,7 @@ import * as React from "react";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { WebSidebar, type SidebarItem, type SidebarUser } from "@/components/mg";
+import { MobileShell, type MobileNavItem } from "@/components/mg/mobile-shell";
 
 function resolveActiveId(pathname: string | null): string {
   if (!pathname) return "overview";
@@ -32,16 +33,31 @@ export function StaffShell({ user, children }: StaffShellProps) {
     { id: "followup", icon: "users", label: t("nav.followup"), href: "/staff/followup" },
   ];
 
+  // MobileShell only needs label + href; project the nav items down to that shape.
+  const mobileNav: MobileNavItem[] = NAV.filter(
+    (it): it is Exclude<SidebarItem, { section: string }> => "id" in it,
+  ).map((it) => ({ label: it.label, href: it.href }));
+
   return (
     <div
-      className="mg-root"
+      className="mg-root flex flex-col lg:flex-row"
       style={{
-        display: "flex",
         minHeight: "100vh",
         background: "hsl(var(--background))",
       }}
     >
-      <WebSidebar role={t("role")} items={NAV} activeId={activeId} user={user} />
+      {/* Mobile + tablet chrome (sticky app-bar + slide-in drawer; hidden at lg+).
+          CSS-only toggle — NO inline `display`, so `lg:hidden` wins the cascade. */}
+      <div className="lg:hidden">
+        <MobileShell navItems={mobileNav} homeHref="/staff" />
+      </div>
+
+      {/* Desktop chrome: vertical WebSidebar (hidden below lg). ---------- */}
+      <div className="hidden lg:flex" style={{ minHeight: "100vh" }}>
+        <WebSidebar role={t("role")} items={NAV} activeId={activeId} user={user} />
+      </div>
+
+      {/* Single shared content surface — `children` rendered exactly once. */}
       <main style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
         {children}
       </main>
