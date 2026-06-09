@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 export const PIPELINE_STATUSES = [
   "APPLIED",
   "SHORTLISTED",
+  "ACCEPTED",
   "INTERVIEW_SCHEDULED",
   "INTERVIEW_DONE",
   "OFFER_MADE",
@@ -27,6 +28,7 @@ export type StatusTimelineProps = {
 const STATUS_LABELS: Record<(typeof PIPELINE_STATUSES)[number], string> = {
   APPLIED: "Applied",
   SHORTLISTED: "Shortlisted",
+  ACCEPTED: "Accepted",
   INTERVIEW_SCHEDULED: "Interview scheduled",
   INTERVIEW_DONE: "Interview done",
   OFFER_MADE: "Offer made",

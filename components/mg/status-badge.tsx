@@ -22,6 +22,7 @@ export type StatusKey =
   | "PENDING"
   | "APPLIED"
   | "SHORTLISTED"
+  | "ACCEPTED"
   | "INTERVIEW_SCHEDULED"
   | "INTERVIEW_DONE"
   | "OFFER_MADE"
@@ -48,6 +49,7 @@ const STATUS_TONE: Record<StatusKey, Tuple> = {
   PENDING: ["info", "clock", "En attente"],
   APPLIED: ["info", "circle-dot", "Postulé"],
   SHORTLISTED: ["info", "circle-dot", "Présélectionné"],
+  ACCEPTED: ["success", "check-circle-2", "Accepté"],
   INTERVIEW_SCHEDULED: ["info", "calendar", "Entretien"],
   INTERVIEW_DONE: ["info", "check-circle-2", "Entretien fait"],
   OFFER_MADE: ["info", "circle-dot", "Offre envoyée"],

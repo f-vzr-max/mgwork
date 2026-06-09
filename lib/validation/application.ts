@@ -3,6 +3,7 @@ import { z } from "zod";
 export const APPLICATION_STATUSES = [
   "APPLIED",
   "SHORTLISTED",
+  "ACCEPTED",
   "INTERVIEW_SCHEDULED",
   "INTERVIEW_DONE",
   "OFFER_MADE",

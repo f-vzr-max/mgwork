@@ -38,6 +38,7 @@ enum DocumentStatus {
 enum ApplicationStatus {
   APPLIED
   SHORTLISTED
+  ACCEPTED
   INTERVIEW_SCHEDULED
   INTERVIEW_DONE
   OFFER_MADE

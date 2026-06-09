@@ -20,12 +20,14 @@ import { Button } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
 
-// PII reveal threshold: SHORTLISTED and beyond. The AI shortlist below is a
-// LIVE matching recompute (a ranking signal) — it is NOT a formal shortlist, so
-// a candidate appearing here does not unlock their identity. Reveal requires a
-// real Application at SHORTLISTED+ under THIS enterprise's offers (DB-level).
+// PII reveal threshold: ACCEPTED and beyond (decision G — identity is revealed
+// only after the candidate ACCEPTS a shortlist, not on the shortlist alone).
+// The AI shortlist below is a LIVE matching recompute (a ranking signal) — it is
+// NOT a formal shortlist, so a candidate appearing here does not unlock their
+// identity. Reveal requires a real Application at ACCEPTED+ under THIS
+// enterprise's offers (DB-level).
 const REVEAL_STATUSES: ApplicationStatus[] = [
-  "SHORTLISTED",
+  "ACCEPTED",
   "INTERVIEW_SCHEDULED",
   "INTERVIEW_DONE",
   "OFFER_MADE",

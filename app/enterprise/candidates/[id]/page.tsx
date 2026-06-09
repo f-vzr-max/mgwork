@@ -2,14 +2,16 @@
 //
 // Server component. PII (full name, phone, bio, photo) is revealed ONLY when
 // the REQUESTING enterprise has an Application for this candidate, under one of
-// its OWN offers, whose status has reached SHORTLISTED or beyond. The gate is a
+// its OWN offers, whose status has reached ACCEPTED or beyond. The gate is a
 // DB-level join (Application -> JobOffer.enterpriseId === requester) — never a
 // client-supplied flag. Admins always see full PII. Any other enterprise sees
 // the masked view (initials + non-identifying signal only).
 //
-// NOTE (compliance): marketing copy describes reveal as "after shortlist
-// acceptance", but the ApplicationStatus enum has no ACCEPTED state, so the
-// effective gate is SHORTLISTED (the first post-applied rank). Flagged upstream.
+// Compliance (decision G): a SHORTLISTED candidate has NOT yet consented, so
+// they stay masked. The candidate accepts the shortlist (-> ACCEPTED) from
+// /candidate/applications, which is the threshold at which the owning
+// enterprise may see their identity — matching the "identity revealed only
+// after shortlist acceptance" promise.
 
 import { auth } from "@clerk/nextjs/server";
 import { notFound, redirect } from "next/navigation";
@@ -30,11 +32,12 @@ import {
 
 export const dynamic = "force-dynamic";
 
-// Reveal threshold: SHORTLISTED and every later stage. Listed explicitly so a
-// future enum reorder can't silently widen the gate. APPLIED / REJECTED stay
-// masked (REJECTED is a terminal "no", not a reveal-worthy relationship).
+// Reveal threshold: ACCEPTED and every later stage. Listed explicitly so a
+// future enum reorder can't silently widen the gate. APPLIED / SHORTLISTED /
+// REJECTED stay masked — a shortlist alone does not reveal identity; the
+// candidate must accept first (REJECTED is a terminal "no").
 const REVEAL_STATUSES: ApplicationStatus[] = [
-  "SHORTLISTED",
+  "ACCEPTED",
   "INTERVIEW_SCHEDULED",
   "INTERVIEW_DONE",
   "OFFER_MADE",

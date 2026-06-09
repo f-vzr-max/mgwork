@@ -20,6 +20,7 @@ import {
   StatusTimeline,
   type ApplicationStatus,
 } from "@/components/timeline/StatusTimeline";
+import { ShortlistAccept } from "@/components/mg/shortlist-accept";
 
 export const dynamic = "force-dynamic";
 
@@ -123,6 +124,9 @@ export default async function CandidateApplicationsPage() {
                 <StatusBadge status={app.status} />
               </Stack>
               <StatusTimeline current={app.status as ApplicationStatus} />
+              {app.status === "SHORTLISTED" && (
+                <ShortlistAccept applicationId={app.id} />
+              )}
             </Card>
           ))}
         </div>

@@ -1,0 +1,11 @@
+-- Add ACCEPTED to ApplicationStatus, positioned after SHORTLISTED so the DB
+-- enum order matches prisma/schema.prisma (keeps `prisma migrate diff` /
+-- the drift gate clean). Additive only — no existing rows change.
+--
+-- Consent model (decision G): an enterprise shortlist sets SHORTLISTED with the
+-- candidate's PII still MASKED; the candidate then accepts (-> ACCEPTED), which
+-- is the threshold at which the owning enterprise may see full identity.
+--
+-- `ALTER TYPE ... ADD VALUE` is safe on PostgreSQL 12+ (Supabase is PG17) as
+-- long as the new value is not referenced in the same transaction — it is not.
+ALTER TYPE "ApplicationStatus" ADD VALUE 'ACCEPTED' AFTER 'SHORTLISTED';
