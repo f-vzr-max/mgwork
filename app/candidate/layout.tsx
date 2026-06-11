@@ -20,6 +20,14 @@ import { type SidebarItem } from "@/components/mg";
 import { CandWebSidebar } from "@/components/mg/cand-web-sidebar";
 import { CandMobileChrome } from "@/components/mg/cand-mobile-chrome";
 
+// Locale-aware tab title. Without this the root layout's static (French)
+// metadata wins on every authed route, so the document title stays French
+// after switching the site language.
+export async function generateMetadata() {
+  const t = await getTranslations("authMeta");
+  return { title: t("candidate.title") };
+}
+
 export default async function CandidateLayout({ children }: { children: React.ReactNode }) {
   const { userId: clerkId } = await auth();
   if (!clerkId) redirect("/sign-in");

@@ -1,10 +1,12 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { env } from "./config";
 
+// Model policy: Haiku ("fast") is the default for every Claude call. Sonnet
+// ("smart") is reachable ONLY through the *WithEscalation helpers below —
+// callers must never request "smart" directly. No Opus tier.
 export const MODELS = {
   fast: "claude-haiku-4-5-20251001",
   smart: "claude-sonnet-4-6",
-  reasoning: "claude-opus-4-7",
 } as const;
 
 export type ModelTier = keyof typeof MODELS;
@@ -14,10 +16,13 @@ export type ChatMessage = {
   content: string;
 };
 
+// Public params narrow `model` to the fast tier so the policy above is
+// compiler-enforced: passing model:"smart" to chat()/extractFromImage() is a
+// type error. The escalation helpers use the internal wide-tier functions.
 export type ChatParams = {
   system: string;
   messages: ChatMessage[];
-  model?: ModelTier;
+  model?: Extract<ModelTier, "fast">;
   maxTokens?: number;
   temperature?: number;
 };
@@ -31,7 +36,7 @@ export type ExtractParams = {
   base64: string;
   mimeType: string;
   prompt: string;
-  model?: ModelTier;
+  model?: Extract<ModelTier, "fast">;
   maxTokens?: number;
 };
 
@@ -54,10 +59,19 @@ export function _resetClaudeClient(): void {
   cached = undefined;
 }
 
+// Internal wide-tier variants — module-private so "smart" stays unreachable
+// outside the escalation helpers.
+type InternalChatParams = Omit<ChatParams, "model"> & { model?: ModelTier };
+type InternalExtractParams = Omit<ExtractParams, "model"> & { model?: ModelTier };
+
 export async function chat(params: ChatParams): Promise<ChatResult> {
+  return chatWithTier(params);
+}
+
+async function chatWithTier(params: InternalChatParams): Promise<ChatResult> {
   const c = client();
   if (!c) return { error: "no-key" };
-  const model = MODELS[params.model ?? "smart"];
+  const model = MODELS[params.model ?? "fast"];
   try {
     const res = await c.messages.create({
       model,
@@ -81,9 +95,13 @@ export async function chat(params: ChatParams): Promise<ChatResult> {
 }
 
 export async function extractFromImage(params: ExtractParams): Promise<ExtractResult> {
+  return extractWithTier(params);
+}
+
+async function extractWithTier(params: InternalExtractParams): Promise<ExtractResult> {
   const c = client();
   if (!c) return { error: "no-key" };
-  const model = MODELS[params.model ?? "smart"];
+  const model = MODELS[params.model ?? "fast"];
   const mediaType = normalizeImageMime(params.mimeType);
   if (!mediaType) {
     return {
@@ -116,6 +134,43 @@ export async function extractFromImage(params: ExtractParams): Promise<ExtractRe
   } catch (err) {
     return { error: "api-error", message: err instanceof Error ? err.message : String(err) };
   }
+}
+
+export type ChatSuccess = Extract<ChatResult, { text: string }>;
+export type ExtractSuccess = Extract<ExtractResult, { text: string }>;
+
+// Escalation helpers — the ONLY sanctioned path to the smart tier.
+//
+// Each helper runs the call on "fast" (Haiku). If the result is an error,
+// empty/whitespace text, or fails the caller's validate(), it retries ONCE on
+// "smart" (Sonnet) and returns that result instead. The `escalated` flag says
+// whether the smart retry ran (callers should surface it in audit metadata).
+// A missing API key short-circuits — escalating cannot fix "no-key".
+
+export async function chatWithEscalation(
+  params: Omit<ChatParams, "model"> & { validate?: (r: ChatSuccess) => boolean },
+): Promise<ChatResult & { escalated: boolean }> {
+  const { validate, ...rest } = params;
+  const fast = await chatWithTier({ ...rest, model: "fast" });
+  if ("error" in fast && fast.error === "no-key") return { ...fast, escalated: false };
+  const fastOk =
+    !("error" in fast) && fast.text.trim().length > 0 && (!validate || validate(fast));
+  if (fastOk) return { ...fast, escalated: false };
+  const smart = await chatWithTier({ ...rest, model: "smart" });
+  return { ...smart, escalated: true };
+}
+
+export async function extractWithEscalation(
+  params: Omit<ExtractParams, "model"> & { validate?: (r: ExtractSuccess) => boolean },
+): Promise<ExtractResult & { escalated: boolean }> {
+  const { validate, ...rest } = params;
+  const fast = await extractWithTier({ ...rest, model: "fast" });
+  if ("error" in fast && fast.error === "no-key") return { ...fast, escalated: false };
+  const fastOk =
+    !("error" in fast) && fast.text.trim().length > 0 && (!validate || validate(fast));
+  if (fastOk) return { ...fast, escalated: false };
+  const smart = await extractWithTier({ ...rest, model: "smart" });
+  return { ...smart, escalated: true };
 }
 
 const ALLOWED_IMAGE_MIME = ["image/jpeg", "image/png", "image/gif", "image/webp"] as const;

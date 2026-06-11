@@ -51,7 +51,7 @@ export function Composer({
       }}
     >
       <div className="mb-1.5 flex items-center justify-between text-[11px] text-muted-foreground">
-        <span className="font-medium uppercase tracking-wider">MG Work agent</span>
+        <span className="font-medium uppercase tracking-wider">AsanaoConnect agent</span>
         <span
           className={cn(
             "tabular-nums",

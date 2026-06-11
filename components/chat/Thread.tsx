@@ -53,7 +53,7 @@ function Bubble({ message }: { message: ThreadMessage }) {
             isUser ? "text-primary-foreground/80" : "text-muted-foreground",
           )}
         >
-          {isUser ? "You" : "MG Work agent"}
+          {isUser ? "You" : "AsanaoConnect agent"}
           {time ? <span className="ml-2 normal-case">{time}</span> : null}
         </div>
         <div className="whitespace-pre-wrap break-words">{message.text}</div>

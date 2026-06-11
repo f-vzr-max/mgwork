@@ -53,6 +53,7 @@ export default async function CandidateDashboard() {
   if (!clerkId) redirect("/sign-in");
   const t = await getTranslations("app.candidate.dashboard");
   const tc = await getTranslations("common");
+  const tl = await getTranslations("langTest");
 
   const user = await prisma.user.findUnique({
     where: { clerkId },
@@ -65,6 +66,8 @@ export default async function CandidateDashboard() {
           profileScore: true,
           langScoreFR: true,
           langScoreEN: true,
+          langScoreFRVerifiedAt: true,
+          langScoreENVerifiedAt: true,
           dateOfBirth: true,
           city: true,
         },
@@ -127,6 +130,13 @@ export default async function CandidateDashboard() {
   const SEVEN_DAYS = 1000 * 60 * 60 * 24 * 7;
   const now = Date.now();
 
+  // Language verification state. A score without its VerifiedAt stamp is the
+  // onboarding self-assessment; the AI test (/candidate/language-test) is what
+  // stamps it verified.
+  const frVerified = c.langScoreFRVerifiedAt != null;
+  const enVerified = c.langScoreENVerifiedAt != null;
+  const bothVerified = frVerified && enVerified;
+
   return (
     <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 20 }}>
       {/* Greeting ------------------------------------------------------- */}
@@ -164,6 +174,62 @@ export default async function CandidateDashboard() {
             </Button>
           </Link>
         )}
+      </Card>
+
+      {/* Language verification card ------------------------------------- */}
+      <Card padding={16}>
+        <Stack dir="row" gap={12} align="center">
+          <div
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 9999,
+              background: bothVerified ? "var(--success-bg)" : "var(--primary-bg)",
+              color: bothVerified ? "hsl(var(--success))" : "hsl(var(--primary))",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Icon name={bothVerified ? "check-circle-2" : "globe"} size={18} />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="mg-body-sm" style={{ fontWeight: 600 }}>
+              {bothVerified ? tl("dashboard.verifiedTitle") : tl("dashboard.title")}
+            </div>
+            <div className="mg-caption" style={{ color: "hsl(var(--muted-foreground))" }}>
+              {bothVerified ? tl("dashboard.verifiedBody") : tl("dashboard.body")}
+            </div>
+          </div>
+        </Stack>
+        <Stack dir="row" gap={6} wrap style={{ marginTop: 10 }}>
+          {frVerified ? (
+            <Badge tone="success" icon="check-circle-2">
+              {tl("badge.fr", { score: c.langScoreFR ?? 0 })}
+            </Badge>
+          ) : c.langScoreFR != null ? (
+            <Badge tone="neutral">{tl("badge.frSelf", { score: c.langScoreFR })}</Badge>
+          ) : (
+            <Badge tone="neutral">{tl("badge.frNone")}</Badge>
+          )}
+          {enVerified ? (
+            <Badge tone="success" icon="check-circle-2">
+              {tl("badge.en", { score: c.langScoreEN ?? 0 })}
+            </Badge>
+          ) : c.langScoreEN != null ? (
+            <Badge tone="neutral">{tl("badge.enSelf", { score: c.langScoreEN })}</Badge>
+          ) : (
+            <Badge tone="neutral">{tl("badge.enNone")}</Badge>
+          )}
+        </Stack>
+        <Link
+          href="/candidate/language-test"
+          style={{ textDecoration: "none", display: "block", marginTop: 12 }}
+        >
+          <Button size="sm" variant={bothVerified ? "outline" : "default"} iconRight="arrow-right">
+            {bothVerified ? tl("dashboard.retakeCta") : tl("dashboard.cta")}
+          </Button>
+        </Link>
       </Card>
 
       {/* Documents strip ------------------------------------------------ */}

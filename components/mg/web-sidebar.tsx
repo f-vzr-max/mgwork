@@ -105,7 +105,7 @@ export function WebSidebar({
                 alignItems: "center",
                 gap: 10,
                 fontWeight: active ? 600 : 500,
-                fontSize: 13.5,
+                fontSize: 14,
                 textAlign: "left",
                 textDecoration: "none",
               }}

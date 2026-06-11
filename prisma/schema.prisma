@@ -74,6 +74,18 @@ enum Language {
   MG
 }
 
+enum ChannelIdentityStatus {
+  PENDING
+  LINKED
+  BLOCKED
+}
+
+enum ChannelLinkMethod {
+  TOKEN
+  PHONE_MATCH
+  MANUAL
+}
+
 model User {
   id        String   @id @default(cuid())
   clerkId   String   @unique
@@ -83,11 +95,12 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  candidate        Candidate?
-  enterprise       Enterprise?
-  auditLogs        AuditLog[]
-  staffNotes       StaffNote[]
-  onboardingDraft  OnboardingDraft?
+  candidate          Candidate?
+  enterprise         Enterprise?
+  auditLogs          AuditLog[]
+  staffNotes         StaffNote[]
+  onboardingDraft    OnboardingDraft?
+  disputeAttachments DisputeAttachment[]
 }
 
 model OnboardingDraft {
@@ -114,19 +127,24 @@ model Candidate {
   profileScore       Int       @default(0)
   langScoreFR        Int?
   langScoreEN        Int?
+  langScoreFRVerifiedAt DateTime?
+  langScoreENVerifiedAt DateTime?
   cvFileUrl          String?
   avatarUrl          String?
   bio                String?
   skills             String[]
   sectors            String[]
   departureChecklist Json?
+  memory             Json?
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
-  documents     Document[]
-  applications  Application[]
-  conversations Conversation[]
-  checkpoints   Checkpoint[]
+  documents         Document[]
+  applications      Application[]
+  conversations     Conversation[]
+  checkpoints       Checkpoint[]
+  channelIdentities ChannelIdentity[]
+  channelLinkTokens ChannelLinkToken[]
 }
 
 model Enterprise {
@@ -144,9 +162,10 @@ model Enterprise {
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
-  jobOffers JobOffer[]
-  documents Document[]
-  invoices  Invoice[]
+  jobOffers     JobOffer[]
+  documents     Document[]
+  invoices      Invoice[]
+  conversations Conversation[]
 }
 
 model Document {
@@ -158,6 +177,7 @@ model Document {
   rejectionNote String?
   verifiedAt    DateTime?
   verifiedById  String?
+  aiAnalysis    Json?
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 
@@ -239,6 +259,8 @@ model Checkpoint {
   status          CheckpointStatus @default(OK)
   notes           String?
   interventionLog String?
+
+  disputeAttachments DisputeAttachment[]
 }
 
 model StaffNote {
@@ -252,16 +274,22 @@ model StaffNote {
 }
 
 model Conversation {
-  id          String         @id @default(cuid())
-  candidateId String
-  candidate   Candidate      @relation(fields: [candidateId], references: [id])
-  platform    SocialPlatform
-  externalId  String?
-  history     Json
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  id                String           @id @default(cuid())
+  candidateId       String?
+  candidate         Candidate?       @relation(fields: [candidateId], references: [id])
+  enterpriseId      String?
+  enterprise        Enterprise?      @relation(fields: [enterpriseId], references: [id])
+  channelIdentityId String?          @unique
+  channelIdentity   ChannelIdentity? @relation(fields: [channelIdentityId], references: [id])
+  platform          SocialPlatform
+  externalId        String?
+  history           Json
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
 
   @@unique([candidateId, platform])
+  @@unique([enterpriseId, platform])
+  @@index([enterpriseId])
 }
 
 model Invoice {
@@ -320,4 +348,57 @@ model CheckinPing {
   sentAt        DateTime    @default(now())
   respondedAt   DateTime?
   response      String?
+}
+
+model ChannelIdentity {
+  id             String                @id @default(cuid())
+  platform       SocialPlatform
+  externalUserId String
+  candidateId    String?
+  candidate      Candidate?            @relation(fields: [candidateId], references: [id])
+  status         ChannelIdentityStatus @default(PENDING)
+  linkedVia      ChannelLinkMethod?
+  pendingExtract Json?
+  msgCountDay    Int                   @default(0)
+  msgWindowStart DateTime?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  conversation Conversation?
+
+  @@unique([platform, externalUserId])
+}
+
+model ChannelLinkToken {
+  id          String          @id @default(cuid())
+  code        String          @unique
+  candidateId String
+  candidate   Candidate       @relation(fields: [candidateId], references: [id])
+  platform    SocialPlatform?
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdAt   DateTime        @default(now())
+}
+
+model WebhookEvent {
+  id          String         @id @default(cuid())
+  platform    SocialPlatform
+  externalId  String         @unique
+  processedAt DateTime?
+  createdAt   DateTime       @default(now())
+}
+
+model DisputeAttachment {
+  id           String     @id @default(cuid())
+  checkpointId String
+  checkpoint   Checkpoint @relation(fields: [checkpointId], references: [id], onDelete: Cascade)
+  fileUrl      String
+  filename     String
+  mimeType     String
+  sizeBytes    Int
+  uploadedById String
+  uploadedBy   User       @relation(fields: [uploadedById], references: [id])
+  createdAt    DateTime   @default(now())
+
+  @@index([checkpointId])
 }

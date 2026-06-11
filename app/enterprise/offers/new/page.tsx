@@ -105,7 +105,7 @@ export default function NewOfferPage() {
           <CardContent>
             <form className="space-y-4" onSubmit={onSubmit}>
               <div className="space-y-1">
-                <label className="text-sm font-medium" htmlFor="title">
+                <label className="mg-body-sm font-medium" htmlFor="title">
                   {t("offers.new.field.title")}
                 </label>
                 <Input
@@ -119,7 +119,7 @@ export default function NewOfferPage() {
               </div>
 
               <div className="space-y-1">
-                <label className="text-sm font-medium" htmlFor="description">
+                <label className="mg-body-sm font-medium" htmlFor="description">
                   {t("offers.new.field.description")}
                 </label>
                 <textarea
@@ -134,7 +134,7 @@ export default function NewOfferPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-sm font-medium" htmlFor="sector">
+                  <label className="mg-body-sm font-medium" htmlFor="sector">
                     {t("offers.new.field.sector")}
                   </label>
                   <Input
@@ -147,7 +147,7 @@ export default function NewOfferPage() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-sm font-medium" htmlFor="location">
+                  <label className="mg-body-sm font-medium" htmlFor="location">
                     {t("offers.new.field.location")}
                   </label>
                   <Input
@@ -161,7 +161,7 @@ export default function NewOfferPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-sm font-medium" htmlFor="slots">
+                  <label className="mg-body-sm font-medium" htmlFor="slots">
                     {t("offers.new.field.slots")}
                   </label>
                   <Input
@@ -174,7 +174,7 @@ export default function NewOfferPage() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-sm font-medium" htmlFor="status">
+                  <label className="mg-body-sm font-medium" htmlFor="status">
                     {t("offers.new.field.status")}
                   </label>
                   <select
@@ -190,7 +190,7 @@ export default function NewOfferPage() {
               </div>
 
               <div className="space-y-1">
-                <label className="text-sm font-medium" htmlFor="requirements">
+                <label className="mg-body-sm font-medium" htmlFor="requirements">
                   {t("offers.new.field.requirements")}
                 </label>
                 <textarea
@@ -203,10 +203,10 @@ export default function NewOfferPage() {
               </div>
 
               <fieldset className="space-y-1">
-                <legend className="text-sm font-medium">{t("offers.new.field.languagesRequired")}</legend>
+                <legend className="mg-body-sm font-medium">{t("offers.new.field.languagesRequired")}</legend>
                 <div className="flex gap-4 pt-1">
                   {LANG_CODES.map((code) => (
-                    <label key={code} className="inline-flex items-center gap-2 text-sm">
+                    <label key={code} className="inline-flex items-center gap-2 mg-body-sm">
                       <input
                         type="checkbox"
                         checked={fields.langRequired.includes(code)}
@@ -218,7 +218,7 @@ export default function NewOfferPage() {
                 </div>
               </fieldset>
 
-              {error ? <p className="text-sm text-destructive">{error}</p> : null}
+              {error ? <p className="mg-body-sm text-destructive">{error}</p> : null}
 
               <div className="flex items-center gap-3">
                 <Button type="submit" disabled={submitting}>

@@ -11,10 +11,11 @@
 //   - Audit: ai.interview_sim
 //
 // Implementation:
-//   - questions phase: Claude (smart) returns 5 questions in numbered tags;
-//     we parse and return them with stable cuid-style ids generated server-
-//     side (random). The client pairs each with the candidate's answer and
-//     re-POSTs phase=evaluate.
+//   - questions phase: Claude (fast tier, with one-shot smart escalation when
+//     the parse fails) returns 5 questions in numbered tags; we parse and
+//     return them with stable cuid-style ids generated server-side (random).
+//     The client pairs each with the candidate's answer and re-POSTs
+//     phase=evaluate.
 //   - evaluate phase: each q & a are scanned via `assertSafeForLLM`. Claude
 //     produces a global 0–100 score and a short overall feedback line; we
 //     do NOT need per-question scoring for the skeleton (would require more
@@ -30,7 +31,7 @@ import { rateLimit } from "@/lib/rate-limit";
 import { logAuditByClerkId } from "@/lib/audit";
 import { assertSameOrigin, CsrfError } from "@/lib/csrf";
 import { prisma } from "@/lib/prisma";
-import { chat } from "@/lib/claude";
+import { chatWithEscalation } from "@/lib/claude";
 import { assertSafeForLLM, AIDefenceError } from "@/lib/aidefence";
 import { env } from "@/lib/config";
 import { aiInterviewSimSchema } from "@/lib/validation/ai";
@@ -47,14 +48,14 @@ function getIp(req: Request): string | undefined {
   return req.headers.get("x-real-ip") ?? undefined;
 }
 
-const QUESTIONS_SYSTEM = `You are MG Work's interview coach for a Madagascar→Mauritius placement. Generate 5 concise, role-specific interview questions for the supplied job. Mix behavioural, technical, and motivational questions appropriate to the role's sector and required skills.
+const QUESTIONS_SYSTEM = `You are AsanaoConnect's interview coach for a Madagascar→Mauritius placement. Generate 5 concise, role-specific interview questions for the supplied job. Mix behavioural, technical, and motivational questions appropriate to the role's sector and required skills.
 
 Respond ONLY with 5 lines, each line in this exact format:
 <q>question text here</q>
 
 No numbering, no preamble, no postamble. Each question must be ≤ 35 words. Phrase questions in the offer's primary language (default French if multiple).`;
 
-const EVALUATE_SYSTEM = `You are MG Work's interview evaluator. Score the candidate's overall interview performance against the supplied job context, on a 0–100 scale.
+const EVALUATE_SYSTEM = `You are AsanaoConnect's interview evaluator. Score the candidate's overall interview performance against the supplied job context, on a 0–100 scale.
 
 Respond ONLY with two tags, in this exact format:
 <score>NN</score>
@@ -182,12 +183,13 @@ export async function POST(req: Request) {
   }
 
   if (parsed.phase === "questions") {
-    const r = await chat({
+    const r = await chatWithEscalation({
       system: QUESTIONS_SYSTEM,
       messages: [{ role: "user", content: buildOfferContext(offer) }],
-      model: "smart",
       maxTokens: 800,
       temperature: 0.4,
+      // Expected parse: exactly 5 <q> tags. Anything less escalates to smart.
+      validate: (res) => parseQuestions(res.text).length === 5,
     });
 
     if ("error" in r) {
@@ -202,7 +204,7 @@ export async function POST(req: Request) {
         resourceType: "job_offer",
         resourceId: offer.id,
         ipAddress: getIp(req),
-        metadata: { phase: "questions", ok: false, error: r.message.slice(0, 200) },
+        metadata: { phase: "questions", ok: false, escalated: r.escalated, error: r.message.slice(0, 200) },
       });
       return NextResponse.json(
         err("EXTERNAL_DEPENDENCY_FAILED", "Upstream AI failure"),
@@ -217,7 +219,7 @@ export async function POST(req: Request) {
       resourceType: "job_offer",
       resourceId: offer.id,
       ipAddress: getIp(req),
-      metadata: { phase: "questions", ok: true, count: questions.length },
+      metadata: { phase: "questions", ok: true, escalated: r.escalated, count: questions.length },
     });
 
     const payload: InterviewSimQuestionsResponse = { questions };
@@ -250,12 +252,13 @@ export async function POST(req: Request) {
       .join("\n\n"),
   ].join("\n");
 
-  const r = await chat({
+  const r = await chatWithEscalation({
     system: EVALUATE_SYSTEM,
     messages: [{ role: "user", content: userMsg }],
-    model: "smart",
     maxTokens: 600,
     temperature: 0,
+    // Expected parse: a <score>NN</score> tag. A missing tag escalates to smart.
+    validate: (res) => /<score>\s*\d{1,3}\s*<\/score>/i.test(res.text),
   });
 
   if ("error" in r) {
@@ -270,7 +273,7 @@ export async function POST(req: Request) {
       resourceType: "job_offer",
       resourceId: offer.id,
       ipAddress: getIp(req),
-      metadata: { phase: "evaluate", ok: false, error: r.message.slice(0, 200) },
+      metadata: { phase: "evaluate", ok: false, escalated: r.escalated, error: r.message.slice(0, 200) },
     });
     return NextResponse.json(
       err("EXTERNAL_DEPENDENCY_FAILED", "Upstream AI failure"),
@@ -285,7 +288,7 @@ export async function POST(req: Request) {
     resourceType: "job_offer",
     resourceId: offer.id,
     ipAddress: getIp(req),
-    metadata: { phase: "evaluate", ok: true, score, qaCount: parsed.qa.length },
+    metadata: { phase: "evaluate", ok: true, escalated: r.escalated, score, qaCount: parsed.qa.length },
   });
 
   // Per types/api.ts InterviewSimEvaluationResponse needs `total` and

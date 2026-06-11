@@ -18,6 +18,7 @@ function resolveActiveId(pathname: string | null): string {
   if (pathname.startsWith("/enterprise/candidates")) return "candidates";
   if (pathname.startsWith("/enterprise/interviews")) return "interviews";
   if (pathname.startsWith("/enterprise/documents")) return "documents";
+  if (pathname.startsWith("/enterprise/chat")) return "assistant";
   return "dashboard";
 }
 
@@ -28,6 +29,9 @@ export interface EnterpriseShellProps {
 
 export function EnterpriseShell({ user, children }: EnterpriseShellProps) {
   const t = useTranslations("app.enterprise");
+  // The assistant strings live in their own namespace (shared with the
+  // enterprise chat page) rather than app.enterprise.
+  const tAssistant = useTranslations("assistantChat");
   const pathname = usePathname();
   const activeId = resolveActiveId(pathname);
   const NAV: SidebarItem[] = [
@@ -36,6 +40,7 @@ export function EnterpriseShell({ user, children }: EnterpriseShellProps) {
     { id: "candidates", icon: "users", label: t("nav.candidates"), href: "/enterprise/candidates" },
     { id: "interviews", icon: "calendar", label: t("nav.interviews"), href: "/enterprise/interviews" },
     { id: "documents", icon: "file-text", label: t("nav.documents"), href: "/enterprise/documents" },
+    { id: "assistant", icon: "message-circle", label: tAssistant("nav"), href: "/enterprise/chat" },
   ];
 
   // MobileShell only needs label + href; project the nav items down to that shape.

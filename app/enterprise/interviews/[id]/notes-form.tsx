@@ -69,7 +69,7 @@ export function InterviewNotesForm({
 
   return (
     <form onSubmit={onSubmit} className="grid gap-3">
-      <label className="block text-sm font-medium">
+      <label className="block mg-body-sm font-medium">
         {t("interviews.notesForm.statusLabel")}
         <select
           value={status}
@@ -84,7 +84,7 @@ export function InterviewNotesForm({
         </select>
       </label>
 
-      <label className="block text-sm font-medium">
+      <label className="block mg-body-sm font-medium">
         {t("interviews.notesForm.videoUrlLabel")}
         <Input
           type="url"
@@ -95,7 +95,7 @@ export function InterviewNotesForm({
         />
       </label>
 
-      <label className="block text-sm font-medium">
+      <label className="block mg-body-sm font-medium">
         {t("interviews.notesForm.notesLabel")}
         <textarea
           value={notes}
@@ -106,8 +106,8 @@ export function InterviewNotesForm({
         />
       </label>
 
-      {error && <p className="text-sm text-destructive">{error}</p>}
-      {saved && <p className="text-sm text-success">{t("interviews.notesForm.savedSuccess")}</p>}
+      {error && <p className="mg-body-sm text-destructive">{error}</p>}
+      {saved && <p className="mg-body-sm text-success">{t("interviews.notesForm.savedSuccess")}</p>}
 
       <div>
         <Button type="submit" disabled={submitting}>

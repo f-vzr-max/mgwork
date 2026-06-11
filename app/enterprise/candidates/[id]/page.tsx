@@ -59,6 +59,7 @@ export default async function CandidateProfilePage({
   const { userId: clerkId } = await auth();
   if (!clerkId) redirect("/sign-in");
   const t = await getTranslations("app.enterprise");
+  const tl = await getTranslations("langTest");
 
   const user = await prisma.user.findUnique({
     where: { clerkId },
@@ -89,6 +90,8 @@ export default async function CandidateProfilePage({
       profileScore: true,
       langScoreFR: true,
       langScoreEN: true,
+      langScoreFRVerifiedAt: true,
+      langScoreENVerifiedAt: true,
       skills: true,
       sectors: true,
     },
@@ -157,13 +160,25 @@ export default async function CandidateProfilePage({
                   <Badge tone="warning">{t("candidateProfile.maskedBadge")}</Badge>
                 )}
               </Stack>
-              <div className="mg-caption" style={{ ...muted, marginTop: 4 }}>
-                {t("candidates.card.scoreCaption", {
-                  fr: candidate.langScoreFR ?? "—",
-                  en: candidate.langScoreEN ?? "—",
-                  score: candidate.profileScore,
-                })}
-              </div>
+              <Stack dir="row" gap={6} align="center" wrap style={{ marginTop: 4 }}>
+                <span className="mg-caption" style={muted}>
+                  {t("candidates.card.scoreCaption", {
+                    fr: candidate.langScoreFR ?? "—",
+                    en: candidate.langScoreEN ?? "—",
+                    score: candidate.profileScore,
+                  })}
+                </span>
+                {candidate.langScoreFRVerifiedAt && (
+                  <Badge tone="success" icon="check-circle-2">
+                    {tl("badge.frVerifiedShort")}
+                  </Badge>
+                )}
+                {candidate.langScoreENVerifiedAt && (
+                  <Badge tone="success" icon="check-circle-2">
+                    {tl("badge.enVerifiedShort")}
+                  </Badge>
+                )}
+              </Stack>
             </div>
             <ScoreGauge value={candidate.profileScore} size={56} stroke={5} />
           </div>

@@ -5,7 +5,8 @@
 // For every Enterprise that has at least one DEPLOYED candidate, this cron:
 //   1. Gathers the deployed staff list with each Application's recent
 //      checkpoints + alert counts.
-//   2. Asks Claude (smart tier) for a short, neutral status summary.
+//   2. Asks Claude (fast tier, one-shot smart escalation) for a short,
+//      neutral status summary.
 //   3. Emails the contact via lib/resend.ts using the `monthly-report` template.
 //   4. Audits a single `cron.monthly_report_run` event under a system actor.
 //
@@ -16,7 +17,7 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { env } from "@/lib/config";
 import { logAudit } from "@/lib/audit";
-import { chat } from "@/lib/claude";
+import { chatWithEscalation } from "@/lib/claude";
 import { send } from "@/lib/resend";
 
 type Summary = {
@@ -24,6 +25,7 @@ type Summary = {
   reportsSent: number;
   emailsSkipped: number;
   llmFailures: number;
+  llmEscalations: number;
 };
 
 function authorized(req: Request): boolean {
@@ -43,6 +45,7 @@ export async function POST(req: Request) {
     reportsSent: 0,
     emailsSkipped: 0,
     llmFailures: 0,
+    llmEscalations: 0,
   };
 
   const enterprises = await prisma.enterprise.findMany({
@@ -116,7 +119,7 @@ export async function POST(req: Request) {
       .join("\n");
 
     const lang = ent.user.lang;
-    const llm = await chat({
+    const llm = await chatWithEscalation({
       system: buildSystemPrompt(lang),
       messages: [
         {
@@ -124,9 +127,9 @@ export async function POST(req: Request) {
           content: `Company: ${ent.companyName}\nDeployed staff:\n${factSheet}\n\nProduce the summary.`,
         },
       ],
-      model: "smart",
       maxTokens: 800,
     });
+    if (llm.escalated) summary.llmEscalations += 1;
 
     let summaryText: string;
     if ("error" in llm) {

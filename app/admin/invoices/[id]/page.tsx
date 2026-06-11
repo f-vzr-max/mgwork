@@ -32,7 +32,7 @@ export default async function InvoiceDetailPage({
         title={t("invoices.detail.title", { reference: invoice.reference ?? invoice.id.slice(0, 8) })}
         description={t("invoices.detail.description", { companyName: invoice.enterprise.companyName, issuedAt: invoice.issuedAt.toISOString().slice(0, 10) })}
       >
-        <Link href="/admin/invoices" className="text-sm text-primary hover:underline">
+        <Link href="/admin/invoices" className="mg-body-sm text-primary hover:underline">
           {t("invoices.detail.backLink")}
         </Link>
       </PageHeader>
@@ -42,7 +42,7 @@ export default async function InvoiceDetailPage({
           <CardHeader>
             <CardTitle>{t("invoices.detail.sectionDetails")}</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-1 text-sm">
+          <CardContent className="space-y-1 mg-body-sm">
             <div>
               <span className="text-muted-foreground">{t("invoices.detail.labelAmount")}</span>{" "}
               {invoice.amount.toFixed(2)} {invoice.currency}
@@ -88,7 +88,7 @@ export default async function InvoiceDetailPage({
           </CardHeader>
           <CardContent>
             {invoice.status === "PAID" ? (
-              <p className="text-sm text-muted-foreground">
+              <p className="mg-body-sm text-muted-foreground">
                 {t("invoices.detail.paidOnMessage", {
                   paidAt: invoice.paidAt
                     ? invoice.paidAt.toISOString().slice(0, 10)

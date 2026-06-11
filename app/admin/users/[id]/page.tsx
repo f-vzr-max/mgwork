@@ -40,7 +40,7 @@ export default async function AdminUserDetailPage({
       >
         <Link
           href="/admin/users"
-          className="text-sm text-primary hover:underline"
+          className="mg-body-sm text-primary hover:underline"
         >
           {t("userDetail.backToUsers")}
         </Link>
@@ -51,7 +51,7 @@ export default async function AdminUserDetailPage({
           <CardHeader>
             <CardTitle>{t("userDetail.account.title")}</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-1 text-sm">
+          <CardContent className="space-y-1 mg-body-sm">
             <div>
               <span className="text-muted-foreground">{t("userDetail.account.role")}</span>{" "}
               <span className="font-mono">{user.role}</span>
@@ -76,7 +76,7 @@ export default async function AdminUserDetailPage({
             <CardHeader>
               <CardTitle>{t("userDetail.candidate.title")}</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-1 text-sm">
+            <CardContent className="space-y-1 mg-body-sm">
               <div>
                 <span className="text-muted-foreground">{t("userDetail.candidate.name")}</span>{" "}
                 {user.candidate.firstName} {user.candidate.lastName}
@@ -110,7 +110,7 @@ export default async function AdminUserDetailPage({
             <CardHeader>
               <CardTitle>{t("userDetail.enterprise.title")}</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-1 text-sm">
+            <CardContent className="space-y-1 mg-body-sm">
               <div>
                 <span className="text-muted-foreground">{t("userDetail.enterprise.company")}</span>{" "}
                 {user.enterprise.companyName}
@@ -143,7 +143,7 @@ export default async function AdminUserDetailPage({
             <CardTitle>{t("userDetail.auditLog.title")}</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <table className="w-full text-sm">
+            <table className="w-full mg-body-sm">
               <thead className="border-b bg-muted/40 text-left">
                 <tr>
                   <th className="p-3">{t("userDetail.auditLog.colWhen")}</th>
@@ -165,12 +165,12 @@ export default async function AdminUserDetailPage({
                       <td className="p-3 whitespace-nowrap">
                         {a.createdAt.toISOString().replace("T", " ").slice(0, 19)}
                       </td>
-                      <td className="p-3 font-mono text-xs">{a.action}</td>
-                      <td className="p-3 font-mono text-xs">
+                      <td className="p-3 font-mono mg-caption">{a.action}</td>
+                      <td className="p-3 font-mono mg-caption">
                         {a.resourceType}
                         {a.resourceId ? `/${a.resourceId}` : ""}
                       </td>
-                      <td className="p-3 font-mono text-xs">
+                      <td className="p-3 font-mono mg-caption">
                         {a.ipAddress ?? "—"}
                       </td>
                     </tr>

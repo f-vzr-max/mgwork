@@ -9,6 +9,7 @@ import { auth } from "@clerk/nextjs/server";
 import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { canAccess, type Role } from "@/lib/roles";
+import { docAiFlag, readDocAiAnalysis } from "@/lib/ai/doc-analysis";
 import {
   PageHeader,
   Button,
@@ -30,6 +31,7 @@ type PendingDoc = {
   type: string;
   status: "PENDING";
   createdAt: Date;
+  aiAnalysis: unknown;
   candidateId: string | null;
   enterpriseId: string | null;
   candidate: { firstName: string; lastName: string; id: string } | null;
@@ -45,6 +47,7 @@ async function loadPending(): Promise<PendingDoc[]> {
       type: true,
       status: true,
       createdAt: true,
+      aiAnalysis: true,
       candidateId: true,
       enterpriseId: true,
       candidate: { select: { id: true, firstName: true, lastName: true } },
@@ -100,6 +103,7 @@ export default async function StaffDocumentsQueuePage() {
   if (!canAccess(user.role as Role, "staff")) redirect("/");
   const t = await getTranslations("app.staff");
   const tc = await getTranslations("common");
+  const ta = await getTranslations("aiDocCheck");
 
   const pending = await loadPending();
   const candidateIds = pending
@@ -245,6 +249,16 @@ export default async function StaffDocumentsQueuePage() {
                 : doc.enterprise?.companyName ?? "—";
               const typeLabel = tc(`docType.${doc.type}`);
               const icon: IconName = TYPE_ICON[doc.type] ?? "file-text";
+              // Compact advisory AI flag — mismatch wins over expiry signal.
+              const aiAnalysis = readDocAiAnalysis(doc.aiAnalysis);
+              const aiFlag = docAiFlag(aiAnalysis);
+              const aiLabel = !aiFlag
+                ? null
+                : aiFlag.mismatch
+                  ? ta("flag.mismatch", { type: tc(`docType.${aiAnalysis!.detectedType}`) })
+                  : aiFlag.expiry === "expired"
+                    ? ta("flag.expired")
+                    : ta("flag.expiresSoon");
               return (
                 <div
                   key={doc.id}
@@ -306,6 +320,13 @@ export default async function StaffDocumentsQueuePage() {
                       >
                         {typeLabel}
                       </div>
+                      {aiLabel ? (
+                        <div style={{ marginTop: 2 }}>
+                          <Badge tone="warning" icon="alert-triangle">
+                            {aiLabel}
+                          </Badge>
+                        </div>
+                      ) : null}
                     </div>
                   </Stack>
                   <StatusBadge status={doc.status} />

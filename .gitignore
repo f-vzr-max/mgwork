@@ -20,6 +20,9 @@
 .DS_Store
 *.pem
 
+# local working artifacts — iOS audit screenshots, never repo content
+/Mobile issues/
+
 # debug
 npm-debug.log*
 yarn-debug.log*

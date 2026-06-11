@@ -1,11 +1,16 @@
 // Meta Cloud API webhook (WhatsApp / Messenger / Instagram).
 //
-// Per docs/contracts.md row "/api/webhooks/meta":
+// Per docs/contracts.md row "/api/webhooks/meta", hardened (channels phase 0):
 //   - GET: hub.mode=subscribe verification handshake. Echoes hub.challenge if
 //     hub.verify_token matches env.metaWebhookVerifyToken().
-//   - POST: HMAC-SHA256-verified event delivery. Body is normalised through
-//     `metaAdapter.receive`, fed to `llmBridge.process`, and the assistant
-//     reply is dispatched back via `metaAdapter.send`.
+//   - POST: verify X-Hub-Signature-256 HMAC on the RAW body → parse →
+//     dispatch on the payload `object` field to the per-product normaliser
+//     (whatsapp_business_account vs page/instagram) → WebhookEvent idempotency
+//     gate (unique externalId insert; duplicates skipped) → ACK 200
+//     IMMEDIATELY → continue identity/bridge/reply processing in the
+//     background via waitUntil(). Meta retries deliveries that respond
+//     slowly; processing Claude calls inline before the ack caused retry
+//     storms and duplicate replies.
 //
 // Security:
 //   - Webhooks NEVER call Clerk auth() — they're authenticated by signature.
@@ -16,11 +21,26 @@
 //   - We DO write a webhook-specific audit row keyed on the first SUPER_ADMIN
 //     User.id; if no super-admin exists yet, we skip the audit silently.
 
+import { waitUntil } from "@vercel/functions";
 import { prisma } from "@/lib/prisma";
 import { env } from "@/lib/config";
 import { logAudit } from "@/lib/audit";
-import { metaAdapter } from "@/lib/social/meta-adapter";
+import {
+  adapterForPlatform,
+  metaAdapterFor,
+  verifyMetaWebhook,
+} from "@/lib/social/meta-adapter";
+import {
+  handleInbound,
+  markWebhookProcessed,
+  recordWebhookEvent,
+} from "@/lib/social/identity";
 import { process as bridgeProcess } from "@/lib/social/llm-bridge";
+import type { IncomingMessage } from "@/lib/social/types";
+
+// Background continuation (LLM call + outbound send) keeps the lambda alive
+// past the 200 ack — give it headroom beyond the default 10s.
+export const maxDuration = 60;
 
 // ---------------------------------------------------------------------------
 // GET — verify token handshake
@@ -49,26 +69,27 @@ export async function GET(req: Request) {
 }
 
 // ---------------------------------------------------------------------------
-// POST — verified event ingest
+// POST — verified event ingest (ack fast, process in the background)
 // ---------------------------------------------------------------------------
 
 export async function POST(req: Request) {
-  // Stub mode: when neither HMAC secret nor verify token is configured we
-  // accept the call, audit nothing sensitive, and return 200. This keeps
-  // automated provider health checks happy without leaking schema info.
-  if (!env.metaAppSecret() || !env.whatsappAccessToken()) {
+  // Stub mode: without the app secret we cannot verify the HMAC. Accept the
+  // call, audit nothing sensitive, and return 200 so automated provider
+  // health checks stay happy without leaking schema info. (Outbound tokens
+  // are checked per adapter — a page-only deploy still verifies here.)
+  if (!env.metaAppSecret()) {
     await tryAuditWebhookSkipped();
     return new Response(null, { status: 200 });
   }
 
-  const verify = await metaAdapter.verifyWebhook(req);
+  const verify = await verifyMetaWebhook(req);
   if (!verify.ok) {
     // Audit the rejected attempt — still safely so it never throws.
     await tryAuditWebhookRejected(verify.reason);
     return new Response("forbidden", { status: 403 });
   }
 
-  // Body is a string we already read inside verifyWebhook; parse safely.
+  // Body is a string we already read inside verifyMetaWebhook; parse safely.
   let payload: unknown;
   try {
     payload = JSON.parse(verify.text);
@@ -76,77 +97,120 @@ export async function POST(req: Request) {
     return new Response("bad json", { status: 400 });
   }
 
-  const incoming = await metaAdapter.receive(payload);
-  if ("skipped" in incoming) {
-    return new Response(null, { status: 200 });
-  }
-  if (!incoming.ok) {
-    return new Response(null, { status: 200 });
-  }
-
-  // Resolve the candidate from the sender. We match on phone number when the
-  // WhatsApp `from` field is a digit-only string. If we can't resolve, we
-  // 200 silently — Meta will not retry endlessly and we avoid leaking the
-  // existence of a candidate.
-  const candidateId = await resolveCandidateBySender(incoming.message.senderId);
-  if (!candidateId) {
-    await tryAuditWebhookEvent(incoming.message.senderId, "candidate-not-resolved");
+  // Multi-product dispatch on the `object` field. Unknown products are acked
+  // (Meta must not retry what we will never handle).
+  const objectField =
+    payload && typeof payload === "object" ? (payload as { object?: unknown }).object : undefined;
+  const adapter = metaAdapterFor(typeof objectField === "string" ? objectField : "");
+  if (!adapter?.receiveAll) {
     return new Response(null, { status: 200 });
   }
 
-  const lang = await resolveLangForCandidate(candidateId);
+  const messages = await adapter.receiveAll(payload);
+  if (messages.length === 0) {
+    return new Response(null, { status: 200 });
+  }
 
-  // The bridge `process` may throw AIDefenceError on hostile inputs; catch and
-  // return 200 (never 500) so Meta doesn't replay the malicious payload.
-  let bridgeResult;
+  // Idempotency gate BEFORE the ack: Meta retries while a slow first attempt
+  // is still in flight; the unique WebhookEvent insert turns the second
+  // delivery into a no-op instead of a duplicate reply.
+  const fresh: IncomingMessage[] = [];
+  for (const m of messages) {
+    if (!m.externalId) {
+      fresh.push(m);
+      continue;
+    }
+    if (await recordWebhookEvent(m.platform, m.externalId)) fresh.push(m);
+  }
+  if (fresh.length === 0) {
+    return new Response(null, { status: 200 });
+  }
+
+  // 200 now; identity + LLM + outbound reply continue in the background.
+  // waitUntil keeps the lambda alive on Vercel; the catch covers runtimes
+  // without a request context (local jest/node) by detaching the promise.
+  const work = processMessages(fresh);
   try {
-    bridgeResult = await bridgeProcess({
-      candidateId,
-      incomingText: incoming.message.text,
-      lang,
-    });
+    waitUntil(work);
   } catch {
-    await tryAuditWebhookEvent(incoming.message.senderId, "bridge-rejected");
-    return new Response(null, { status: 200 });
+    void work.catch(() => {});
   }
-
-  if (!bridgeResult.ok) {
-    await tryAuditWebhookEvent(incoming.message.senderId, `bridge-error:${bridgeResult.error}`);
-    return new Response(null, { status: 200 });
-  }
-
-  // Send the assistant reply back through the adapter.
-  await metaAdapter.send(incoming.message.senderId, bridgeResult.reply);
-
-  await tryAuditWebhookEvent(incoming.message.senderId, "ok");
   return new Response(null, { status: 200 });
 }
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Background processing
 // ---------------------------------------------------------------------------
 
-async function resolveCandidateBySender(senderId: string): Promise<string | null> {
-  const digits = senderId.replace(/[^0-9]/g, "");
-  if (!digits) return null;
-  // Phone matching is best-effort: Meta sends E.164 without leading +. We
-  // tolerate either formatting.
-  const candidate = await prisma.candidate.findFirst({
-    where: {
-      OR: [{ phone: digits }, { phone: `+${digits}` }],
-    },
-    select: { id: true },
-  });
-  return candidate?.id ?? null;
+async function processMessages(messages: IncomingMessage[]): Promise<void> {
+  for (const msg of messages) {
+    try {
+      await processOne(msg);
+      // Mark processed ONLY on success: a throw leaves processedAt null so a
+      // later Meta retry can re-claim the stale WebhookEvent row and
+      // reprocess (see recordWebhookEvent) instead of dropping the message.
+      if (msg.externalId) await markWebhookProcessed(msg.externalId);
+    } catch {
+      await tryAuditWebhookEvent(msg.senderId, "process-error");
+    }
+  }
 }
 
-async function resolveLangForCandidate(candidateId: string): Promise<"FR" | "EN" | "MG"> {
-  const row = await prisma.candidate.findUnique({
-    where: { id: candidateId },
-    select: { user: { select: { lang: true } } },
-  });
-  return (row?.user.lang as "FR" | "EN" | "MG" | undefined) ?? "FR";
+async function processOne(msg: IncomingMessage): Promise<void> {
+  // Identity layer decides: canned reply (linking, rate caps), bridge to the
+  // LLM (linked candidate or anonymous channel identity), or silence.
+  const action = await handleInbound(msg);
+
+  if (action.kind === "silent") {
+    await tryAuditWebhookEvent(msg.senderId, `silent:${action.reason}`);
+    return;
+  }
+  if (action.kind === "reply") {
+    await sendReply(msg, action.text);
+    await tryAuditWebhookEvent(msg.senderId, "canned-reply");
+    return;
+  }
+
+  // The bridge `process` may throw AIDefenceError on hostile inputs; catch and
+  // stay silent (never 500) so Meta doesn't see anything to replay.
+  let bridgeResult;
+  try {
+    bridgeResult = await bridgeProcess({
+      candidateId: action.candidateId,
+      channelIdentityId: action.channelIdentityId,
+      incomingText: msg.text,
+      lang: action.lang,
+      platform: msg.platform,
+      // Model policy: webhook channels are high-volume — hard-pin the fast
+      // tier (Haiku, no smart retry).
+      modelTier: "fast",
+    });
+  } catch {
+    await tryAuditWebhookEvent(msg.senderId, "bridge-rejected");
+    return;
+  }
+
+  if (!bridgeResult.ok) {
+    await tryAuditWebhookEvent(msg.senderId, `bridge-error:${bridgeResult.error}`);
+    return;
+  }
+
+  await sendReply(msg, bridgeResult.reply);
+  await tryAuditWebhookEvent(msg.senderId, "ok");
 }
+
+// Outbound goes back through the platform the message arrived on; the
+// recipient is the inbound senderId (phone number for WhatsApp, PSID for
+// Messenger/Instagram).
+async function sendReply(msg: IncomingMessage, text: string): Promise<void> {
+  const adapter = adapterForPlatform(msg.platform);
+  if (!adapter) return;
+  await adapter.send(msg.senderId, text);
+}
+
+// ---------------------------------------------------------------------------
+// Audit helpers
+// ---------------------------------------------------------------------------
 
 // Find the first SUPER_ADMIN user id for audit attribution. Returns null when
 // none exists — the spec allows skipping the audit row in that case.

@@ -21,7 +21,7 @@ import {
 
 export type EmailLang = "FR" | "EN" | "MG";
 
-export const APP_NAME = "MG Work";
+export const APP_NAME = "AsanaoConnect";
 export const APP_TAGLINE = {
   FR: "Plateforme de matching Madagascar–Maurice",
   EN: "Madagascar–Mauritius matching platform",
@@ -29,9 +29,9 @@ export const APP_TAGLINE = {
 };
 
 const FOOTER_TEXT: Record<EmailLang, string> = {
-  FR: "Vous recevez cet email car vous êtes inscrit sur MG Work.",
-  EN: "You received this email because you are registered on MG Work.",
-  MG: "Mahazo ity mailaka ity ianao satria voasoratra anarana eo amin'ny MG Work.",
+  FR: "Vous recevez cet email car vous êtes inscrit sur AsanaoConnect.",
+  EN: "You received this email because you are registered on AsanaoConnect.",
+  MG: "Mahazo ity mailaka ity ianao satria voasoratra anarana eo amin'ny AsanaoConnect.",
 };
 
 const FOOTER_RIGHTS: Record<EmailLang, string> = {

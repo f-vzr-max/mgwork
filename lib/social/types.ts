@@ -47,6 +47,9 @@ export type IncomingMessage = {
   // Best-effort language hint from the provider; LLM bridge falls back to the
   // candidate's stored preference.
   langHint?: "FR" | "EN" | "MG";
+  // Messenger/Instagram m.me referral ref (`m.me/<page>?ref=<code>`) — carries
+  // a ChannelLinkToken code so identity linking works without typing "LINK".
+  referralRef?: string;
 };
 
 // Outbound message we ask the adapter to deliver. `text` is already plaintext
@@ -86,6 +89,12 @@ export interface SocialAdapter {
   // Returns `skipped` for events we don't act on (status callbacks, read
   // receipts, etc.) — the caller treats those as 200 OK no-ops.
   receive(event: unknown): Promise<ReceiveResult>;
+
+  // Optional batch variant: Meta delivers webhook batches (entry[] can carry
+  // several messages); adapters that support it return EVERY actionable
+  // message so none is dropped. `receive` stays as the single-message
+  // interface for adapters that don't batch (in-app).
+  receiveAll?(event: unknown): Promise<IncomingMessage[]>;
 
   // Deliver an outbound message. Real adapters POST to provider HTTP APIs;
   // stub mode returns `{ skipped: true }` so M6 stays buildable until the

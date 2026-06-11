@@ -9,7 +9,7 @@
 //   - Accept image/jpeg, image/png, image/webp, image/gif, application/pdf.
 //     The Anthropic SDK currently exposes images as `image` content blocks;
 //     PDF support is mediated by the SDK helper for `document` blocks. To keep
-//     this route narrow we only call `extractFromImage` for image MIME types
+//     this route narrow we only call `extractWithEscalation` for image MIME types
 //     and short-circuit PDF with a 415 until the doc-block helper lands. (See
 //     decision below — simplest correct behavior for the skeleton.)
 //   - Convert the file body to base64 in memory. Cap at 10 MB so the lambda
@@ -35,7 +35,7 @@ import { rateLimit } from "@/lib/rate-limit";
 import { logAuditByClerkId } from "@/lib/audit";
 import { assertSameOrigin, CsrfError } from "@/lib/csrf";
 import { prisma } from "@/lib/prisma";
-import { extractFromImage, MODELS } from "@/lib/claude";
+import { extractWithEscalation } from "@/lib/claude";
 import { assertSafeForLLM, AIDefenceError } from "@/lib/aidefence";
 import { env } from "@/lib/config";
 import { err, ok, type CvExtractResult } from "@/types/api";
@@ -54,7 +54,7 @@ function getIp(req: Request): string | undefined {
   return req.headers.get("x-real-ip") ?? undefined;
 }
 
-const SYSTEM_PROMPT = `You are an expert CV parser for MG Work, a Madagascar→Mauritius staffing platform. Extract structured profile data from the supplied document image.
+const SYSTEM_PROMPT = `You are an expert CV parser for AsanaoConnect, a Madagascar→Mauritius staffing platform. Extract structured profile data from the supplied document image.
 
 Return ONLY a JSON object inside a single \`<extracted>\` ... \`</extracted>\` block. No prose outside the block. Schema:
 
@@ -69,6 +69,19 @@ Return ONLY a JSON object inside a single \`<extracted>\` ... \`</extracted>\` b
 }
 
 Be conservative: if a field is not clearly present, omit the entry from the array or set to null. Never invent data. Reply only with the JSON block.`;
+
+// Escalation gate: true when the response carries a parseable JSON object
+// inside an <extracted> block. Anything else retries once on the smart tier.
+function hasExtractedBlock(text: string): boolean {
+  const m = text.match(/<extracted>([\s\S]*?)<\/extracted>/i);
+  if (!m) return false;
+  try {
+    const obj = JSON.parse(m[1]);
+    return obj != null && typeof obj === "object";
+  } catch {
+    return false;
+  }
+}
 
 function parseExtracted(text: string): CvExtractResult {
   const empty: CvExtractResult = {
@@ -230,12 +243,12 @@ export async function POST(req: Request) {
     ? `${SYSTEM_PROMPT}\n\nAdditional caller instructions:\n${userInstructions}`
     : SYSTEM_PROMPT;
 
-  const r = await extractFromImage({
+  const r = await extractWithEscalation({
     base64,
     mimeType,
     prompt,
-    model: "smart" as keyof typeof MODELS,
     maxTokens: 2048,
+    validate: (res) => hasExtractedBlock(res.text),
   });
 
   if ("error" in r) {
@@ -251,7 +264,7 @@ export async function POST(req: Request) {
       resourceType: "candidate",
       resourceId: user.id,
       ipAddress: getIp(req),
-      metadata: { ok: false, error: r.message.slice(0, 200) },
+      metadata: { ok: false, escalated: r.escalated, error: r.message.slice(0, 200) },
     });
     return NextResponse.json(
       err("EXTERNAL_DEPENDENCY_FAILED", "Upstream AI failure"),
@@ -268,6 +281,7 @@ export async function POST(req: Request) {
     ipAddress: getIp(req),
     metadata: {
       ok: true,
+      escalated: r.escalated,
       mimeType,
       bytes: file.size,
       skillCount: result.skills.length,

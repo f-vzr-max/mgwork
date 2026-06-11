@@ -590,7 +590,10 @@ create policy checkinping_admin_all on "CheckinPing"
 -- =============================================================================
 -- Storage bucket policies
 -- =============================================================================
--- Buckets (created externally): passports, medical-docs, cvs, scans, visas.
+-- Buckets (created externally): passports, medical-docs, cvs, scans, visas,
+-- dispute-attachments, avatars. See also the standalone idempotent script
+-- supabase/buckets_2026-06-11_disputes_avatars.sql which CREATES the two
+-- newest buckets (this file only writes policies; it assumes buckets exist).
 -- Path convention enforced in app code: `{role}/{userId}/{type}/{filename}`.
 -- We mirror the convention here so RLS can match on path prefix.
 --
@@ -603,16 +606,20 @@ create policy checkinping_admin_all on "CheckinPing"
 -- =============================================================================
 
 -- Example pattern — repeat per bucket. We loop here using PL/pgSQL for clarity.
+-- NOTE: %I must wrap the WHOLE policy name. format('storage_%I_owner', b)
+-- quote_idents a hyphenated bucket alone (storage_"medical-docs"_owner) — two
+-- adjacent identifier tokens, which PostgreSQL rejects as a syntax error.
 do $$
 declare
-  buckets text[] := array['passports', 'medical-docs', 'cvs', 'scans', 'visas'];
+  buckets text[] := array['passports', 'medical-docs', 'cvs', 'scans', 'visas',
+                          'dispute-attachments', 'avatars'];
   b text;
 begin
   foreach b in array buckets loop
     -- Owner read/write: object name starts with `{role}/{user_id}/`
     execute format($f$
-      drop policy if exists storage_%I_owner on storage.objects;
-      create policy storage_%I_owner on storage.objects
+      drop policy if exists %I on storage.objects;
+      create policy %I on storage.objects
         for all
         using (
           bucket_id = %L
@@ -622,24 +629,24 @@ begin
           bucket_id = %L
           and (storage.foldername(name))[2] = public.current_user_id()
         );
-    $f$, b, b, b, b);
+    $f$, 'storage_' || b || '_owner', 'storage_' || b || '_owner', b, b);
 
     -- Staff documents: read all in any bucket
     execute format($f$
-      drop policy if exists storage_%I_staff_read on storage.objects;
-      create policy storage_%I_staff_read on storage.objects
+      drop policy if exists %I on storage.objects;
+      create policy %I on storage.objects
         for select
         using (bucket_id = %L and public.is_staff_documents());
-    $f$, b, b, b);
+    $f$, 'storage_' || b || '_staff_read', 'storage_' || b || '_staff_read', b);
 
     -- Admin: full access
     execute format($f$
-      drop policy if exists storage_%I_admin_all on storage.objects;
-      create policy storage_%I_admin_all on storage.objects
+      drop policy if exists %I on storage.objects;
+      create policy %I on storage.objects
         for all
         using (bucket_id = %L and public.is_admin())
         with check (bucket_id = %L and public.is_admin());
-    $f$, b, b, b, b);
+    $f$, 'storage_' || b || '_admin_all', 'storage_' || b || '_admin_all', b, b);
   end loop;
 end $$;
 

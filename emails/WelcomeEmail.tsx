@@ -9,26 +9,26 @@ export type WelcomeEmailProps = {
 
 const TEXTS = {
   FR: {
-    subject: "Bienvenue sur MG Work",
+    subject: "Bienvenue sur AsanaoConnect",
     preview: "Votre compte est prêt — finalisez votre profil.",
     greeting: (n: string) => `Bonjour ${n},`,
-    body: "Bienvenue sur MG Work. Votre compte est créé. Pour commencer, finalisez votre profil et téléversez vos documents.",
+    body: "Bienvenue sur AsanaoConnect. Votre compte est créé. Pour commencer, finalisez votre profil et téléversez vos documents.",
     cta: "Accéder au tableau de bord",
     closing: "À bientôt sur la plateforme.",
   },
   EN: {
-    subject: "Welcome to MG Work",
+    subject: "Welcome to AsanaoConnect",
     preview: "Your account is ready — finish your profile.",
     greeting: (n: string) => `Hello ${n},`,
-    body: "Welcome to MG Work. Your account has been created. To get started, complete your profile and upload your documents.",
+    body: "Welcome to AsanaoConnect. Your account has been created. To get started, complete your profile and upload your documents.",
     cta: "Go to dashboard",
     closing: "See you on the platform.",
   },
   MG: {
-    subject: "Tongasoa eto amin'ny MG Work",
+    subject: "Tongasoa eto amin'ny AsanaoConnect",
     preview: "Vonona ny kaontinao — fenoy ny mombamomba anao.",
     greeting: (n: string) => `Salama ${n},`,
-    body: "Tongasoa eto amin'ny MG Work. Voaforona ny kaontinao. Mba hanombohana, fenoy ny mombamomba anao ary ampidiro ireo antontan-taratasinao.",
+    body: "Tongasoa eto amin'ny AsanaoConnect. Voaforona ny kaontinao. Mba hanombohana, fenoy ny mombamomba anao ary ampidiro ireo antontan-taratasinao.",
     cta: "Ho any amin'ny tabilao",
     closing: "Mandra-pihaona eto amin'ny sehatra.",
   },

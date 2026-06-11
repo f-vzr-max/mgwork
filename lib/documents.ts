@@ -62,6 +62,29 @@ export function buildDocumentObjectPath(input: {
   return `${input.role}/${input.userId}/${input.type}/${uuid}-${safeName}`;
 }
 
+// Dispute attachments (admin-only evidence on a Checkpoint) live in their own
+// bucket so storage policies can stay per-bucket. Created externally — see
+// supabase/buckets_2026-06-11_disputes_avatars.sql.
+export const DISPUTE_ATTACHMENTS_BUCKET = "dispute-attachments";
+
+export function bucketForDisputeAttachment(): string {
+  return DISPUTE_ATTACHMENTS_BUCKET;
+}
+
+// Build a dispute-attachment object path: `admin/{userId}/{checkpointId}/{uuid}-{filename}`.
+// Keeps the `{role}/{userId}/...` prefix convention so the per-bucket owner
+// storage policy ((storage.foldername(name))[2]) still lines up. userId is the
+// internal User.id of the uploading admin.
+export function buildDisputeAttachmentObjectPath(input: {
+  userId: string;
+  checkpointId: string;
+  filename: string;
+}): string {
+  const safeName = sanitizeFilename(input.filename);
+  const uuid = globalThis.crypto.randomUUID();
+  return `admin/${input.userId}/${input.checkpointId}/${uuid}-${safeName}`;
+}
+
 // Public DTO. Never includes the raw fileUrl (only metadata; clients fetch via
 // the dedicated signed-url endpoint).
 export type DocumentDto = {

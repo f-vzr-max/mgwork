@@ -5,7 +5,16 @@
 // the WebSidebar active state.
 
 import { currentUser } from "@clerk/nextjs/server";
+import { getTranslations } from "next-intl/server";
 import { StaffShell } from "@/components/layout/staff-shell";
+
+// Locale-aware tab title. Without this the root layout's static (French)
+// metadata wins on every authed route, so the document title stays French
+// after switching the site language.
+export async function generateMetadata() {
+  const t = await getTranslations("authMeta");
+  return { title: t("staff.title") };
+}
 
 export default async function StaffLayout({ children }: { children: React.ReactNode }) {
   const u = await currentUser();

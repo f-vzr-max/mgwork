@@ -15,6 +15,7 @@ import {
 import type { StatusKey } from "@/components/mg";
 import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
+import { DisputeAttachmentsCell } from "./attachments";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +26,7 @@ type DisputeCard = {
   days: number;
   status: StatusKey;
   priority: boolean;
+  attachments: number;
 };
 
 type Column = {
@@ -67,6 +69,7 @@ async function loadColumns(t: T): Promise<LoadResult> {
             jobOffer: { select: { enterprise: { select: { companyName: true } } } },
           },
         },
+        _count: { select: { disputeAttachments: true } },
       },
     }),
     prisma.checkpoint.findMany({
@@ -83,6 +86,7 @@ async function loadColumns(t: T): Promise<LoadResult> {
             jobOffer: { select: { enterprise: { select: { companyName: true } } } },
           },
         },
+        _count: { select: { disputeAttachments: true } },
       },
     }),
   ]);
@@ -99,6 +103,7 @@ async function loadColumns(t: T): Promise<LoadResult> {
       days: daysSince(r.date),
       status: "INTERVENTION_REQUIRED",
       priority: daysSince(r.date) <= 2,
+      attachments: r._count.disputeAttachments,
     };
     if (card.days <= 3) newCol.push(card);
     else progCol.push(card);
@@ -111,6 +116,7 @@ async function loadColumns(t: T): Promise<LoadResult> {
     days: daysSince(r.date),
     status: "COMPLETED",
     priority: false,
+    attachments: r._count.disputeAttachments,
   }));
 
   const columns: Column[] = [
@@ -265,29 +271,14 @@ export default async function AdminDisputesPage() {
                       </span>
                       <StatusBadge status={c.status} />
                     </Stack>
+                    {/* "+ Add" attachments — opens the shared UploadDialog
+                        against /api/admin/disputes/[id]/attachments. */}
+                    <DisputeAttachmentsCell
+                      checkpointId={c.id}
+                      initialCount={c.attachments}
+                    />
                   </Card>
                 ))
-              )}
-              {col.id !== "resolved" && (
-                <button
-                  type="button"
-                  style={{
-                    border: "1px dashed hsl(var(--border))",
-                    background: "transparent",
-                    color: "hsl(var(--muted-foreground))",
-                    borderRadius: 8,
-                    padding: "10px 12px",
-                    cursor: "pointer",
-                    fontSize: 13,
-                    fontWeight: 500,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 6,
-                  }}
-                >
-                  <Icon name="plus" size={14} /> {t("disputes.column.add")}
-                </button>
               )}
             </div>
           </div>

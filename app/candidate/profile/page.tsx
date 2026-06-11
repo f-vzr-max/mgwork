@@ -10,7 +10,8 @@
 
 import * as React from "react";
 import { useTranslations } from "next-intl";
-import { Avatar, Button, Card, Icon, Input, Stack, Textarea } from "@/components/mg";
+import { Avatar, Badge, Button, Card, Icon, Input, Stack, Textarea } from "@/components/mg";
+import ChannelLinksCard from "./channel-links-card";
 
 type CandidateSelf = {
   id: string;
@@ -25,6 +26,8 @@ type CandidateSelf = {
   sectors: string[];
   langScoreFR: number | null;
   langScoreEN: number | null;
+  langScoreFRVerifiedAt: string | null;
+  langScoreENVerifiedAt: string | null;
   profileScore: number;
   hasAvatar: boolean;
   hasCv: boolean;
@@ -63,6 +66,7 @@ function toEditForm(c: CandidateSelf): EditForm {
 export default function CandidateProfilePage(): React.ReactElement {
   const t = useTranslations("app.candidate.profile");
   const tc = useTranslations("common");
+  const tl = useTranslations("langTest");
 
   const [candidate, setCandidate] = React.useState<CandidateSelf | null>(null);
   const [edit, setEdit] = React.useState<EditForm | null>(null);
@@ -315,17 +319,48 @@ export default function CandidateProfilePage(): React.ReactElement {
         <ReadOnlyList label={t("skills")} values={candidate.skills} empty={t("none")} />
         <div style={{ height: 12 }} />
         <ReadOnlyList label={t("sectors")} values={candidate.sectors} empty={t("none")} />
+        <div style={{ height: 12 }} />
+        {/* Languages — scores are server-managed; a "verified" badge appears
+            once the AI test (/candidate/language-test) stamped the level. */}
+        <div>
+          <div className="mg-caption" style={{ color: "hsl(var(--muted-foreground))", marginBottom: 6 }}>
+            {tl("profile.title")}
+          </div>
+          <Stack dir="row" gap={8} wrap>
+            {candidate.langScoreFRVerifiedAt ? (
+              <Badge tone="success" icon="check-circle-2">
+                {tl("badge.fr", { score: candidate.langScoreFR ?? 0 })}
+              </Badge>
+            ) : candidate.langScoreFR != null ? (
+              <Badge tone="neutral">{tl("badge.frSelf", { score: candidate.langScoreFR })}</Badge>
+            ) : (
+              <Badge tone="neutral">{tl("badge.frNone")}</Badge>
+            )}
+            {candidate.langScoreENVerifiedAt ? (
+              <Badge tone="success" icon="check-circle-2">
+                {tl("badge.en", { score: candidate.langScoreEN ?? 0 })}
+              </Badge>
+            ) : candidate.langScoreEN != null ? (
+              <Badge tone="neutral">{tl("badge.enSelf", { score: candidate.langScoreEN })}</Badge>
+            ) : (
+              <Badge tone="neutral">{tl("badge.enNone")}</Badge>
+            )}
+          </Stack>
+        </div>
         <div className="mg-caption" style={{ color: "hsl(var(--muted-foreground))", marginTop: 12 }}>
           {t("preferencesEditHint")}
         </div>
       </Card>
+
+      {/* Connected channels (WhatsApp / Messenger / Instagram) ---------- */}
+      <ChannelLinksCard />
     </div>
   );
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label className="block w-full text-sm font-medium text-foreground">
+    <label className="block w-full mg-body-sm font-medium text-foreground">
       {label}
       <div style={{ marginTop: 4 }}>{children}</div>
     </label>
@@ -354,7 +389,7 @@ function ReadOnlyList({
             <span
               key={v}
               style={{
-                fontSize: 13,
+                fontSize: 14,
                 padding: "4px 10px",
                 borderRadius: 9999,
                 background: "hsl(var(--surface-2))",

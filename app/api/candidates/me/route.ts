@@ -45,6 +45,10 @@ export type CandidateSelfDto = {
   sectors: string[];
   langScoreFR: number | null;
   langScoreEN: number | null;
+  // ISO timestamps set by /api/ai/lang-test when the AI grades the level;
+  // null = the score (if any) is the onboarding self-assessment.
+  langScoreFRVerifiedAt: string | null;
+  langScoreENVerifiedAt: string | null;
   profileScore: number;
   hasAvatar: boolean;
   hasCv: boolean;
@@ -63,6 +67,8 @@ type SelfRow = {
   sectors: string[];
   langScoreFR: number | null;
   langScoreEN: number | null;
+  langScoreFRVerifiedAt: Date | null;
+  langScoreENVerifiedAt: Date | null;
   profileScore: number;
   avatarUrl: string | null;
   cvFileUrl: string | null;
@@ -81,6 +87,8 @@ const SELF_SELECT = {
   sectors: true,
   langScoreFR: true,
   langScoreEN: true,
+  langScoreFRVerifiedAt: true,
+  langScoreENVerifiedAt: true,
   profileScore: true,
   avatarUrl: true,
   cvFileUrl: true,
@@ -100,6 +108,8 @@ function toSelfDto(row: SelfRow): CandidateSelfDto {
     sectors: row.sectors,
     langScoreFR: row.langScoreFR,
     langScoreEN: row.langScoreEN,
+    langScoreFRVerifiedAt: row.langScoreFRVerifiedAt ? row.langScoreFRVerifiedAt.toISOString() : null,
+    langScoreENVerifiedAt: row.langScoreENVerifiedAt ? row.langScoreENVerifiedAt.toISOString() : null,
     profileScore: row.profileScore,
     hasAvatar: !!row.avatarUrl,
     hasCv: !!row.cvFileUrl,

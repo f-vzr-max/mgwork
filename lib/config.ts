@@ -21,7 +21,7 @@ export const env = {
 
   // Resend
   resendKey: () => read("RESEND_API_KEY"),
-  resendFrom: () => read("RESEND_FROM_EMAIL") ?? "MG Work <noreply@mgwork.io>",
+  resendFrom: () => read("RESEND_FROM_EMAIL") ?? "AsanaoConnect <noreply@mgwork.io>",
 
   // Clerk (server-side reads only)
   clerkSecret: () => read("CLERK_SECRET_KEY"),
@@ -38,6 +38,11 @@ export const env = {
   metaWebhookVerifyToken: () => read("META_WEBHOOK_VERIFY_TOKEN"),
   whatsappPhoneNumberId: () => read("WHATSAPP_PHONE_NUMBER_ID"),
   whatsappAccessToken: () => read("WHATSAPP_ACCESS_TOKEN"),
+  // Channels phase 0 — Messenger/Instagram outbound + deep links. All optional;
+  // adapters degrade to stub mode (skipped sends, no deep links) when unset.
+  metaPageAccessToken: () => read("META_PAGE_ACCESS_TOKEN"),
+  metaPageId: () => read("META_PAGE_ID"),
+  whatsappBusinessNumber: () => read("WHATSAPP_BUSINESS_NUMBER"),
 
   // Sentry (M13 — observability). All optional; absence triggers no-op init so
   // local dev stays clean. SENTRY_AUTH_TOKEN is build-time only (used by

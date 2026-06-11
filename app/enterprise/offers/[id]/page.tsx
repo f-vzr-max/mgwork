@@ -17,6 +17,7 @@ import { getMatchingWeights } from "@/lib/matching-config";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/mg";
 
 export const dynamic = "force-dynamic";
 
@@ -46,6 +47,7 @@ export default async function OfferDetailPage({ params }: { params: { id: string
   if (!clerkId) redirect("/sign-in");
   const t = await getTranslations("app.enterprise");
   const tc = await getTranslations("common");
+  const tl = await getTranslations("langTest");
 
   const user = await prisma.user.findUnique({
     where: { clerkId },
@@ -101,6 +103,8 @@ export default async function OfferDetailPage({ params }: { params: { id: string
           city: true,
           langScoreFR: true,
           langScoreEN: true,
+          langScoreFRVerifiedAt: true,
+          langScoreENVerifiedAt: true,
           skills: true,
           sectors: true,
         },
@@ -133,7 +137,7 @@ export default async function OfferDetailPage({ params }: { params: { id: string
       <PageHeader title={offer.title} description={t("offerDetail.header.slotCount", { sector: offer.sector, location: offer.location, n: offer.slots })}>
         <span
           className={
-            "rounded-full px-2 py-0.5 text-xs font-medium " +
+            "rounded-full px-2 py-0.5 mg-caption font-medium " +
             (offer.status === "ACTIVE"
               ? "bg-success/15 text-success"
               : offer.status === "DRAFT"
@@ -149,7 +153,7 @@ export default async function OfferDetailPage({ params }: { params: { id: string
           <CardHeader>
             <CardTitle>{t("offerDetail.details.title")}</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3 text-sm">
+          <CardContent className="space-y-3 mg-body-sm">
             <p className="whitespace-pre-wrap">{offer.description}</p>
             <div>
               <span className="font-medium">{t("offerDetail.details.requirementsLabel")} </span>
@@ -159,7 +163,7 @@ export default async function OfferDetailPage({ params }: { params: { id: string
               <span className="font-medium">{t("offerDetail.details.languagesLabel")} </span>
               {offer.langRequired.length ? offer.langRequired.join(", ") : <span className="text-muted-foreground">{tc("none")}</span>}
             </div>
-            <div className="text-xs text-muted-foreground">
+            <div className="mg-caption text-muted-foreground">
               {t("offerDetail.details.applicationCount", { n: offer._count.applications })}
             </div>
           </CardContent>
@@ -179,7 +183,7 @@ export default async function OfferDetailPage({ params }: { params: { id: string
           </CardHeader>
           <CardContent>
             {top.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
+              <p className="mg-body-sm text-muted-foreground">
                 {t("offerDetail.shortlist.empty")}
               </p>
             ) : (
@@ -203,18 +207,30 @@ export default async function OfferDetailPage({ params }: { params: { id: string
                               {displayName}
                             </Link>
                             {!revealed ? (
-                              <span className="ml-2 text-xs font-normal text-muted-foreground">
+                              <span className="ml-2 mg-caption font-normal text-muted-foreground">
                                 {t("offerDetail.candidate.masked")}
                               </span>
                             ) : null}
                             {c.city ? <span className="text-muted-foreground"> — {c.city}</span> : null}
                           </div>
-                          <div className="text-xs text-muted-foreground">
+                          <div className="mg-caption text-muted-foreground">
                             {c.skills.slice(0, 6).join(", ") || t("offerDetail.candidate.noSkills")}
                             {c.sectors.length ? ` · ${c.sectors.slice(0, 3).join(", ")}` : ""}
                           </div>
-                          <div className="text-xs text-muted-foreground">
-                            {t("offerDetail.candidate.langScorePrefix.fr")} {c.langScoreFR ?? "—"} · {t("offerDetail.candidate.langScorePrefix.en")} {c.langScoreEN ?? "—"}
+                          <div className="mg-caption text-muted-foreground flex flex-wrap items-center gap-1.5">
+                            <span>
+                              {t("offerDetail.candidate.langScorePrefix.fr")} {c.langScoreFR ?? "—"} · {t("offerDetail.candidate.langScorePrefix.en")} {c.langScoreEN ?? "—"}
+                            </span>
+                            {c.langScoreFRVerifiedAt ? (
+                              <Badge tone="success" icon="check-circle-2">
+                                {tl("badge.frVerifiedShort")}
+                              </Badge>
+                            ) : null}
+                            {c.langScoreENVerifiedAt ? (
+                              <Badge tone="success" icon="check-circle-2">
+                                {tl("badge.enVerifiedShort")}
+                              </Badge>
+                            ) : null}
                           </div>
                         </div>
                         <div className="text-right">
@@ -222,7 +238,7 @@ export default async function OfferDetailPage({ params }: { params: { id: string
                           <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{t("offerDetail.candidate.matchLabel")}</div>
                         </div>
                       </div>
-                      <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted-foreground md:grid-cols-3">
+                      <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 mg-caption text-muted-foreground md:grid-cols-3">
                         {Object.entries(m.breakdown).map(([k, v]) => (
                           <div key={k}>
                             <span className="font-medium text-foreground">{tc(`criterion.${k}`)}:</span>{" "}

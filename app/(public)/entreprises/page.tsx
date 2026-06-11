@@ -153,7 +153,7 @@ export default async function EntreprisesPage() {
                 className="mg-mono"
                 style={{ fontSize: 11, color: "hsl(var(--muted-foreground))" }}
               >
-                mg-work.com/dashboard
+                mgwork.io/dashboard
               </span>
               <div style={{ width: 60 }} />
             </div>

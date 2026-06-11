@@ -3,8 +3,8 @@ import { SignIn } from "@clerk/nextjs";
 import { PublicHeader } from "@/components/mg";
 
 export const metadata: Metadata = {
-  title: "MG·Work — Se connecter",
-  description: "Connectez-vous à votre compte MG·Work.",
+  title: "AsanaoConnect — Se connecter",
+  description: "Connectez-vous à votre compte AsanaoConnect.",
 };
 
 // Wrap the Clerk-hosted sign-in widget in the MG public shell so it shares

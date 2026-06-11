@@ -2,6 +2,11 @@
 
 // Document upload dialog. Wraps a Radix Dialog around a multipart form. The
 // parent owns the open/close state and the post-upload refresh callback.
+//
+// Parameterized so non-document flows (e.g. admin dispute attachments) can
+// reuse it: `endpoint`, `accept`, `allowedTypes`/`showExpiresAt` (omit to hide
+// the meta fields) and `labels` (i18n overrides). All defaults preserve the
+// original /api/documents behavior.
 
 import * as React from "react";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -21,12 +26,50 @@ const TYPE_LABELS: Record<(typeof DOCUMENT_TYPES)[number], string> = {
   OTHER: "Other",
 };
 
+// Every visible string; callers pass translated overrides via `labels`.
+export type UploadDialogLabels = {
+  title: string;
+  description: string;
+  typeLabel: string;
+  expiresLabel: string;
+  fileLabel: string;
+  cancel: string;
+  submit: string;
+  close: string;
+  errorNoFile: string;
+  errorTooLarge: string;
+};
+
+const DEFAULT_LABELS: UploadDialogLabels = {
+  title: "Upload document",
+  description: "PDF, JPEG, PNG, or DOCX. Maximum 10 MB.",
+  typeLabel: "Type",
+  expiresLabel: "Expires at (optional)",
+  fileLabel: "File",
+  cancel: "Cancel",
+  submit: "Upload",
+  close: "Close",
+  errorNoFile: "Please choose a file",
+  errorTooLarge: "File too large (max 10 MB)",
+};
+
+const DEFAULT_ACCEPT =
+  ".pdf,.jpg,.jpeg,.png,.docx,application/pdf,image/jpeg,image/png,application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+
 export type UploadDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  // Limit which document types the role can upload.
-  allowedTypes: ReadonlyArray<(typeof DOCUMENT_TYPES)[number]>;
+  // Limit which document types the role can upload. Omit (or pass an empty
+  // array) to hide the type select entirely — no `type` field is sent then.
+  allowedTypes?: ReadonlyArray<(typeof DOCUMENT_TYPES)[number]>;
   onUploaded: () => void;
+  // Multipart POST target. Defaults to the document wallet endpoint.
+  endpoint?: string;
+  // `accept` attribute for the file input.
+  accept?: string;
+  // Show the optional expiry date field (document-wallet specific).
+  showExpiresAt?: boolean;
+  labels?: Partial<UploadDialogLabels>;
 };
 
 const MAX_BYTES = 10 * 1024 * 1024;
@@ -36,9 +79,15 @@ export function UploadDialog({
   onOpenChange,
   allowedTypes,
   onUploaded,
+  endpoint = "/api/documents",
+  accept = DEFAULT_ACCEPT,
+  showExpiresAt = true,
+  labels,
 }: UploadDialogProps): React.ReactElement {
+  const l: UploadDialogLabels = { ...DEFAULT_LABELS, ...labels };
+  const hasTypes = (allowedTypes?.length ?? 0) > 0;
   const [type, setType] = React.useState<(typeof DOCUMENT_TYPES)[number]>(
-    allowedTypes[0] ?? "OTHER",
+    allowedTypes?.[0] ?? "OTHER",
   );
   const [expiresAt, setExpiresAt] = React.useState("");
   const [file, setFile] = React.useState<File | null>(null);
@@ -48,7 +97,7 @@ export function UploadDialog({
   // Reset form whenever the dialog opens.
   React.useEffect(() => {
     if (open) {
-      setType(allowedTypes[0] ?? "OTHER");
+      setType(allowedTypes?.[0] ?? "OTHER");
       setExpiresAt("");
       setFile(null);
       setError(null);
@@ -60,26 +109,26 @@ export function UploadDialog({
     e.preventDefault();
     setError(null);
     if (!file) {
-      setError("Please choose a file");
+      setError(l.errorNoFile);
       return;
     }
     if (file.size > MAX_BYTES) {
-      setError("File too large (max 10 MB)");
+      setError(l.errorTooLarge);
       return;
     }
     setSubmitting(true);
     try {
       const fd = new FormData();
-      fd.set("type", type);
-      if (expiresAt) fd.set("expiresAt", expiresAt);
+      if (hasTypes) fd.set("type", type);
+      if (showExpiresAt && expiresAt) fd.set("expiresAt", expiresAt);
       fd.set("file", file);
-      const res = await fetch("/api/documents", {
+      const res = await fetch(endpoint, {
         method: "POST",
         body: fd,
         credentials: "same-origin",
       });
       const json = (await res.json()) as
-        | { ok: true; data: { documentId: string } }
+        | { ok: true }
         | { ok: false; error: { message: string } };
       if (!res.ok || !json.ok) {
         const msg = json && "error" in json ? json.error.message : `HTTP ${res.status}`;
@@ -106,10 +155,10 @@ export function UploadDialog({
           )}
         >
           <div className="flex items-start justify-between pb-2">
-            <Dialog.Title className="text-lg font-semibold">Upload document</Dialog.Title>
+            <Dialog.Title className="text-lg font-semibold">{l.title}</Dialog.Title>
             <Dialog.Close asChild>
               <button
-                aria-label="Close"
+                aria-label={l.close}
                 className="rounded-md p-1 text-muted-foreground hover:bg-accent"
               >
                 <X className="h-4 w-4" />
@@ -117,40 +166,44 @@ export function UploadDialog({
             </Dialog.Close>
           </div>
           <Dialog.Description className="pb-4 text-sm text-muted-foreground">
-            PDF, JPEG, PNG, or DOCX. Maximum 10 MB.
+            {l.description}
           </Dialog.Description>
 
           <form className="flex flex-col gap-3" onSubmit={handleSubmit}>
+            {hasTypes ? (
+              <label className="flex flex-col gap-1 text-sm">
+                <span className="font-medium">{l.typeLabel}</span>
+                <select
+                  value={type}
+                  onChange={(e) =>
+                    setType(e.target.value as (typeof DOCUMENT_TYPES)[number])
+                  }
+                  className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                  required
+                >
+                  {(allowedTypes ?? []).map((t) => (
+                    <option key={t} value={t}>
+                      {TYPE_LABELS[t]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
+            {showExpiresAt ? (
+              <label className="flex flex-col gap-1 text-sm">
+                <span className="font-medium">{l.expiresLabel}</span>
+                <Input
+                  type="date"
+                  value={expiresAt}
+                  onChange={(e) => setExpiresAt(e.target.value)}
+                />
+              </label>
+            ) : null}
             <label className="flex flex-col gap-1 text-sm">
-              <span className="font-medium">Type</span>
-              <select
-                value={type}
-                onChange={(e) =>
-                  setType(e.target.value as (typeof DOCUMENT_TYPES)[number])
-                }
-                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-                required
-              >
-                {allowedTypes.map((t) => (
-                  <option key={t} value={t}>
-                    {TYPE_LABELS[t]}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="flex flex-col gap-1 text-sm">
-              <span className="font-medium">Expires at (optional)</span>
-              <Input
-                type="date"
-                value={expiresAt}
-                onChange={(e) => setExpiresAt(e.target.value)}
-              />
-            </label>
-            <label className="flex flex-col gap-1 text-sm">
-              <span className="font-medium">File</span>
+              <span className="font-medium">{l.fileLabel}</span>
               <Input
                 type="file"
-                accept=".pdf,.jpg,.jpeg,.png,.docx,application/pdf,image/jpeg,image/png,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                accept={accept}
                 required
                 onChange={(e) => setFile(e.target.files?.[0] ?? null)}
               />
@@ -160,7 +213,7 @@ export function UploadDialog({
             <div className="flex justify-end gap-2 pt-2">
               <Dialog.Close asChild>
                 <Button type="button" variant="outline" disabled={submitting}>
-                  Cancel
+                  {l.cancel}
                 </Button>
               </Dialog.Close>
               <Button type="submit" disabled={submitting}>
@@ -169,7 +222,7 @@ export function UploadDialog({
                 ) : (
                   <Upload className="h-4 w-4" />
                 )}
-                Upload
+                {l.submit}
               </Button>
             </div>
           </form>

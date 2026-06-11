@@ -63,7 +63,7 @@ async function renderTemplate(
   if (renderer) return renderer(props, lang);
   // Placeholder body — keeps `send()` callable before M10 lands.
   return {
-    subject: `[MG Work] ${template}`,
+    subject: `[AsanaoConnect] ${template}`,
     html: `<p>Template <code>${template}</code> not yet implemented (${lang}).</p>`,
   };
 }

@@ -10,11 +10,14 @@
 //   - Each answer.q and answer.a is run through `assertSafeForLLM` first.
 //     The Q is operator-supplied in practice but we still scan because we
 //     accept it from the client (no DB-side question store yet).
-//   - Calls Claude (`MODELS.fast` — Haiku) to grade FR or EN proficiency
-//     0..100. We require the model to return a single integer in
-//     `<score>NN</score>` tags so parsing is trivial. If parsing fails we
-//     fall back to 0 and audit `ok: false`.
-//   - Persists the result on Candidate.langScoreFR or .langScoreEN.
+//   - Calls Claude (fast tier, with one-shot smart escalation when the
+//     `<score>NN</score>` tag fails to parse) to grade FR or EN proficiency
+//     0..100 on a CEFR-aligned scale. If even the escalated output has no
+//     score tag we persist NOTHING and audit `ok: false` — a fabricated 0
+//     must never be stamped as verified.
+//   - Persists the result on Candidate.langScoreFR or .langScoreEN and
+//     stamps the matching langScore*VerifiedAt timestamp (AI-verified level,
+//     as opposed to the onboarding self-assessment sliders).
 
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
@@ -23,7 +26,7 @@ import { rateLimit } from "@/lib/rate-limit";
 import { logAuditByClerkId } from "@/lib/audit";
 import { assertSameOrigin, CsrfError } from "@/lib/csrf";
 import { prisma } from "@/lib/prisma";
-import { chat } from "@/lib/claude";
+import { chatWithEscalation } from "@/lib/claude";
 import { assertSafeForLLM, AIDefenceError } from "@/lib/aidefence";
 import { env } from "@/lib/config";
 import { aiLangTestSchema } from "@/lib/validation/ai";
@@ -59,10 +62,12 @@ function buildUserPrompt(answers: { q: string; a: string }[]): string {
     .join("\n\n");
 }
 
-function parseScore(text: string): { score: number; feedback?: string } {
-  const m = text.match(/<score>\s*(\d{1,3})\s*<\/score>/i);
+const SCORE_TAG_RE = /<score>\s*(\d{1,3})\s*<\/score>/i;
+
+function parseScore(text: string): { score: number | null; feedback?: string } {
+  const m = text.match(SCORE_TAG_RE);
   const f = text.match(/<feedback>([\s\S]*?)<\/feedback>/i);
-  const score = m ? Math.min(100, Math.max(0, Number.parseInt(m[1], 10))) : 0;
+  const score = m ? Math.min(100, Math.max(0, Number.parseInt(m[1], 10))) : null;
   const feedback = f ? f[1].trim().slice(0, 400) : undefined;
   return { score, feedback };
 }
@@ -151,12 +156,13 @@ export async function POST(req: Request) {
     );
   }
 
-  const r = await chat({
+  const r = await chatWithEscalation({
     system: buildSystemPrompt(parsed.lang),
     messages: [{ role: "user", content: buildUserPrompt(parsed.answers) }],
-    model: "fast",
     maxTokens: 256,
     temperature: 0,
+    // Expected parse: a <score>NN</score> tag. A missing tag escalates to smart.
+    validate: (res) => SCORE_TAG_RE.test(res.text),
   });
 
   if ("error" in r) {
@@ -171,7 +177,7 @@ export async function POST(req: Request) {
       resourceType: "candidate",
       resourceId: user.candidate.id,
       ipAddress: getIp(req),
-      metadata: { ok: false, error: r.message.slice(0, 200), lang: parsed.lang },
+      metadata: { ok: false, escalated: r.escalated, error: r.message.slice(0, 200), lang: parsed.lang },
     });
     return NextResponse.json(
       err("EXTERNAL_DEPENDENCY_FAILED", "Upstream AI failure"),
@@ -181,9 +187,31 @@ export async function POST(req: Request) {
 
   const { score, feedback } = parseScore(r.text);
 
+  // Even the smart retry produced no <score> tag — don't persist anything (a
+  // made-up score must not become a "verified" level), just audit and fail.
+  if (score == null) {
+    await logAuditByClerkId(clerkId, {
+      action: "ai.lang_test",
+      resourceType: "candidate",
+      resourceId: user.candidate.id,
+      ipAddress: getIp(req),
+      metadata: { ok: false, escalated: r.escalated, error: "score-parse-failed", lang: parsed.lang },
+    });
+    return NextResponse.json(
+      err("EXTERNAL_DEPENDENCY_FAILED", "Upstream AI failure"),
+      { status: 502 },
+    );
+  }
+
+  // Persist the graded score and stamp it as AI-verified. Retakes simply
+  // overwrite both (the latest verified level wins).
+  const verifiedAt = new Date();
   await prisma.candidate.update({
     where: { id: user.candidate.id },
-    data: parsed.lang === "FR" ? { langScoreFR: score } : { langScoreEN: score },
+    data:
+      parsed.lang === "FR"
+        ? { langScoreFR: score, langScoreFRVerifiedAt: verifiedAt }
+        : { langScoreEN: score, langScoreENVerifiedAt: verifiedAt },
   });
 
   await logAuditByClerkId(clerkId, {
@@ -193,6 +221,7 @@ export async function POST(req: Request) {
     ipAddress: getIp(req),
     metadata: {
       ok: true,
+      escalated: r.escalated,
       lang: parsed.lang,
       score,
       answerCount: parsed.answers.length,

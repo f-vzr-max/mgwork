@@ -39,7 +39,7 @@ export default async function EnterpriseInterviewDetailPage({
     user.role !== "SUPER_ADMIN"
   ) {
     return (
-      <div className="p-6 text-sm text-muted-foreground">
+      <div className="p-6 mg-body-sm text-muted-foreground">
         {t("interviews.detail.accessDenied")}
       </div>
     );
@@ -76,7 +76,7 @@ export default async function EnterpriseInterviewDetailPage({
     interview.application.jobOffer.enterpriseId !== user.enterprise.id
   ) {
     return (
-      <div className="p-6 text-sm text-muted-foreground">
+      <div className="p-6 mg-body-sm text-muted-foreground">
         {t("interviews.detail.notYourInterview")}
       </div>
     );
@@ -94,10 +94,10 @@ export default async function EnterpriseInterviewDetailPage({
 
       <div className="grid gap-6 p-6 md:grid-cols-2">
         <div className="rounded-md border bg-card p-4">
-          <h2 className="mb-3 text-sm font-semibold">
+          <h2 className="mb-3 mg-h4">
             {t("interviews.detail.detailsSection")}
           </h2>
-          <dl className="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-2 text-sm">
+          <dl className="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-2 mg-body-sm">
             <dt className="text-muted-foreground">
               {t("interviews.detail.scheduledLabel")}
             </dt>
@@ -132,7 +132,7 @@ export default async function EnterpriseInterviewDetailPage({
 
         {interview.videoUrl && (
           <div className="rounded-md border bg-card p-4">
-            <h2 className="mb-3 text-sm font-semibold">
+            <h2 className="mb-3 mg-h4">
               {t("interviews.detail.liveVideoSection")}
             </h2>
             <div className="aspect-video w-full overflow-hidden rounded-md border">
@@ -144,14 +144,14 @@ export default async function EnterpriseInterviewDetailPage({
                 sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
               />
             </div>
-            <p className="mt-2 text-xs text-muted-foreground">
+            <p className="mt-2 mg-caption text-muted-foreground">
               {t("interviews.detail.embedCaption")}
             </p>
           </div>
         )}
 
         <div className="rounded-md border bg-card p-4 md:col-span-2">
-          <h2 className="mb-3 text-sm font-semibold">
+          <h2 className="mb-3 mg-h4">
             {t("interviews.detail.notesSection")}
           </h2>
           <InterviewNotesForm

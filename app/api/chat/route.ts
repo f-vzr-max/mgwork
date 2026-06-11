@@ -1,10 +1,13 @@
 // In-app chat endpoint — server-sent events.
 //
 // Contract: docs/contracts.md row "POST /api/chat".
-//   - Auth: signed-in CANDIDATE.
+//   - Auth: signed-in CANDIDATE (onboarding agent via lib/social/llm-bridge)
+//     or ENTERPRISE (assistant via lib/social/enterprise-assistant).
 //   - Body: chatMessageSchema (strict zod).
-//   - Audit: chat.message_send
-//   - Rate limit: 30 / 60s per Clerk userId.
+//   - Audit: chat.message_send — logged once per request AFTER the LLM
+//     attempt so the metadata can carry the `escalated` model-policy flag;
+//     every exit path past validation/rate-limit writes a row.
+//   - Rate limit: 30 / 60s per Clerk userId (both roles).
 //
 // Wire format: text/event-stream. We stream three event types:
 //   - event: meta   data: { extracted: {...} | null }
@@ -26,7 +29,12 @@ import { logAuditByClerkId } from "@/lib/audit";
 import { assertSameOrigin, CsrfError } from "@/lib/csrf";
 import { AIDefenceError } from "@/lib/aidefence";
 import { chatMessageSchema } from "@/lib/validation/chat";
-import { process as bridgeProcess, type BridgeLang } from "@/lib/social/llm-bridge";
+import {
+  process as bridgeProcess,
+  type BridgeLang,
+  type ExtractedFields,
+} from "@/lib/social/llm-bridge";
+import { processEnterprise } from "@/lib/social/enterprise-assistant";
 import { err } from "@/types/api";
 
 export const runtime = "nodejs";
@@ -66,6 +74,11 @@ function jsonError(code: Parameters<typeof err>[0], message: string, status: num
   return NextResponse.json(err(code, message), { status });
 }
 
+// Normalised result of either bridge so the SSE/audit tail is shared.
+type ChatOutcome =
+  | { ok: true; reply: string; extracted: ExtractedFields | null; escalated: boolean }
+  | { ok: false; error: string; message?: string };
+
 export async function POST(req: Request) {
   // 1) CSRF defense-in-depth.
   try {
@@ -83,7 +96,7 @@ export async function POST(req: Request) {
     return jsonError("UNAUTHORIZED", "Sign-in required", 401);
   }
 
-  // 3) Rate limit (30 per minute per user).
+  // 3) Rate limit (30 per minute per user — same budget for both roles).
   const allowed = await rateLimit(clerkId, "chat.message", 30, 60);
   if (!allowed) {
     return jsonError("RATE_LIMITED", "Slow down", 429);
@@ -116,7 +129,8 @@ export async function POST(req: Request) {
     throw e;
   }
 
-  // 5) Resolve User → Candidate. Role gate is CANDIDATE (admins use other tools).
+  // 5) Resolve User → Candidate or Enterprise. Role gate is CANDIDATE |
+  // ENTERPRISE (admins/staff use other tools).
   const user = await prisma.user.findUnique({
     where: { clerkId },
     select: {
@@ -124,46 +138,65 @@ export async function POST(req: Request) {
       role: true,
       lang: true,
       candidate: { select: { id: true } },
+      enterprise: { select: { id: true } },
     },
   });
   if (!user) {
     return jsonError("NOT_FOUND", "User profile not yet synced", 404);
   }
-  if (user.role !== "CANDIDATE") {
-    return jsonError("FORBIDDEN", "Only candidates can use this chat", 403);
+  if (user.role !== "CANDIDATE" && user.role !== "ENTERPRISE") {
+    return jsonError("FORBIDDEN", "Only candidates and enterprises can use this chat", 403);
   }
-  if (!user.candidate) {
+  if (user.role === "CANDIDATE" && !user.candidate) {
+    return jsonError("NOT_FOUND", "Complete onboarding first", 404);
+  }
+  if (user.role === "ENTERPRISE" && !user.enterprise) {
     return jsonError("NOT_FOUND", "Complete onboarding first", 404);
   }
 
   const lang = ((parsed.lang ?? user.lang) as BridgeLang) ?? "FR";
+  const resourceId = user.candidate?.id ?? user.enterprise?.id;
 
-  // 6) Audit BEFORE we hand off to the bridge so we have a record even if the
-  // upstream LLM call fails. Best-effort — never blocks.
-  await logAuditByClerkId(clerkId, {
-    action: "chat.message_send",
-    resourceType: "conversation",
-    resourceId: user.candidate.id,
-    ipAddress: getIp(req),
-    metadata: { length: parsed.text.length, lang },
-  });
-
-  // 7) Run the bridge (which itself runs `assertSafeForLLM` first).
-  let bridgeResult;
-  try {
-    bridgeResult = await bridgeProcess({
-      candidateId: user.candidate.id,
-      incomingText: parsed.text,
-      lang,
+  // 6) Audit helper — one chat.message_send row per request, written after
+  // the LLM attempt so metadata carries the escalated flag. Best-effort —
+  // never blocks. (lib/claude catches API errors into result values, so the
+  // only pre-audit throw past this point is AIDefence — logged in its catch.)
+  const audit = (extra: Record<string, unknown>) =>
+    logAuditByClerkId(clerkId, {
+      action: "chat.message_send",
+      resourceType: "conversation",
+      resourceId,
+      ipAddress: getIp(req),
+      metadata: { length: parsed.text.length, lang, role: user.role, ...extra },
     });
+
+  // 7) Run the role-matching bridge (each runs `assertSafeForLLM` first).
+  let outcome: ChatOutcome;
+  try {
+    if (user.role === "CANDIDATE") {
+      outcome = await bridgeProcess({
+        candidateId: user.candidate!.id,
+        incomingText: parsed.text,
+        lang,
+      });
+    } else {
+      const r = await processEnterprise({
+        enterpriseId: user.enterprise!.id,
+        incomingText: parsed.text,
+        lang,
+      });
+      outcome = r.ok ? { ...r, extracted: null } : r;
+    }
   } catch (e) {
     if (e instanceof AIDefenceError) {
+      await audit({ ok: false, rejected: "aidefence" });
       return jsonError(
         "VALIDATION_ERROR",
         "Message rejected by safety filter",
         400,
       );
     }
+    await audit({ ok: false, error: "exception" });
     return sseStream([
       sseEvent("error", {
         code: "INTERNAL_ERROR",
@@ -173,26 +206,29 @@ export async function POST(req: Request) {
     ]);
   }
 
-  if (!bridgeResult.ok) {
+  if (!outcome.ok) {
+    await audit({ ok: false, error: outcome.error });
     const code =
-      bridgeResult.error === "no-key"
-        ? "EXTERNAL_DEPENDENCY_FAILED"
-        : bridgeResult.error === "candidate-missing"
-          ? "NOT_FOUND"
-          : "EXTERNAL_DEPENDENCY_FAILED";
+      outcome.error === "candidate-missing" ||
+      outcome.error === "enterprise-missing" ||
+      outcome.error === "identity-missing"
+        ? "NOT_FOUND"
+        : "EXTERNAL_DEPENDENCY_FAILED";
     return sseStream([
       sseEvent("error", {
         code,
-        message: bridgeResult.message ?? bridgeResult.error,
+        message: outcome.message ?? outcome.error,
       }),
       sseEvent("done", {}),
     ]);
   }
 
+  await audit({ ok: true, escalated: outcome.escalated });
+
   // 8) Stream a single chunk + done. (Token-streaming hook lives here later.)
   return sseStream([
-    sseEvent("meta", { extracted: bridgeResult.extracted }),
-    sseEvent("chunk", { text: bridgeResult.reply }),
+    sseEvent("meta", { extracted: outcome.extracted }),
+    sseEvent("chunk", { text: outcome.reply }),
     sseEvent("done", {}),
   ]);
 }

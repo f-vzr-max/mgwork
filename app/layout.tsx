@@ -24,9 +24,9 @@ const jetBrainsMono = JetBrains_Mono({
   display: "swap",
 });
 
-const SITE_NAME = "MG·Work";
+const SITE_NAME = "AsanaoConnect";
 const SITE_TITLE =
-  "MG·Work — La mobilité du travail entre Madagascar et l'océan Indien";
+  "AsanaoConnect — La mobilité du travail entre Madagascar et l'océan Indien";
 const SITE_DESCRIPTION =
   "Plateforme sérieuse de matching pour la mobilité du travail. Candidats malgaches vérifiés × employeurs de Maurice, Réunion, Seychelles.";
 

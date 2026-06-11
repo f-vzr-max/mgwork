@@ -2,7 +2,7 @@
 
 // CountryGuide — short, language-aware integration guide for new arrivals.
 //
-// Static content for v1; the "Ask MG Work agent" button deep-links into the
+// Static content for v1; the "Ask AsanaoConnect agent" button deep-links into the
 // candidate chat with a prefilled question so the existing M6 chat answers
 // real questions on demand.
 
@@ -33,12 +33,12 @@ const CONTENT: Record<GuideLang, Section[]> = {
     {
       title: "Communauté malgache",
       body:
-        "Une communauté malgache importante vit principalement à Port-Louis, Curepipe et Quatre-Bornes. Plusieurs associations organisent des événements culturels, des messes et des activités sportives. MG Work peut vous mettre en relation avec ces réseaux dès votre arrivée.",
+        "Une communauté malgache importante vit principalement à Port-Louis, Curepipe et Quatre-Bornes. Plusieurs associations organisent des événements culturels, des messes et des activités sportives. AsanaoConnect peut vous mettre en relation avec ces réseaux dès votre arrivée.",
     },
     {
       title: "Démarches à l'arrivée",
       body:
-        "Présentez-vous à votre employeur avec votre passeport et votre permis de travail. L'ouverture d'un compte bancaire local prend généralement 5 à 10 jours ouvrés. Conservez les copies numériques de tous vos documents — elles sont accessibles depuis votre portefeuille MG Work.",
+        "Présentez-vous à votre employeur avec votre passeport et votre permis de travail. L'ouverture d'un compte bancaire local prend généralement 5 à 10 jours ouvrés. Conservez les copies numériques de tous vos documents — elles sont accessibles depuis votre portefeuille AsanaoConnect.",
     },
   ],
   EN: [
@@ -55,12 +55,12 @@ const CONTENT: Record<GuideLang, Section[]> = {
     {
       title: "Malagasy community",
       body:
-        "A sizeable Malagasy community lives mainly in Port-Louis, Curepipe, and Quatre-Bornes. Associations run cultural events, religious services, and sports. MG Work can connect you to these networks on arrival.",
+        "A sizeable Malagasy community lives mainly in Port-Louis, Curepipe, and Quatre-Bornes. Associations run cultural events, religious services, and sports. AsanaoConnect can connect you to these networks on arrival.",
     },
     {
       title: "On-arrival steps",
       body:
-        "Report to your employer with your passport and work permit. Opening a local bank account usually takes 5–10 business days. Keep digital copies of every document — they are available in your MG Work wallet.",
+        "Report to your employer with your passport and work permit. Opening a local bank account usually takes 5–10 business days. Keep digital copies of every document — they are available in your AsanaoConnect wallet.",
     },
   ],
   MG: [
@@ -77,20 +77,20 @@ const CONTENT: Record<GuideLang, Section[]> = {
     {
       title: "Vondrom-piarahamonina malagasy",
       body:
-        "Vondrona malagasy lehibe no monina indrindra any Port-Louis, Curepipe ary Quatre-Bornes. Misy fikambanana mikarakara hetsika ara-kolontsaina, fanompoam-pivavahana ary fanatanjahantena. Afaka mampifandray anao amin'izany rehetra izany ny MG Work.",
+        "Vondrona malagasy lehibe no monina indrindra any Port-Louis, Curepipe ary Quatre-Bornes. Misy fikambanana mikarakara hetsika ara-kolontsaina, fanompoam-pivavahana ary fanatanjahantena. Afaka mampifandray anao amin'izany rehetra izany ny AsanaoConnect.",
     },
     {
       title: "Asa atao rehefa tonga",
       body:
-        "Misehoa amin'ny mpampiasa anao miaraka amin'ny pasipaorona sy fahazoan-dàlana hiasa. Maharitra 5 ka hatramin'ny 10 andro miasa ny famoronana kaonty banky. Tehirizo ny dika mitovy nomerika rehetra — azo jerena ao amin'ny vata MG Work.",
+        "Misehoa amin'ny mpampiasa anao miaraka amin'ny pasipaorona sy fahazoan-dàlana hiasa. Maharitra 5 ka hatramin'ny 10 andro miasa ny famoronana kaonty banky. Tehirizo ny dika mitovy nomerika rehetra — azo jerena ao amin'ny vata AsanaoConnect.",
     },
   ],
 };
 
 const ASK_LABELS: Record<GuideLang, string> = {
-  FR: "Demander à l'agent MG Work",
-  EN: "Ask MG Work agent",
-  MG: "Anontanio ny mpiandraikitra MG Work",
+  FR: "Demander à l'agent AsanaoConnect",
+  EN: "Ask AsanaoConnect agent",
+  MG: "Anontanio ny mpiandraikitra AsanaoConnect",
 };
 
 const PREFILL_QUESTION: Record<GuideLang, string> = {

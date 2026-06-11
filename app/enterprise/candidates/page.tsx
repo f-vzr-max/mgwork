@@ -79,6 +79,7 @@ export default async function BrowseCandidatesPage({
   if (!clerkId) redirect("/sign-in");
   const t = await getTranslations("app.enterprise");
   const tc = await getTranslations("common");
+  const tl = await getTranslations("langTest");
 
   const user = await prisma.user.findUnique({
     where: { clerkId },
@@ -132,6 +133,8 @@ export default async function BrowseCandidatesPage({
       city: true,
       langScoreFR: true,
       langScoreEN: true,
+      langScoreFRVerifiedAt: true,
+      langScoreENVerifiedAt: true,
       profileScore: true,
       skills: true,
       sectors: true,
@@ -275,16 +278,34 @@ export default async function BrowseCandidatesPage({
                             </Badge>
                           ))}
                         </Stack>
-                        <div
-                          className="mg-caption"
-                          style={{ color: "hsl(var(--muted-foreground))", marginTop: 4 }}
+                        <Stack
+                          dir="row"
+                          gap={6}
+                          align="center"
+                          wrap
+                          style={{ marginTop: 4 }}
                         >
-                          {t("candidates.card.scoreCaption", {
-                            fr: c.langScoreFR ?? "—",
-                            en: c.langScoreEN ?? "—",
-                            score: c.profileScore,
-                          })}
-                        </div>
+                          <span
+                            className="mg-caption"
+                            style={{ color: "hsl(var(--muted-foreground))" }}
+                          >
+                            {t("candidates.card.scoreCaption", {
+                              fr: c.langScoreFR ?? "—",
+                              en: c.langScoreEN ?? "—",
+                              score: c.profileScore,
+                            })}
+                          </span>
+                          {c.langScoreFRVerifiedAt && (
+                            <Badge tone="success" icon="check-circle-2">
+                              {tl("badge.frVerifiedShort")}
+                            </Badge>
+                          )}
+                          {c.langScoreENVerifiedAt && (
+                            <Badge tone="success" icon="check-circle-2">
+                              {tl("badge.enVerifiedShort")}
+                            </Badge>
+                          )}
+                        </Stack>
                       </div>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 12 }}>

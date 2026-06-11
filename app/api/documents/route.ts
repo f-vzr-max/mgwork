@@ -13,6 +13,7 @@
 
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
+import { waitUntil } from "@vercel/functions";
 import { z } from "zod";
 
 import { prisma } from "@/lib/prisma";
@@ -30,6 +31,7 @@ import {
   type DocumentDto,
 } from "@/lib/documents";
 import { DOCUMENT_TYPES } from "@/lib/validation/document";
+import { analyzeDocumentSafely, isAnalyzableMime } from "@/lib/ai/doc-analysis";
 import { err, ok, type ApiResponse } from "@/types/api";
 
 // Multipart-meta schema — only the non-file fields. We accept either
@@ -235,6 +237,20 @@ export async function POST(req: Request): Promise<NextResponse> {
       enterpriseId: ownerKind === "enterprise" ? ownerProfileId : null,
     },
   });
+
+  // Best-effort AI document detection (advisory; persisted to aiAnalysis).
+  // Runs after the response via waitUntil — an AI failure never blocks or
+  // fails the upload. JPEG/PNG only; PDFs/DOCX are skipped (see lib/ai).
+  if (isAnalyzableMime(mime)) {
+    waitUntil(
+      analyzeDocumentSafely({
+        documentId: document.id,
+        declaredType: document.type,
+        base64: buffer.toString("base64"),
+        mimeType: mime,
+      }),
+    );
+  }
 
   // Audit. Never log the full object path (PII linkage); type + bucket only.
   await logAuditByClerkId(clerkUserId, {

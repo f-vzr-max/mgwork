@@ -58,3 +58,33 @@ export const metaWebhookEventSchema = z
   .strict();
 
 export type MetaWebhookEvent = z.infer<typeof metaWebhookEventSchema>;
+
+// One item of entry[].messaging[] — the Messenger Platform / Instagram DM
+// event shape (object: "page" | "instagram"). Items are validated one by one
+// by the adapter (a malformed sibling must not sink the whole batch), so this
+// is exported separately instead of being inlined in `entrySchema.messaging`.
+export const messengerMessagingItemSchema = z
+  .object({
+    sender: z.object({ id: z.string().min(1).max(64) }).passthrough(),
+    recipient: z.object({ id: z.string().min(1).max(64) }).passthrough().optional(),
+    timestamp: z.number().optional(),
+    message: z
+      .object({
+        mid: z.string().min(1).max(256).optional(),
+        text: z.string().max(10_000).optional(),
+        is_echo: z.boolean().optional(),
+      })
+      .passthrough()
+      .optional(),
+    postback: z
+      .object({
+        payload: z.string().max(1_000).optional(),
+        referral: z.object({ ref: z.string().max(256).optional() }).passthrough().optional(),
+      })
+      .passthrough()
+      .optional(),
+    referral: z.object({ ref: z.string().max(256).optional() }).passthrough().optional(),
+  })
+  .passthrough();
+
+export type MessengerMessagingItem = z.infer<typeof messengerMessagingItemSchema>;

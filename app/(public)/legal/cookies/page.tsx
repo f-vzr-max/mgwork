@@ -11,9 +11,12 @@ export async function generateMetadata() {
   };
 }
 
+// First-party cookies are listed under the public brand (AsanaoConnect), not
+// the legal entity (MG·Work SARL — lib/legal-entity.ts, used in /legal pages
+// where the contracting party matters). Cookie NAMES stay unchanged (protected).
 const COOKIE_ROWS = [
-  { name: "mgwork_lang", provider: "MG·Work", key: "lang", type: "functional" },
-  { name: "theme", provider: "MG·Work", key: "theme", type: "functional" },
+  { name: "mgwork_lang", provider: "AsanaoConnect", key: "lang", type: "functional" },
+  { name: "theme", provider: "AsanaoConnect", key: "theme", type: "functional" },
   {
     name: "__session, __client_uat, __clerk_*",
     provider: "Clerk",

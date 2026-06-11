@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { PublicShell, Card, Button, Stack, Icon } from "@/components/mg";
 
 export const metadata: Metadata = {
-  title: "MG·Work — Page introuvable",
+  title: "AsanaoConnect — Page introuvable",
 };
 
 export default function NotFound() {

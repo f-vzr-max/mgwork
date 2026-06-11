@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { DocumentStatusBadge, type DocumentStatusValue } from "@/components/staff/StatusBadge";
 import { InlineScanViewer } from "@/components/staff/InlineScanViewer";
 import { DocumentReviewForm } from "@/components/staff/DocumentReviewForm";
+import { docAiFlag, readDocAiAnalysis } from "@/lib/ai/doc-analysis";
 
 // Document review screen. Embeds the scan/PDF preview, shows owner +
 // metadata, lists prior audit-log actions on this document, and exposes
@@ -44,6 +45,8 @@ export default async function StaffDocumentReviewPage({ params }: { params: { id
   if (!user) redirect("/sign-in");
   if (!canAccess(user.role as Role, "staff")) redirect("/");
   const t = await getTranslations("app.staff");
+  const ta = await getTranslations("aiDocCheck");
+  const tc = await getTranslations("common");
 
   const doc = await prisma.document.findUnique({
     where: { id: params.id },
@@ -76,6 +79,11 @@ export default async function StaffDocumentReviewPage({ params }: { params: { id
 
   const isPending = doc.status === "PENDING";
 
+  // Advisory AI verdict (read-only — never drives status). Written by the
+  // background upload analysis or the staff /api/ai/analyze-doc rerun.
+  const aiAnalysis = readDocAiAnalysis(doc.aiAnalysis);
+  const aiFlag = docAiFlag(aiAnalysis);
+
   return (
     <>
       <PageHeader title={t("documentReview.title", { docType: doc.type.replace(/_/g, " ") })} description={t("documentReview.description", { ownerKind, ownerLabel })}>
@@ -101,7 +109,7 @@ export default async function StaffDocumentReviewPage({ params }: { params: { id
             <CardHeader>
               <CardTitle>{t("documentReview.metadata.title")}</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2 text-sm">
+            <CardContent className="space-y-2 mg-body-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">{t("documentReview.metadata.status")}</span>
                 <DocumentStatusBadge status={doc.status as DocumentStatusValue} />
@@ -129,11 +137,45 @@ export default async function StaffDocumentReviewPage({ params }: { params: { id
               {doc.rejectionNote ? (
                 <div className="border-t pt-2">
                   <span className="text-muted-foreground">{t("documentReview.metadata.rejectionNote")}</span>
-                  <p className="mt-1 whitespace-pre-wrap text-sm text-red-700">{doc.rejectionNote}</p>
+                  <p className="mt-1 whitespace-pre-wrap mg-body-sm text-red-700">{doc.rejectionNote}</p>
                 </div>
               ) : null}
             </CardContent>
           </Card>
+
+          {aiAnalysis ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>{ta("title")}</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 mg-body-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">{ta("detectedType")}</span>
+                  <span>{tc(`docType.${aiAnalysis.detectedType}`)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">{ta("confidence")}</span>
+                  <span>{Math.round(aiAnalysis.confidence * 100)}%</span>
+                </div>
+                {aiAnalysis.expiryDate ? (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">{ta("expiryDate")}</span>
+                    <span>{aiAnalysis.expiryDate}</span>
+                  </div>
+                ) : null}
+                {aiFlag?.mismatch ? (
+                  <p className="rounded bg-amber-100 px-2 py-1 text-amber-900">{ta("mismatch")}</p>
+                ) : null}
+                {aiFlag?.expiry === "expired" ? (
+                  <p className="rounded bg-rose-100 px-2 py-1 text-rose-900">{ta("expired")}</p>
+                ) : null}
+                {aiFlag?.expiry === "soon" ? (
+                  <p className="rounded bg-amber-100 px-2 py-1 text-amber-900">{ta("expiresSoon")}</p>
+                ) : null}
+                <p className="mg-caption text-muted-foreground">{ta("advisory")}</p>
+              </CardContent>
+            </Card>
+          ) : null}
 
           <Card>
             <CardHeader>
@@ -143,7 +185,7 @@ export default async function StaffDocumentReviewPage({ params }: { params: { id
               {isPending ? (
                 <DocumentReviewForm documentId={doc.id} />
               ) : (
-                <p className="text-sm text-muted-foreground">
+                <p className="mg-body-sm text-muted-foreground">
                   {t("documentReview.decision.notPending", { status: doc.status.toLowerCase() })}
                 </p>
               )}
@@ -156,18 +198,18 @@ export default async function StaffDocumentReviewPage({ params }: { params: { id
             </CardHeader>
             <CardContent className="p-0">
               {auditRows.length === 0 ? (
-                <p className="px-6 py-4 text-sm text-muted-foreground">{t("documentReview.activity.empty")}</p>
+                <p className="px-6 py-4 mg-body-sm text-muted-foreground">{t("documentReview.activity.empty")}</p>
               ) : (
                 <ul className="divide-y">
                   {auditRows.map((row) => (
-                    <li key={row.id} className="flex items-start justify-between gap-4 px-6 py-3 text-sm">
+                    <li key={row.id} className="flex items-start justify-between gap-4 px-6 py-3 mg-body-sm">
                       <div>
                         <div className="font-medium">{formatActionLabel(row.action, t)}</div>
-                        <div className="text-xs text-muted-foreground">
+                        <div className="mg-caption text-muted-foreground">
                           {row.user?.email ?? t("documentReview.activity.systemActor")}
                         </div>
                       </div>
-                      <div className="shrink-0 text-xs text-muted-foreground">
+                      <div className="shrink-0 mg-caption text-muted-foreground">
                         {formatDateTime(row.createdAt)}
                       </div>
                     </li>

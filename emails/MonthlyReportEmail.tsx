@@ -22,7 +22,7 @@ const TEXTS = {
     preview: (period: string) => `Récapitulatif de votre activité ${period}.`,
     greeting: (n: string) => `Bonjour ${n},`,
     body: (period: string) =>
-      `Voici le récapitulatif de votre activité sur MG Work pour ${period}.`,
+      `Voici le récapitulatif de votre activité sur AsanaoConnect pour ${period}.`,
     rows: {
       activeOffers: "Offres actives",
       applications: "Candidatures reçues",
@@ -36,7 +36,7 @@ const TEXTS = {
     preview: (period: string) => `Recap of your ${period} activity.`,
     greeting: (n: string) => `Hello ${n},`,
     body: (period: string) =>
-      `Here is the recap of your activity on MG Work for ${period}.`,
+      `Here is the recap of your activity on AsanaoConnect for ${period}.`,
     rows: {
       activeOffers: "Active offers",
       applications: "Applications received",
@@ -50,7 +50,7 @@ const TEXTS = {
     preview: (period: string) => `Famintinana ny asa nataonao tamin'ny ${period}.`,
     greeting: (n: string) => `Salama ${n},`,
     body: (period: string) =>
-      `Ity ny famintinana ny asanao tao amin'ny MG Work amin'ny ${period}.`,
+      `Ity ny famintinana ny asanao tao amin'ny AsanaoConnect amin'ny ${period}.`,
     rows: {
       activeOffers: "Tolo-pahataovana mavitrika",
       applications: "Fangatahana azo",

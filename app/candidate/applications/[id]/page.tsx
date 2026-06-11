@@ -50,7 +50,7 @@ export default async function CandidateApplicationDetailPage({
   if (!user) redirect("/sign-in");
   if (user.role !== "CANDIDATE" || !user.candidate) {
     return (
-      <div className="p-6 text-sm text-muted-foreground">
+      <div className="p-6 mg-body-sm text-muted-foreground">
         {t("applicationDetail.profileRequired")}
       </div>
     );
@@ -86,7 +86,7 @@ export default async function CandidateApplicationDetailPage({
   if (!app) notFound();
   if (app.candidateId !== user.candidate.id) {
     return (
-      <div className="p-6 text-sm text-muted-foreground">
+      <div className="p-6 mg-body-sm text-muted-foreground">
         {t("applicationDetail.notYourApplication")}
       </div>
     );
@@ -107,21 +107,21 @@ export default async function CandidateApplicationDetailPage({
       />
       <div className="grid gap-6 p-6">
         <section className="rounded-md border bg-card p-4">
-          <h2 className="mb-3 text-sm font-semibold">{t("applicationDetail.statusSection")}</h2>
+          <h2 className="mb-3 mg-h4">{t("applicationDetail.statusSection")}</h2>
           <StatusTimeline current={app.status as ApplicationStatus} />
         </section>
 
         {app.status === "INTERVIEW_SCHEDULED" && upcomingInterview && (
           <section className="rounded-md border bg-card p-4">
-            <h2 className="mb-2 text-sm font-semibold">{t("applicationDetail.upcomingInterviewSection")}</h2>
-            <p className="text-sm">
+            <h2 className="mb-2 mg-h4">{t("applicationDetail.upcomingInterviewSection")}</h2>
+            <p className="mg-body-sm">
               <strong>
                 {format(upcomingInterview.scheduledAt, "EEEE d MMMM yyyy, HH:mm")}
               </strong>
               {" "}— {upcomingInterview.type}
             </p>
             {upcomingInterview.videoUrl && (
-              <p className="mt-2 text-sm">
+              <p className="mt-2 mg-body-sm">
                 {t("applicationDetail.videoLink")}{" "}
                 <a
                   href={upcomingInterview.videoUrl}
@@ -139,12 +139,12 @@ export default async function CandidateApplicationDetailPage({
         {isDeployed && (
           <>
             <section className="rounded-md border bg-card p-4">
-              <h2 className="mb-3 text-sm font-semibold">{t("applicationDetail.departureChecklistSection")}</h2>
+              <h2 className="mb-3 mg-h4">{t("applicationDetail.departureChecklistSection")}</h2>
               <DepartureChecklist initial={checklist} />
             </section>
 
             <section className="rounded-md border bg-card p-4">
-              <h2 className="mb-3 text-sm font-semibold">
+              <h2 className="mb-3 mg-h4">
                 {t("applicationDetail.welcomeToMauritius")}
               </h2>
               <CountryGuide initialLang={user.lang as GuideLang} />
