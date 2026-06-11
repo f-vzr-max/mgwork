@@ -83,6 +83,7 @@ const ICONS: Record<string, string> = {
   monitor:
     "M20 3H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Z M8 21h8 M12 17v4",
   "logo-dot": "M12 12 m-3 0 a3 3 0 1 0 6 0 a3 3 0 1 0-6 0",
+  "log-out": "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4 M16 17l5-5-5-5 M21 12H9",
 };
 
 export type IconName = keyof typeof ICONS;

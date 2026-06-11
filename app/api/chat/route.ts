@@ -74,6 +74,22 @@ function jsonError(code: Parameters<typeof err>[0], message: string, status: num
   return NextResponse.json(err(code, message), { status });
 }
 
+// Client-safe, localized error copy. MG falls back to FR (locale hidden in v1).
+const SAFE_CHAT_ERRORS: Record<"FR" | "EN", { unavailable: string; notFound: string }> = {
+  FR: {
+    unavailable: "L'assistant est momentanément indisponible. Réessayez plus tard.",
+    notFound: "Profil introuvable — terminez d'abord votre inscription.",
+  },
+  EN: {
+    unavailable: "The assistant is temporarily unavailable. Please try again later.",
+    notFound: "Profile not found — please complete onboarding first.",
+  },
+};
+
+function safeChatError(lang: string, kind: "unavailable" | "notFound"): string {
+  return (SAFE_CHAT_ERRORS[lang === "EN" ? "EN" : "FR"] ?? SAFE_CHAT_ERRORS.FR)[kind];
+}
+
 // Normalised result of either bridge so the SSE/audit tail is shared.
 type ChatOutcome =
   | { ok: true; reply: string; extracted: ExtractedFields | null; escalated: boolean }
@@ -197,10 +213,11 @@ export async function POST(req: Request) {
       );
     }
     await audit({ ok: false, error: "exception" });
+    console.error("chat: unhandled bridge exception", e);
     return sseStream([
       sseEvent("error", {
         code: "INTERNAL_ERROR",
-        message: e instanceof Error ? e.message.slice(0, 200) : "internal",
+        message: safeChatError(lang, "unavailable"),
       }),
       sseEvent("done", {}),
     ]);
@@ -208,16 +225,18 @@ export async function POST(req: Request) {
 
   if (!outcome.ok) {
     await audit({ ok: false, error: outcome.error });
-    const code =
+    const notFound =
       outcome.error === "candidate-missing" ||
       outcome.error === "enterprise-missing" ||
-      outcome.error === "identity-missing"
-        ? "NOT_FOUND"
-        : "EXTERNAL_DEPENDENCY_FAILED";
+      outcome.error === "identity-missing";
+    // Never forward outcome.message — upstream provider errors (raw Anthropic
+    // bodies, request ids) must not reach the client. Details stay in the
+    // audit row + server log.
+    console.error("chat: bridge outcome error", outcome.error, outcome.message);
     return sseStream([
       sseEvent("error", {
-        code,
-        message: outcome.message ?? outcome.error,
+        code: notFound ? "NOT_FOUND" : "EXTERNAL_DEPENDENCY_FAILED",
+        message: safeChatError(lang, notFound ? "notFound" : "unavailable"),
       }),
       sseEvent("done", {}),
     ]);

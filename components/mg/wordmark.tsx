@@ -18,9 +18,8 @@ export function Wordmark({ size = 18, role }: WordmarkProps) {
         lineHeight: 1,
       }}
     >
-      <span style={{ color: "hsl(var(--primary))" }}>MG</span>
-      <span style={{ color: "hsl(var(--foreground))", margin: "0 1px", position: "relative", top: -2 }}>·</span>
-      <span style={{ color: "hsl(var(--foreground))" }}>Work</span>
+      <span style={{ color: "hsl(var(--primary))" }}>Asanao</span>
+      <span style={{ color: "hsl(var(--foreground))" }}>Connect</span>
       {role && (
         <span
           style={{
