@@ -7,25 +7,27 @@
 //   - Right rail with current plan, quota usage and KYC document health
 
 import Link from "next/link";
+import { Suspense } from "react";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { getOfferQuota } from "@/lib/billing";
+import { sectorLabel } from "@/lib/sectors";
 import {
   Avatar,
   Badge,
   Button,
   Card,
   Hairline,
-  Icon,
   KpiCard,
   PageHeader,
-  Progress,
   ScoreGauge,
   Stack,
   StatusBadge,
+  statusLabel,
 } from "@/components/mg";
+import { EnterprisePlanKycRail } from "@/components/mg/enterprise-plan-kyc-rail";
 
 export const dynamic = "force-dynamic";
 
@@ -47,79 +49,20 @@ function maskName(first: string, last: string): string {
   return `${initial}*** ${lastInitial}.`;
 }
 
-const PLACEHOLDER_MATCHES: MatchRow[] = [
-  {
-    applicationId: "m1",
-    candidateId: "c1",
-    firstName: "Tahiry",
-    lastName: "R.",
-    city: "Antananarivo",
-    sector: "Hôtellerie",
-    offerTitle: "Réceptionniste de nuit",
-    score: 91,
-    status: "PENDING",
-  },
-  {
-    applicationId: "m2",
-    candidateId: "c2",
-    firstName: "Naina",
-    lastName: "A.",
-    city: "Mahajanga",
-    sector: "Hôtellerie",
-    offerTitle: "Réceptionniste de nuit",
-    score: 84,
-    status: "SHORTLISTED",
-  },
-  {
-    applicationId: "m3",
-    candidateId: "c3",
-    firstName: "Iary",
-    lastName: "L.",
-    city: "Toamasina",
-    sector: "Cuisine",
-    offerTitle: "Commis de cuisine",
-    score: 79,
-    status: "PENDING",
-  },
-  {
-    applicationId: "m4",
-    candidateId: "c4",
-    firstName: "Vola",
-    lastName: "F.",
-    city: "Antsirabe",
-    sector: "Hôtellerie",
-    offerTitle: "Femme de chambre",
-    score: 76,
-    status: "INTERVIEW_SCHEDULED",
-  },
-  {
-    applicationId: "m5",
-    candidateId: "c5",
-    firstName: "Ny Aina",
-    lastName: "P.",
-    city: "Fianarantsoa",
-    sector: "Cuisine",
-    offerTitle: "Commis de cuisine",
-    score: 71,
-    status: "PENDING",
-  },
-  {
-    applicationId: "m6",
-    candidateId: "c6",
-    firstName: "Tojo",
-    lastName: "B.",
-    city: "Antananarivo",
-    sector: "Hôtellerie",
-    offerTitle: "Bagagiste",
-    score: 66,
-    status: "PENDING",
-  },
-];
+function startOfThisWeek(): Date {
+  const now = new Date();
+  const day = now.getUTCDay();
+  const offset = (day + 6) % 7; // Mon=0
+  const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - offset));
+  return d;
+}
 
 export default async function EnterpriseDashboardPage() {
   const { userId: clerkId } = await auth();
   if (!clerkId) redirect("/sign-in");
   const t = await getTranslations("app.enterprise.dashboard");
+  const tStatus = await getTranslations("status");
+  const tEnt = await getTranslations("app.enterprise");
 
   const user = await prisma.user.findUnique({
     where: { clerkId },
@@ -132,62 +75,67 @@ export default async function EnterpriseDashboardPage() {
 
   const enterprise = user.enterprise;
 
-  // Live numbers when available — falls back to artboard-style placeholders.
   let matchedCount = 142;
-  let interviewsThisWeek = 9;
   let avgDays = 11;
-  // Active-offers KPI and the rail are single-sourced from getOfferQuota():
-  // `offersUsed` is the quota's `active` count and drives both the KPI value
-  // and the rail "used / limit" line, so they can never disagree.
   let activeOffersLimit: number | null = null;
   let offersUsed = 0;
-  let matches: MatchRow[] = PLACEHOLDER_MATCHES;
-  // PLACEHOLDER_MATCHES carry synthetic candidateIds (c1..c6) that do not exist
-  // in the DB. Only link "View profile" to a real /enterprise/candidates/[id]
-  // when these rows came from real Applications — otherwise the link 404s.
+  let matches: MatchRow[] = [];
   let matchesAreReal = false;
   let kycExpiringSoon = 1;
   let companyName = t("dashboard.companyFallback");
   let planLabel = t("dashboard.planFallback", { tier: "Business" });
+  let interviewsThisWeek = 9;
+  // v1 default; real source deferred to Path B
+  const presetLimit = 5;
+  let presetUsed = 0;
 
   if (enterprise) {
     companyName = enterprise.companyName;
     planLabel = t("dashboard.planFallback", { tier: enterprise.plan ?? "FREE" });
 
-    const [applicationsAgg, weekStart, quota, recentApps, docs] = await Promise.all([
-      prisma.application.count({
-        where: { jobOffer: { enterpriseId: enterprise.id } },
-      }),
-      Promise.resolve(startOfThisWeek()),
-      getOfferQuota(enterprise.id),
-      prisma.application.findMany({
-        where: { jobOffer: { enterpriseId: enterprise.id } },
-        orderBy: { createdAt: "desc" },
-        take: 6,
-        select: {
-          id: true,
-          status: true,
-          aiScore: true,
-          candidate: {
-            select: { id: true, firstName: true, lastName: true, city: true, sectors: true },
+    const weekStart = startOfThisWeek();
+    const nowDate = new Date();
+    const monthStart = new Date(Date.UTC(nowDate.getUTCFullYear(), nowDate.getUTCMonth(), 1));
+    const [applicationsAgg, quota, recentApps, docs, interviewsCount, presetCount] =
+      await Promise.all([
+        prisma.application.count({ where: { jobOffer: { enterpriseId: enterprise.id } } }),
+        getOfferQuota(enterprise.id),
+        prisma.application.findMany({
+          where: { jobOffer: { enterpriseId: enterprise.id } },
+          orderBy: { createdAt: "desc" },
+          take: 6,
+          select: {
+            id: true,
+            status: true,
+            aiScore: true,
+            candidate: {
+              select: { id: true, firstName: true, lastName: true, city: true, sectors: true },
+            },
+            jobOffer: { select: { title: true, sector: true } },
           },
-          jobOffer: { select: { title: true, sector: true } },
-        },
-      }),
-      prisma.document.findMany({
-        where: { enterpriseId: enterprise.id },
-        select: { status: true, expiresAt: true },
-      }),
-    ]);
+        }),
+        prisma.document.findMany({
+          where: { enterpriseId: enterprise.id },
+          select: { status: true, expiresAt: true },
+        }),
+        prisma.interview.count({
+          where: {
+            application: { jobOffer: { enterpriseId: enterprise.id } },
+            scheduledAt: { gte: weekStart },
+          },
+        }),
+        prisma.application.count({
+          where: {
+            status: "SHORTLISTED",
+            jobOffer: { enterpriseId: enterprise.id },
+            createdAt: { gte: monthStart },
+          },
+        }),
+      ]);
 
     matchedCount = applicationsAgg || matchedCount;
-
-    interviewsThisWeek = await prisma.interview.count({
-      where: {
-        application: { jobOffer: { enterpriseId: enterprise.id } },
-        scheduledAt: { gte: weekStart },
-      },
-    });
+    interviewsThisWeek = interviewsCount;
+    presetUsed = presetCount;
 
     if (quota) {
       offersUsed = quota.active;
@@ -220,12 +168,8 @@ export default async function EnterpriseDashboardPage() {
     avgDays = 11;
   }
 
-  const presetUsed = 3;
-  const presetLimit = 5;
   const presetPct = Math.round((presetUsed / presetLimit) * 100);
-  const offerPct = activeOffersLimit
-    ? Math.round((offersUsed / activeOffersLimit) * 100)
-    : 0;
+  const offerPct = activeOffersLimit ? Math.round((offersUsed / activeOffersLimit) * 100) : 0;
 
   return (
     <>
@@ -244,16 +188,9 @@ export default async function EnterpriseDashboardPage() {
         }
       />
 
-      <div
-        style={{
-          padding: "0 32px 32px",
-          display: "flex",
-          flexDirection: "column",
-          gap: 24,
-        }}
-      >
+      <div style={{ padding: "0 32px 32px", display: "flex", flexDirection: "column", gap: 24 }}>
         {/* KPI row */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
+        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
           <KpiCard
             label={t("kpi.activeOffers")}
             value={String(offersUsed)}
@@ -277,7 +214,7 @@ export default async function EnterpriseDashboardPage() {
           />
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr", gap: 24 }}>
+        <div className="grid grid-cols-1 xl:grid-cols-[1.6fr_1fr] gap-6">
           {/* Matches feed */}
           <Card padding={0}>
             <div
@@ -333,19 +270,21 @@ export default async function EnterpriseDashboardPage() {
                         borderTop: i === 0 ? 0 : "1px solid hsl(var(--border))",
                       }}
                     >
-                      <div style={{ display: "flex", alignItems: "center", gap: 14, minWidth: 0 }}>
+                      <div
+                        style={{ display: "flex", alignItems: "center", gap: 14, minWidth: 0 }}
+                      >
                         <Avatar name={masked} size={40} />
                         <div style={{ minWidth: 0 }}>
                           <Stack dir="row" gap={8} align="center" wrap>
-                            <span
-                              className="mg-body-sm mg-mono"
-                              style={{ fontWeight: 600 }}
-                            >
+                            <span className="mg-body-sm mg-mono" style={{ fontWeight: 600 }}>
                               {masked}
                             </span>
                             {m.city && <Badge tone="neutral">{m.city}</Badge>}
-                            <Badge tone="neutral">{m.sector}</Badge>
-                            <StatusBadge status={m.status} />
+                            <Badge tone="neutral">{sectorLabel(m.sector, tEnt)}</Badge>
+                            <StatusBadge
+                              status={m.status}
+                              label={statusLabel(m.status, tStatus)}
+                            />
                           </Stack>
                           <div
                             className="mg-caption"
@@ -357,23 +296,18 @@ export default async function EnterpriseDashboardPage() {
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                         <ScoreGauge value={m.score} size={44} stroke={4} label={false} />
-                        <Stack dir="row" gap={6}>
-                          <Button variant="ghost" size="sm">
-                            {t("matches.skipButton")}
+                        {matchesAreReal ? (
+                          <Link
+                            href={`/enterprise/candidates/${m.candidateId}`}
+                            style={{ textDecoration: "none" }}
+                          >
+                            <Button size="sm">{t("matches.viewProfileButton")}</Button>
+                          </Link>
+                        ) : (
+                          <Button size="sm" disabled>
+                            {t("matches.viewProfileButton")}
                           </Button>
-                          {matchesAreReal ? (
-                            <Link
-                              href={`/enterprise/candidates/${m.candidateId}`}
-                              style={{ textDecoration: "none" }}
-                            >
-                              <Button size="sm">{t("matches.viewProfileButton")}</Button>
-                            </Link>
-                          ) : (
-                            <Button size="sm" disabled>
-                              {t("matches.viewProfileButton")}
-                            </Button>
-                          )}
-                        </Stack>
+                        )}
                       </div>
                     </div>
                   );
@@ -383,111 +317,47 @@ export default async function EnterpriseDashboardPage() {
           </Card>
 
           {/* Plan + KYC rail */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            <Card padding={20}>
-              <Stack dir="row" justify="space-between" align="center" style={{ marginBottom: 4 }}>
-                <span className="mg-micro" style={{ color: "hsl(var(--muted-foreground))" }}>
-                  {planLabel}
-                </span>
-                <Badge tone="success" icon="check-circle-2">
-                  {t("plan.activeStatus")}
-                </Badge>
-              </Stack>
-              <div className="mg-h2" style={{ margin: "8px 0 0" }}>
-                {presetUsed} / {presetLimit}
-              </div>
+          <Suspense
+            fallback={
               <div
-                className="mg-caption"
-                style={{ color: "hsl(var(--muted-foreground))", marginBottom: 12 }}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 16,
+                  minHeight: 320,
+                  opacity: 0.4,
+                }}
               >
-                {t("plan.preselectionsUsed")}
+                <div
+                  style={{
+                    height: 180,
+                    borderRadius: 8,
+                    background: "hsl(var(--surface-2))",
+                  }}
+                />
+                <div
+                  style={{
+                    height: 160,
+                    borderRadius: 8,
+                    background: "hsl(var(--surface-2))",
+                  }}
+                />
               </div>
-              <Progress value={presetPct} />
-              <Hairline style={{ margin: "16px 0" }} />
-              <div className="mg-body-sm" style={{ fontWeight: 600, marginBottom: 8 }}>
-                {t("plan.activeOffersLabel")}
-              </div>
-              <div className="mg-h2" style={{ margin: 0 }}>
-                {offersUsed} / {activeOffersLimit ?? "∞"}
-              </div>
-              <Progress value={offerPct} style={{ marginTop: 8 }} />
-              <Link
-                href="/tarifs"
-                style={{ textDecoration: "none", display: "block", marginTop: 16 }}
-              >
-                <Button variant="outline" fullWidth iconRight="arrow-up-right">
-                  {t("plan.upgradeButton")}
-                </Button>
-              </Link>
-            </Card>
-
-            <Card padding={20}>
-              <Stack dir="row" justify="space-between" align="center" style={{ marginBottom: 12 }}>
-                <h3 className="mg-h4" style={{ margin: 0 }}>
-                  {t("kyc.title")}
-                </h3>
-                {kycExpiringSoon > 0 ? (
-                  <Badge tone="warning" icon="alert-triangle">
-                    {t("kyc.expiringSoon", { count: kycExpiringSoon })}
-                  </Badge>
-                ) : (
-                  <Badge tone="success" icon="check-circle-2">
-                    {t("kyc.upToDate")}
-                  </Badge>
-                )}
-              </Stack>
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {[
-                  { name: t("kyc.docIncorporation"), icon: "building-2", status: "APPROVED" },
-                  { name: t("kyc.docSignatoryPower"), icon: "file-text", status: "APPROVED" },
-                  {
-                    name: t("kyc.docTaxClearance"),
-                    icon: "file-text",
-                    status: kycExpiringSoon > 0 ? "EXPIRING_SOON" : "APPROVED",
-                  },
-                ].map((d) => (
-                  <Stack key={d.name} dir="row" gap={10} align="center">
-                    <div
-                      style={{
-                        width: 28,
-                        height: 28,
-                        borderRadius: 6,
-                        background: "hsl(var(--surface-3))",
-                        color: "hsl(var(--foreground))",
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <Icon name={d.icon} size={14} />
-                    </div>
-                    <span className="mg-body-sm" style={{ flex: 1, minWidth: 0 }}>
-                      {d.name}
-                    </span>
-                    <StatusBadge status={d.status} />
-                  </Stack>
-                ))}
-              </div>
-              <Link
-                href="/enterprise/documents"
-                style={{ textDecoration: "none", display: "block", marginTop: 16 }}
-              >
-                <Button variant="outline" fullWidth iconRight="arrow-right">
-                  {t("kyc.manageButton")}
-                </Button>
-              </Link>
-            </Card>
-          </div>
+            }
+          >
+            <EnterprisePlanKycRail
+              offersUsed={offersUsed}
+              activeOffersLimit={activeOffersLimit}
+              offerPct={offerPct}
+              presetUsed={presetUsed}
+              presetLimit={presetLimit}
+              presetPct={presetPct}
+              kycExpiringSoon={kycExpiringSoon}
+              planLabel={planLabel}
+            />
+          </Suspense>
         </div>
       </div>
     </>
   );
-}
-
-function startOfThisWeek(): Date {
-  const now = new Date();
-  const day = now.getUTCDay(); // 0 = Sun
-  const offset = (day + 6) % 7; // Mon=0
-  const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - offset));
-  return d;
 }

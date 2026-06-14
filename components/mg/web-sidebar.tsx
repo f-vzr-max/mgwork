@@ -172,9 +172,8 @@ export function WebSidebar({
                 {user.name}
               </div>
               <div
-                className="mg-mono"
+                className="mg-mono mg-caption"
                 style={{
-                  fontSize: 11,
                   color: "hsl(var(--muted-foreground))",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
@@ -191,7 +190,7 @@ export function WebSidebar({
       </div>
       <Hairline />
       <div style={{ padding: 12, display: "flex", alignItems: "center", gap: 8 }}>
-        <LanguageMenu />
+        <LanguageMenu placement="up" />
         <ThemeToggle />
       </div>
     </aside>

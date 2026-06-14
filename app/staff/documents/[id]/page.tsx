@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { DocumentStatusBadge, type DocumentStatusValue } from "@/components/staff/StatusBadge";
+import { statusLabel } from "@/components/mg";
 import { InlineScanViewer } from "@/components/staff/InlineScanViewer";
 import { DocumentReviewForm } from "@/components/staff/DocumentReviewForm";
 import { docAiFlag, readDocAiAnalysis } from "@/lib/ai/doc-analysis";
@@ -47,6 +48,7 @@ export default async function StaffDocumentReviewPage({ params }: { params: { id
   const t = await getTranslations("app.staff");
   const ta = await getTranslations("aiDocCheck");
   const tc = await getTranslations("common");
+  const tStatus = await getTranslations("status");
 
   const doc = await prisma.document.findUnique({
     where: { id: params.id },
@@ -112,7 +114,7 @@ export default async function StaffDocumentReviewPage({ params }: { params: { id
             <CardContent className="space-y-2 mg-body-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">{t("documentReview.metadata.status")}</span>
-                <DocumentStatusBadge status={doc.status as DocumentStatusValue} />
+                <DocumentStatusBadge status={doc.status as DocumentStatusValue} label={statusLabel(doc.status, tStatus)} />
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">{t("documentReview.metadata.type")}</span>

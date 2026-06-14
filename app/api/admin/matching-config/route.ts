@@ -15,6 +15,7 @@
 // lib/matching-config.ts for the upsert helper.
 
 import { NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { auth } from "@clerk/nextjs/server";
 import { ZodError } from "zod";
 import { prisma } from "@/lib/prisma";
@@ -135,6 +136,7 @@ export async function PUT(req: Request) {
   }
 
   const saved = await setMatchingWeights(parsed.weights, r.user.id);
+  revalidateTag("matching-config");
 
   await logAuditByClerkId(clerkId, {
     action: "matching_config.update",

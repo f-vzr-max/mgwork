@@ -7,6 +7,8 @@ import { useClerk } from "@clerk/nextjs";
 import { CandAppBar } from "./cand-app-bar";
 import { CandTabBar } from "./cand-tab-bar";
 import { Icon } from "./icon";
+import { LanguageMenu } from "./language-menu";
+import { ThemeToggle } from "./theme-toggle";
 import { Wordmark } from "./wordmark";
 
 export interface CandMobileNavItem {
@@ -147,6 +149,11 @@ export function CandMobileChrome({ navItems, userName }: CandMobileChromeProps) 
               {item.label}
             </Link>
           ))}
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginTop: 8 }}>
+          <LanguageMenu />
+          <ThemeToggle />
         </div>
 
         <button

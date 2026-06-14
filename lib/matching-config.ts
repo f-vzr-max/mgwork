@@ -13,6 +13,7 @@
 // /admin.ts).
 
 import type { Prisma } from "@prisma/client";
+import { unstable_cache } from "next/cache";
 import { prisma } from "./prisma";
 import { DEFAULT_WEIGHTS, type CompatibilityWeights } from "./scoring";
 
@@ -31,11 +32,7 @@ function isValidWeights(value: unknown): value is CompatibilityWeights {
   );
 }
 
-/**
- * Fetch the active matching weights. Falls back to DEFAULT_WEIGHTS when the
- * config row does not exist or is malformed.
- */
-export async function getMatchingWeights(): Promise<CompatibilityWeights> {
+async function _fetchMatchingWeights(): Promise<CompatibilityWeights> {
   const row = await prisma.matchingConfig.findUnique({
     where: { id: MATCHING_CONFIG_ID },
     select: { weights: true },
@@ -43,6 +40,19 @@ export async function getMatchingWeights(): Promise<CompatibilityWeights> {
   if (!row) return { ...DEFAULT_WEIGHTS };
   return isValidWeights(row.weights) ? row.weights : { ...DEFAULT_WEIGHTS };
 }
+
+/**
+ * Fetch the active matching weights. Falls back to DEFAULT_WEIGHTS when the
+ * config row does not exist or is malformed.
+ *
+ * Cached globally (single-row singleton, no per-user data). Invalidated by
+ * revalidateTag("matching-config") on every PUT.
+ */
+export const getMatchingWeights = unstable_cache(
+  _fetchMatchingWeights,
+  ["matching-weights"],
+  { tags: ["matching-config"] },
+);
 
 /**
  * Upsert the singleton row with the supplied weights. Returns the canonical

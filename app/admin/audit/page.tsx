@@ -180,7 +180,7 @@ export default async function AdminAuditPage({
                   gap: 8,
                 }}
               >
-                <span className="mg-mono" style={{ fontSize: 11, whiteSpace: "nowrap" }}>
+                <span className="mg-mono mg-caption" style={{ whiteSpace: "nowrap" }}>
                   {a.createdAt.toISOString().replace("T", " ").slice(0, 19)}
                 </span>
                 <div style={{ minWidth: 0 }}>
@@ -205,13 +205,12 @@ export default async function AdminAuditPage({
                     {a.user.role}
                   </div>
                 </div>
-                <span className="mg-mono" style={{ fontSize: 11 }}>
+                <span className="mg-mono mg-caption">
                   {a.action}
                 </span>
                 <span
-                  className="mg-mono"
+                  className="mg-mono mg-caption"
                   style={{
-                    fontSize: 11,
                     overflow: "hidden",
                     textOverflow: "ellipsis",
                     whiteSpace: "nowrap",
@@ -220,13 +219,13 @@ export default async function AdminAuditPage({
                   {a.resourceType}
                   {a.resourceId ? `/${a.resourceId}` : ""}
                 </span>
-                <span className="mg-mono" style={{ fontSize: 11 }}>
+                <span className="mg-mono mg-caption">
                   {a.ipAddress ?? "—"}
                 </span>
                 <pre
                   style={{
                     margin: 0,
-                    fontSize: 11,
+                    fontSize: 13,
                     fontFamily: "var(--font-mono, ui-monospace, monospace)",
                     whiteSpace: "pre-wrap",
                     wordBreak: "break-word",

@@ -22,6 +22,7 @@ export {
 export { Badge, type BadgeProps, type BadgeTone } from "./badge";
 export {
   StatusBadge,
+  statusLabel,
   type StatusBadgeProps,
   type StatusKey,
 } from "./status-badge";

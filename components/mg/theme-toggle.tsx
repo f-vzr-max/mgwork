@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useTheme } from "next-themes";
+import { useTranslations } from "next-intl";
 import { Icon } from "./icon";
 
 export interface ThemeToggleProps {
@@ -9,6 +10,7 @@ export interface ThemeToggleProps {
 }
 
 export function ThemeToggle({ className }: ThemeToggleProps) {
+  const t = useTranslations();
   const { theme, resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = React.useState(false);
 
@@ -27,8 +29,8 @@ export function ThemeToggle({ className }: ThemeToggleProps) {
     <button
       type="button"
       onClick={toggle}
-      aria-label={isDark ? "Activer le thème clair" : "Activer le thème sombre"}
-      title={isDark ? "Thème clair" : "Thème sombre"}
+      aria-label={isDark ? t("themeToggle.toLight") : t("themeToggle.toDark")}
+      title={isDark ? t("themeToggle.toLight") : t("themeToggle.toDark")}
       className={
         ["hover:bg-[hsl(var(--surface-2))] transition-colors", className]
           .filter(Boolean)

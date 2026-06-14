@@ -16,6 +16,7 @@ import {
   Avatar,
   StatusBadge,
   KpiCard,
+  statusLabel,
 } from "@/components/mg";
 import type { StatusKey } from "@/components/mg";
 
@@ -99,6 +100,7 @@ export default async function StaffFollowupPage() {
   if (!user) redirect("/sign-in");
   if (!canAccess(user.role as Role, "staff")) redirect("/");
   const t = await getTranslations("app.staff");
+  const tStatus = await getTranslations("status");
 
   const rows = await loadDeployed();
   const groups = groupByEnterprise(rows);
@@ -237,7 +239,7 @@ export default async function StaffFollowupPage() {
                           </span>
                         </Stack>
                         {r.latestStatus ? (
-                          <StatusBadge status={r.latestStatus} />
+                          <StatusBadge status={r.latestStatus} label={statusLabel(r.latestStatus, tStatus)} />
                         ) : (
                           <span
                             className="mg-caption"

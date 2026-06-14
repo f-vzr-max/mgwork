@@ -65,8 +65,8 @@ export function checkpointStatusLabel(s: CheckpointStatusValue): string {
   }
 }
 
-export function CheckpointStatusBadge({ status }: { status: CheckpointStatusValue }) {
-  return <StatusBadge label={checkpointStatusLabel(status)} tone={checkpointStatusTone(status)} />;
+export function CheckpointStatusBadge({ status, label }: { status: CheckpointStatusValue; label?: string }) {
+  return <StatusBadge label={label ?? checkpointStatusLabel(status)} tone={checkpointStatusTone(status)} />;
 }
 
 export type DocumentStatusValue = "PENDING" | "APPROVED" | "REJECTED" | "EXPIRED";
@@ -84,6 +84,6 @@ export function documentStatusTone(s: DocumentStatusValue): BadgeTone {
   }
 }
 
-export function DocumentStatusBadge({ status }: { status: DocumentStatusValue }) {
-  return <StatusBadge label={status.charAt(0) + status.slice(1).toLowerCase()} tone={documentStatusTone(status)} />;
+export function DocumentStatusBadge({ status, label }: { status: DocumentStatusValue; label?: string }) {
+  return <StatusBadge label={label ?? (status.charAt(0) + status.slice(1).toLowerCase())} tone={documentStatusTone(status)} />;
 }

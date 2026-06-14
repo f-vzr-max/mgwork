@@ -227,7 +227,7 @@ export default async function AdminUsersPage({
                   >
                     {display}
                   </span>
-                  <span className="mg-mono" style={{ fontSize: 11 }}>
+                  <span className="mg-mono mg-caption">
                     {u.role}
                   </span>
                   <span className="mg-body-sm">{u.lang}</span>

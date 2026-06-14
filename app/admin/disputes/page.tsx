@@ -11,6 +11,7 @@ import {
   Avatar,
   StatusBadge,
   Icon,
+  statusLabel,
 } from "@/components/mg";
 import type { StatusKey } from "@/components/mg";
 import { getTranslations } from "next-intl/server";
@@ -134,6 +135,7 @@ async function loadColumns(t: T): Promise<LoadResult> {
 
 export default async function AdminDisputesPage() {
   const t = await getTranslations("app.admin");
+  const tStatus = await getTranslations("status");
   const { columns, open, priority } = await loadColumns(t);
 
   return (
@@ -269,7 +271,7 @@ export default async function AdminDisputesPage() {
                           ? t("disputes.card.resolvedAgo", { days: c.days })
                           : t("disputes.card.openSince", { days: c.days })}
                       </span>
-                      <StatusBadge status={c.status} />
+                      <StatusBadge status={c.status} label={statusLabel(c.status, tStatus)} />
                     </Stack>
                     {/* "+ Add" attachments — opens the shared UploadDialog
                         against /api/admin/disputes/[id]/attachments. */}

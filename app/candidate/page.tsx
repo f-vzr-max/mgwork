@@ -23,6 +23,7 @@ import {
   ScoreGauge,
   Stack,
   StatusBadge,
+  statusLabel,
   type IconName,
 } from "@/components/mg";
 
@@ -54,6 +55,7 @@ export default async function CandidateDashboard() {
   const t = await getTranslations("app.candidate.dashboard");
   const tc = await getTranslations("common");
   const tl = await getTranslations("langTest");
+  const tStatus = await getTranslations("status");
 
   const user = await prisma.user.findUnique({
     where: { clerkId },
@@ -280,7 +282,7 @@ export default async function CandidateDashboard() {
                   >
                     <Icon name={DOC_TYPE_ICON[d.type]} size={14} />
                   </div>
-                  <StatusBadge status={tileStatus(d)} />
+                  <StatusBadge status={tileStatus(d)} label={statusLabel(tileStatus(d), tStatus)} />
                 </Stack>
                 <div className="mg-body-sm" style={{ fontWeight: 600 }}>
                   {tc(`docType.${d.type}`)}
