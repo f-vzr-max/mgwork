@@ -19,6 +19,7 @@ import {
   Icon,
   StatusBadge,
   KpiCard,
+  statusLabel,
 } from "@/components/mg";
 import type { IconName } from "@/components/mg";
 
@@ -104,6 +105,7 @@ export default async function StaffDocumentsQueuePage() {
   const t = await getTranslations("app.staff");
   const tc = await getTranslations("common");
   const ta = await getTranslations("aiDocCheck");
+  const tStatus = await getTranslations("status");
 
   const pending = await loadPending();
   const candidateIds = pending
@@ -310,9 +312,8 @@ export default async function StaffDocumentsQueuePage() {
                         {ownerLabel}
                       </div>
                       <div
-                        className="mg-mono"
+                        className="mg-mono mg-caption"
                         style={{
-                          fontSize: 11,
                           color: "hsl(var(--muted-foreground))",
                           letterSpacing: "0.04em",
                           textTransform: "uppercase",
@@ -329,7 +330,7 @@ export default async function StaffDocumentsQueuePage() {
                       ) : null}
                     </div>
                   </Stack>
-                  <StatusBadge status={doc.status} />
+                  <StatusBadge status={doc.status} label={statusLabel(doc.status, tStatus)} />
                   <span
                     className="mg-tabular mg-body-sm"
                     style={{ color: "hsl(var(--muted-foreground))" }}

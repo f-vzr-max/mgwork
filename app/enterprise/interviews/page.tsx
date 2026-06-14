@@ -20,6 +20,7 @@ import {
   PageHeader,
   Stack,
   StatusBadge,
+  statusLabel,
 } from "@/components/mg";
 
 export const dynamic = "force-dynamic";
@@ -57,6 +58,7 @@ export default async function EnterpriseInterviewsPage({
   if (!user) redirect("/sign-in");
 
   const t = await getTranslations("app.enterprise.interviews");
+  const tStatus = await getTranslations("status");
 
   if (user.role !== "ENTERPRISE" && user.role !== "ADMIN" && user.role !== "SUPER_ADMIN") {
     return <PageHeader title={t("accessDenied.title")} subtitle={t("accessDenied.subtitle")} />;
@@ -212,7 +214,7 @@ export default async function EnterpriseInterviewsPage({
                       </div>
                       <Stack dir="row" gap={6} align="center">
                         <Badge tone="neutral">{i.type}</Badge>
-                        <StatusBadge status={i.status} />
+                        <StatusBadge status={i.status} label={statusLabel(i.status, tStatus)} />
                       </Stack>
                     </Link>
                   </li>

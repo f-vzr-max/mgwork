@@ -235,7 +235,7 @@ export default async function OfferDetailPage({ params }: { params: { id: string
                         </div>
                         <div className="text-right">
                           <div className="text-xl font-semibold">{m.score}</div>
-                          <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{t("offerDetail.candidate.matchLabel")}</div>
+                          <div className="mg-caption uppercase tracking-wide text-muted-foreground">{t("offerDetail.candidate.matchLabel")}</div>
                         </div>
                       </div>
                       <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 mg-caption text-muted-foreground md:grid-cols-3">

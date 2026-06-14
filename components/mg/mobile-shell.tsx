@@ -7,6 +7,7 @@ import { useClerk } from "@clerk/nextjs";
 import { Icon } from "./icon";
 import { Wordmark } from "./wordmark";
 import { LanguageMenu } from "./language-menu";
+import { ThemeToggle } from "./theme-toggle";
 
 export interface MobileNavItem {
   label: string;
@@ -186,6 +187,10 @@ export function MobileShell({ navItems, homeHref = "/", onLogout }: MobileShellP
               {item.label}
             </Link>
           ))}
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8 }}>
+          <ThemeToggle />
         </div>
 
         <button

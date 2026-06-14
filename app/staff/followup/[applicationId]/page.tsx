@@ -11,6 +11,7 @@ import {
   CheckpointStatusBadge,
   type CheckpointStatusValue,
 } from "@/components/staff/StatusBadge";
+import { statusLabel } from "@/components/mg";
 import { InterventionForm } from "@/components/staff/InterventionForm";
 import { NoteForm } from "@/components/staff/NoteForm";
 
@@ -39,6 +40,7 @@ export default async function FollowupDetailPage({ params }: { params: { applica
   if (!user) redirect("/sign-in");
   if (!canAccess(user.role as Role, "staff")) redirect("/");
   const t = await getTranslations("app.staff");
+  const tStatus = await getTranslations("status");
 
   const app = await prisma.application.findUnique({
     where: { id: params.applicationId },
@@ -194,7 +196,7 @@ export default async function FollowupDetailPage({ params }: { params: { applica
                   {app.checkpoints.map((c) => (
                     <li key={c.id} className="px-6 py-3">
                       <div className="flex items-center justify-between gap-2">
-                        <CheckpointStatusBadge status={c.status as CheckpointStatusValue} />
+                        <CheckpointStatusBadge status={c.status as CheckpointStatusValue} label={statusLabel(c.status, tStatus)} />
                         <span className="mg-caption text-muted-foreground">{fmtDateTime(c.date)}</span>
                       </div>
                       {c.notes ? (

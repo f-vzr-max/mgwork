@@ -33,6 +33,7 @@ import {
   OfferSelectorProvider,
   type OfferOption,
 } from "@/components/mg/candidate-action-bar";
+import { QUICK_SECTORS } from "@/lib/sectors";
 
 export const dynamic = "force-dynamic";
 
@@ -60,15 +61,6 @@ function maskName(first: string, last: string): string {
   return `${a}*** ${b}.`;
 }
 
-// `value` is the DB/URL filter value (stored in French) and stays untranslated;
-// only the displayed `labelKey` is localized so EN users keep working filters.
-const QUICK_SECTORS: { value: string; labelKey: string }[] = [
-  { value: "Hôtellerie", labelKey: "candidates.filter.quickSector.hotellerie" },
-  { value: "Cuisine", labelKey: "candidates.filter.quickSector.cuisine" },
-  { value: "Construction", labelKey: "candidates.filter.quickSector.construction" },
-  { value: "Santé", labelKey: "candidates.filter.quickSector.sante" },
-  { value: "Logistique", labelKey: "candidates.filter.quickSector.logistique" },
-];
 
 export default async function BrowseCandidatesPage({
   searchParams,

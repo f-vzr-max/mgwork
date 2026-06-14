@@ -19,6 +19,7 @@ import {
   Progress,
   Stack,
   StatusBadge,
+  statusLabel,
 } from "@/components/mg";
 
 export const dynamic = "force-dynamic";
@@ -38,6 +39,7 @@ export default async function EnterpriseOffersPage() {
   if (!user) redirect("/onboarding");
 
   const t = await getTranslations("app.enterprise");
+  const tStatus = await getTranslations("status");
 
   if (!user.enterprise) {
     return (
@@ -214,7 +216,7 @@ export default async function EnterpriseOffersPage() {
                         <span className="mg-body-sm" style={{ fontWeight: 600 }}>
                           {o.title}
                         </span>
-                        <StatusBadge status={o.status} />
+                        <StatusBadge status={o.status} label={statusLabel(o.status, tStatus)} />
                       </Stack>
                       <div
                         className="mg-caption"

@@ -15,6 +15,7 @@ import {
   Icon,
   Stack,
   StatusBadge,
+  statusLabel,
 } from "@/components/mg";
 import {
   StatusTimeline,
@@ -28,6 +29,7 @@ export default async function CandidateApplicationsPage() {
   const { userId: clerkId } = await auth();
   if (!clerkId) redirect("/sign-in");
   const t = await getTranslations("app.candidate");
+  const tStatus = await getTranslations("status");
 
   const user = await prisma.user.findUnique({
     where: { clerkId },
@@ -121,7 +123,7 @@ export default async function CandidateApplicationsPage() {
                     {format(app.updatedAt, "d MMM yyyy")}
                   </div>
                 </div>
-                <StatusBadge status={app.status} />
+                <StatusBadge status={app.status} label={statusLabel(app.status, tStatus)} />
               </Stack>
               <StatusTimeline current={app.status as ApplicationStatus} />
               {app.status === "SHORTLISTED" && (

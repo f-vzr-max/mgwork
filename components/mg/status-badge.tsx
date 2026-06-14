@@ -72,4 +72,8 @@ export function StatusBadge({ status, label, size = "sm", ...rest }: StatusBadge
   );
 }
 
+export function statusLabel(status: StatusKey | string, tStatus: (key: string) => string): string {
+  return tStatus(status as StatusKey);
+}
+
 export default StatusBadge;

@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
-import { PageHeader, Card, Button, Input, Stack, StatusBadge } from "@/components/mg";
+import { PageHeader, Card, Button, Input, Stack, StatusBadge, statusLabel } from "@/components/mg";
 import { prisma } from "@/lib/prisma";
 import { invoiceListQuerySchema } from "@/lib/validation/admin";
 
@@ -23,6 +23,7 @@ export default async function AdminInvoicesPage({
 }) {
   const t = await getTranslations("app.admin");
   const tc = await getTranslations("common");
+  const tStatus = await getTranslations("status");
   const cleaned: Record<string, string> = {};
   for (const [k, v] of Object.entries({
     status: pickFirst(searchParams.status),
@@ -214,10 +215,10 @@ export default async function AdminInvoicesPage({
                 <span className="mg-tabular mg-body-sm">
                   {inv.amount.toFixed(2)} {inv.currency}
                 </span>
-                <span className="mg-mono" style={{ fontSize: 11 }}>
+                <span className="mg-mono mg-caption">
                   {inv.paymentMethod}
                 </span>
-                <StatusBadge status={inv.status} />
+                <StatusBadge status={inv.status} label={statusLabel(inv.status, tStatus)} />
                 <Link
                   href={`/admin/invoices/${inv.id}`}
                   className="mg-mono"
