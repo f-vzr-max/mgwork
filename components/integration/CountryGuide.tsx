@@ -102,7 +102,7 @@ const PREFILL_QUESTION: Record<GuideLang, string> = {
 export function CountryGuide({ initialLang = "FR" }: CountryGuideProps) {
   const [lang, setLang] = React.useState<GuideLang>(initialLang);
   const sections = CONTENT[lang];
-  const askHref = `/candidate/chat?prefill=${encodeURIComponent(PREFILL_QUESTION[lang])}`;
+  const askHref = `/candidate?openChat=1&prefill=${encodeURIComponent(PREFILL_QUESTION[lang].slice(0, 500))}`;
 
   return (
     <div className="grid gap-4">

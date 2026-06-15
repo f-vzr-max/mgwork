@@ -143,76 +143,111 @@ export default async function CandidateMatchesPage({
   }
 
   // ── List view ──────────────────────────────────────────────────────────
+  // At lg+ the page splits into a main list (col 1) and a summary rail (col 2).
+  // The rail div follows the list in DOM so mobile renders list → summary
+  // (single column, no reorder). cand-page-rail hooks into the Group-E
+  // data-chat-open cascade to hide when the chat drawer opens.
+  const avgScore =
+    ranked.length > 0
+      ? Math.round(ranked.reduce((s, m) => s + m.score, 0) / ranked.length)
+      : null;
+
   return (
-    <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 16 }}>
-      <div>
-        <h1 className="mg-h1" style={{ margin: 0, fontSize: 26, lineHeight: "32px" }}>
-          {t("matches.title")}
-        </h1>
-        <div className="mg-caption" style={{ color: "hsl(var(--muted-foreground))", marginTop: 4 }}>
-          {t("matches.subtitle", { n: Object.keys(weights).length })}
+    <div
+      className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_280px] lg:gap-6 lg:items-start"
+      style={{ padding: 16 }}
+    >
+      {/* Main list column ------------------------------------------------ */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <div>
+          <h1 className="mg-h1" style={{ margin: 0, fontSize: 26, lineHeight: "32px" }}>
+            {t("matches.title")}
+          </h1>
+          <div className="mg-caption" style={{ color: "hsl(var(--muted-foreground))", marginTop: 4 }}>
+            {t("matches.subtitle", { n: Object.keys(weights).length })}
+          </div>
         </div>
+
+        {ranked.length === 0 ? (
+          <Card padding={16}>
+            <div className="mg-h4" style={{ margin: 0 }}>{t("matches.empty.title")}</div>
+            <div className="mg-body-sm" style={{ color: "hsl(var(--muted-foreground))", marginTop: 4 }}>
+              {t("matches.empty.body")}
+            </div>
+          </Card>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {ranked.map((m) => {
+              const o = offersById.get(m.offerId);
+              if (!o) return null;
+              const tone = gaugeTone(m.score);
+              return (
+                <Link
+                  key={m.offerId}
+                  href={`/candidate/matches?id=${m.offerId}`}
+                  style={{ textDecoration: "none", color: "inherit" }}
+                >
+                  <Card padding={14}>
+                    <Stack dir="row" gap={14} align="center">
+                      <ScoreGauge value={m.score} size={56} stroke={4} label={false} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div className="mg-body-sm" style={{ fontWeight: 600 }}>{o.title}</div>
+                        <div
+                          className="mg-caption"
+                          style={{ color: "hsl(var(--muted-foreground))", marginTop: 2 }}
+                        >
+                          {o.enterprise.companyName} · {o.location}
+                        </div>
+                        <div style={{ marginTop: 6, color: tone.color }} className="mg-caption">
+                          {tone.label}
+                        </div>
+                      </div>
+                      <Icon name="chevron-right" size={18} style={{ color: "hsl(var(--muted-foreground))" }} />
+                    </Stack>
+                    <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8 }}>
+                      {Object.entries(m.breakdown).slice(0, 4).map(([k, v]) => (
+                        <div key={k}>
+                          <Stack dir="row" justify="space-between" align="center" style={{ marginBottom: 4 }}>
+                            <span className="mg-caption" style={{ color: "hsl(var(--muted-foreground))" }}>
+                              {tc(`criterion.${k}`)}
+                            </span>
+                            <Badge tone="neutral">{Math.round(Number(v))}</Badge>
+                          </Stack>
+                          <Progress
+                            value={Number(v)}
+                            tone={Number(v) >= 80 ? "success" : Number(v) >= 60 ? "primary" : "warning"}
+                            height={4}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
+                </Link>
+              );
+            })}
+          </div>
+        )}
       </div>
 
-      {ranked.length === 0 ? (
+      {/* Summary rail — hidden on mobile (lg+ only via CSS) --------------- */}
+      <div className="cand-page-rail hidden lg:block lg:sticky lg:top-6">
         <Card padding={16}>
-          <div className="mg-h4" style={{ margin: 0 }}>{t("matches.empty.title")}</div>
-          <div className="mg-body-sm" style={{ color: "hsl(var(--muted-foreground))", marginTop: 4 }}>
-            {t("matches.empty.body")}
+          <div className="mg-body-sm" style={{ fontWeight: 600, marginBottom: 12 }}>
+            {t("matches.title")}
+          </div>
+          <Stack dir="row" justify="space-between" align="center" style={{ marginBottom: 8 }}>
+            <span className="mg-caption" style={{ color: "hsl(var(--muted-foreground))" }}>
+              {t("matches.thisWeek", { n: ranked.length })}
+            </span>
+            {avgScore != null && (
+              <ScoreGauge value={avgScore} size={40} stroke={3} label={false} />
+            )}
+          </Stack>
+          <div className="mg-caption" style={{ color: "hsl(var(--muted-foreground))" }}>
+            {t("matches.subtitle", { n: Object.keys(weights).length })}
           </div>
         </Card>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {ranked.map((m) => {
-            const o = offersById.get(m.offerId);
-            if (!o) return null;
-            const tone = gaugeTone(m.score);
-            return (
-              <Link
-                key={m.offerId}
-                href={`/candidate/matches?id=${m.offerId}`}
-                style={{ textDecoration: "none", color: "inherit" }}
-              >
-                <Card padding={14}>
-                  <Stack dir="row" gap={14} align="center">
-                    <ScoreGauge value={m.score} size={56} stroke={4} label={false} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div className="mg-body-sm" style={{ fontWeight: 600 }}>{o.title}</div>
-                      <div
-                        className="mg-caption"
-                        style={{ color: "hsl(var(--muted-foreground))", marginTop: 2 }}
-                      >
-                        {o.enterprise.companyName} · {o.location}
-                      </div>
-                      <div style={{ marginTop: 6, color: tone.color }} className="mg-caption">
-                        {tone.label}
-                      </div>
-                    </div>
-                    <Icon name="chevron-right" size={18} style={{ color: "hsl(var(--muted-foreground))" }} />
-                  </Stack>
-                  <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8 }}>
-                    {Object.entries(m.breakdown).slice(0, 4).map(([k, v]) => (
-                      <div key={k}>
-                        <Stack dir="row" justify="space-between" align="center" style={{ marginBottom: 4 }}>
-                          <span className="mg-caption" style={{ color: "hsl(var(--muted-foreground))" }}>
-                            {tc(`criterion.${k}`)}
-                          </span>
-                          <Badge tone="neutral">{Math.round(Number(v))}</Badge>
-                        </Stack>
-                        <Progress
-                          value={Number(v)}
-                          tone={Number(v) >= 80 ? "success" : Number(v) >= 60 ? "primary" : "warning"}
-                          height={4}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </Card>
-              </Link>
-            );
-          })}
-        </div>
-      )}
+      </div>
     </div>
   );
 }

@@ -122,123 +122,163 @@ export default function LanguageTestPage(): React.ReactElement {
   const muted = { color: "hsl(var(--muted-foreground))" } as const;
 
   return (
-    <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 16 }}>
-      <div>
-        <h1 className="mg-h1" style={{ margin: 0, fontSize: 26, lineHeight: "32px" }}>
-          {t("title")}
-        </h1>
-        <div className="mg-caption" style={{ ...muted, marginTop: 4 }}>
-          {t("subtitle")}
+    <div style={{ padding: 16 }} className="lg:grid lg:grid-cols-[minmax(0,720px)_1fr] lg:gap-8 lg:items-start">
+      {/* Left column: test UI */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <div>
+          <h1 className="mg-h1" style={{ margin: 0, fontSize: 26, lineHeight: "32px" }}>
+            {t("title")}
+          </h1>
+          <div className="mg-caption" style={{ ...muted, marginTop: 4 }}>
+            {t("subtitle")}
+          </div>
         </div>
+
+        {/* Result --------------------------------------------------------- */}
+        {result && lang ? (
+          <Card padding={20}>
+            <Stack dir="row" gap={20} align="center">
+              <ScoreGauge value={result.score} size={88} stroke={6} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <Stack dir="row" gap={8} align="center" wrap>
+                  <div className="mg-h3" style={{ margin: 0 }}>
+                    {t("result.title", { lang: t(lang === "FR" ? "choose.fr" : "choose.en") })}
+                  </div>
+                  <Badge tone="success" icon="check-circle-2">{t("badge.verified")}</Badge>
+                </Stack>
+                {result.feedback && (
+                  <div className="mg-body-sm" style={{ ...muted, marginTop: 6 }}>
+                    {result.feedback}
+                  </div>
+                )}
+              </div>
+            </Stack>
+            <Stack dir="row" gap={10} wrap style={{ marginTop: 16 }}>
+              <Button
+                variant="outline"
+                size="sm"
+                iconLeft="globe"
+                onClick={() => start(lang === "FR" ? "EN" : "FR")}
+              >
+                {t("result.testOther", {
+                  lang: t(lang === "FR" ? "choose.en" : "choose.fr"),
+                })}
+              </Button>
+              <Link href="/candidate" style={{ textDecoration: "none" }}>
+                <Button size="sm" iconRight="arrow-right">{t("result.backToDashboard")}</Button>
+              </Link>
+            </Stack>
+          </Card>
+        ) : lang === null ? (
+          /* Language picker ----------------------------------------------- */
+          <Card padding={20}>
+            <div className="mg-h4" style={{ margin: 0 }}>{t("choose.title")}</div>
+            <div className="mg-caption" style={{ ...muted, marginTop: 4 }}>
+              {t("choose.hint", { n: PROMPTS.FR.length })}
+            </div>
+            <Stack dir="row" gap={10} style={{ marginTop: 16 }} wrap>
+              <Button variant="outline" iconLeft="globe" onClick={() => start("FR")}>
+                {t("choose.fr")}
+              </Button>
+              <Button variant="outline" iconLeft="globe" onClick={() => start("EN")}>
+                {t("choose.en")}
+              </Button>
+            </Stack>
+          </Card>
+        ) : (
+          /* Quiz ----------------------------------------------------------- */
+          <Card padding={20}>
+            <Stack dir="row" justify="space-between" align="center">
+              <span className="mg-caption" style={muted}>
+                {t("progress", { current: step + 1, total })}
+              </span>
+              <Badge tone="neutral">{t(lang === "FR" ? "choose.fr" : "choose.en")}</Badge>
+            </Stack>
+            <Progress value={step + 1} max={total} height={6} style={{ marginTop: 8 }} />
+            <div className="mg-body-sm" style={{ fontWeight: 600, marginTop: 16 }}>
+              {questions[step]}
+            </div>
+            <div style={{ marginTop: 10 }}>
+              <Textarea
+                value={answers[step] ?? ""}
+                onChange={onAnswer}
+                rows={5}
+                maxLength={MAX_ANSWER_LEN}
+                placeholder={t("answerPlaceholder")}
+                disabled={grading}
+              />
+            </div>
+            {error && (
+              <div className="mg-caption" style={{ color: "hsl(var(--destructive))", marginTop: 10 }}>
+                {error}
+              </div>
+            )}
+            <Stack dir="row" justify="space-between" align="center" style={{ marginTop: 16 }}>
+              <Button
+                variant="ghost"
+                size="sm"
+                iconLeft="chevron-left"
+                disabled={step === 0 || grading}
+                onClick={() => {
+                  setStep(Math.max(0, step - 1));
+                  setError(null);
+                }}
+              >
+                {t("previous")}
+              </Button>
+              <Button onClick={next} disabled={grading} iconRight={grading ? undefined : "arrow-right"}>
+                {grading ? (
+                  <Stack dir="row" gap={6} align="center">
+                    <Icon name="circle-dashed" size={14} />
+                    {t("grading")}
+                  </Stack>
+                ) : step + 1 < total ? (
+                  t("next")
+                ) : (
+                  t("submit")
+                )}
+              </Button>
+            </Stack>
+          </Card>
+        )}
       </div>
 
-      {/* Result --------------------------------------------------------- */}
+      {/* Right rail: session result when available, else static hint (lg+ only) */}
+      <LangTestRail result={result} lang={lang} />
+    </div>
+  );
+}
+
+function LangTestRail({ result, lang }: { result: LangTestResult | null; lang: Lang | null }) {
+  const t = useTranslations("langTest");
+
+  return (
+    <aside className="cand-page-rail hidden lg:block" style={{ paddingTop: 44 }}>
       {result && lang ? (
+        // Session result summary
         <Card padding={20}>
-          <Stack dir="row" gap={20} align="center">
-            <ScoreGauge value={result.score} size={88} stroke={6} />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <Stack dir="row" gap={8} align="center" wrap>
-                <div className="mg-h3" style={{ margin: 0 }}>
-                  {t("result.title", { lang: t(lang === "FR" ? "choose.fr" : "choose.en") })}
-                </div>
-                <Badge tone="success" icon="check-circle-2">{t("badge.verified")}</Badge>
-              </Stack>
-              {result.feedback && (
-                <div className="mg-body-sm" style={{ ...muted, marginTop: 6 }}>
-                  {result.feedback}
-                </div>
-              )}
-            </div>
-          </Stack>
-          <Stack dir="row" gap={10} wrap style={{ marginTop: 16 }}>
-            <Button
-              variant="outline"
-              size="sm"
-              iconLeft="globe"
-              onClick={() => start(lang === "FR" ? "EN" : "FR")}
-            >
-              {t("result.testOther", {
-                lang: t(lang === "FR" ? "choose.en" : "choose.fr"),
-              })}
-            </Button>
-            <Link href="/candidate" style={{ textDecoration: "none" }}>
-              <Button size="sm" iconRight="arrow-right">{t("result.backToDashboard")}</Button>
-            </Link>
-          </Stack>
-        </Card>
-      ) : lang === null ? (
-        /* Language picker ----------------------------------------------- */
-        <Card padding={20}>
-          <div className="mg-h4" style={{ margin: 0 }}>{t("choose.title")}</div>
-          <div className="mg-caption" style={{ ...muted, marginTop: 4 }}>
-            {t("choose.hint", { n: PROMPTS.FR.length })}
+          <div className="mg-h4" style={{ margin: "0 0 12px" }}>
+            {t("result.title", { lang: t(lang === "FR" ? "choose.fr" : "choose.en") })}
           </div>
-          <Stack dir="row" gap={10} style={{ marginTop: 16 }} wrap>
-            <Button variant="outline" iconLeft="globe" onClick={() => start("FR")}>
-              {t("choose.fr")}
-            </Button>
-            <Button variant="outline" iconLeft="globe" onClick={() => start("EN")}>
-              {t("choose.en")}
-            </Button>
-          </Stack>
-        </Card>
-      ) : (
-        /* Quiz ----------------------------------------------------------- */
-        <Card padding={20}>
-          <Stack dir="row" justify="space-between" align="center">
-            <span className="mg-caption" style={muted}>
-              {t("progress", { current: step + 1, total })}
-            </span>
-            <Badge tone="neutral">{t(lang === "FR" ? "choose.fr" : "choose.en")}</Badge>
-          </Stack>
-          <Progress value={step + 1} max={total} height={6} style={{ marginTop: 8 }} />
-          <div className="mg-body-sm" style={{ fontWeight: 600, marginTop: 16 }}>
-            {questions[step]}
+          <ScoreGauge value={result.score} size={72} stroke={5} />
+          <div style={{ marginTop: 12 }}>
+            <Badge tone="success" icon="check-circle-2">{t("badge.verified")}</Badge>
           </div>
-          <div style={{ marginTop: 10 }}>
-            <Textarea
-              value={answers[step] ?? ""}
-              onChange={onAnswer}
-              rows={5}
-              maxLength={MAX_ANSWER_LEN}
-              placeholder={t("answerPlaceholder")}
-              disabled={grading}
-            />
-          </div>
-          {error && (
-            <div className="mg-caption" style={{ color: "hsl(var(--destructive))", marginTop: 10 }}>
-              {error}
+          {result.feedback && (
+            <div className="mg-body-sm" style={{ color: "hsl(var(--muted-foreground))", marginTop: 10 }}>
+              {result.feedback}
             </div>
           )}
-          <Stack dir="row" justify="space-between" align="center" style={{ marginTop: 16 }}>
-            <Button
-              variant="ghost"
-              size="sm"
-              iconLeft="chevron-left"
-              disabled={step === 0 || grading}
-              onClick={() => {
-                setStep(Math.max(0, step - 1));
-                setError(null);
-              }}
-            >
-              {t("previous")}
-            </Button>
-            <Button onClick={next} disabled={grading} iconRight={grading ? undefined : "arrow-right"}>
-              {grading ? (
-                <Stack dir="row" gap={6} align="center">
-                  <Icon name="circle-dashed" size={14} />
-                  {t("grading")}
-                </Stack>
-              ) : step + 1 < total ? (
-                t("next")
-              ) : (
-                t("submit")
-              )}
-            </Button>
-          </Stack>
+        </Card>
+      ) : (
+        // Static hint while picking / in quiz
+        <Card padding={20}>
+          <div className="mg-h4" style={{ margin: "0 0 8px" }}>{t("dashboard.verifiedTitle")}</div>
+          <div className="mg-body-sm" style={{ color: "hsl(var(--muted-foreground))" }}>
+            {t("dashboard.verifiedBody")}
+          </div>
         </Card>
       )}
-    </div>
+    </aside>
   );
 }

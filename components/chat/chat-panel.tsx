@@ -35,6 +35,8 @@ export function ChatPanel({
   quickPrompts,
   header,
   composerOffset = 0,
+  drawer = false,
+  prefill,
 }: {
   initialMessages: ChatPanelMessage[];
   lang: ChatPanelLang;
@@ -47,18 +49,36 @@ export function ChatPanel({
   // Height (px) of fixed chrome below the composer on mobile (e.g. the
   // candidate tab bar). The composer is `position: fixed; bottom: <offset>`.
   composerOffset?: number;
+  // Drawer mode: composer goes `sticky` (confined to the drawer column, not
+  // viewport-wide) and the thread fills the drawer container height. Default
+  // false keeps /enterprise/chat + standalone candidate chat byte-unchanged.
+  drawer?: boolean;
+  // One-time composer seed (drawer deep-links). Populates the textarea only;
+  // never auto-sent.
+  prefill?: string;
 }) {
   const t = useTranslations(namespace);
   const [messages, setMessages] = React.useState<ChatPanelMessage[]>(initialMessages);
   const [text, setText] = React.useState("");
   const [pending, setPending] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [seeded, setSeeded] = React.useState(false);
   const taRef = React.useRef<HTMLTextAreaElement | null>(null);
   const endRef = React.useRef<HTMLDivElement | null>(null);
 
   React.useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages.length]);
+
+  // Prefill is the textarea's ONLY effect — guarded one-time so a mount with an
+  // empty prefill (before the deep-link bridge fires) doesn't lock it out, and
+  // it never triggers send().
+  React.useEffect(() => {
+    if (!seeded && prefill) {
+      setText(prefill.slice(0, 500));
+      setSeeded(true);
+    }
+  }, [prefill, seeded]);
 
   const overLimit = text.length > MAX_LENGTH;
   const canSubmit = !pending && text.trim().length > 0 && !overLimit;
@@ -186,8 +206,10 @@ export function ChatPanel({
         position: "relative",
         display: "flex",
         flexDirection: "column",
-        // Reserve space for the sticky composer (chips + textarea + send btn).
-        minHeight: `calc(100dvh - 56px - ${composerOffset}px)`,
+        // Drawer fills its container; standalone reserves viewport height minus
+        // the app-bar and any fixed chrome below the composer.
+        minHeight: drawer ? "100%" : `calc(100dvh - 56px - ${composerOffset}px)`,
+        ...(drawer ? { height: "100%" } : null),
       }}
     >
       {header}
@@ -212,7 +234,10 @@ export function ChatPanel({
       <div
         style={{
           flex: 1,
-          padding: "0 16px 200px",
+          // Standalone reserves space under the fixed composer; the drawer's
+          // composer is in-flow sticky so no oversized bottom pad.
+          padding: drawer ? "0 16px 16px" : "0 16px 200px",
+          overflowY: drawer ? "auto" : undefined,
           display: "flex",
           flexDirection: "column",
           gap: 10,
@@ -237,16 +262,28 @@ export function ChatPanel({
 
       {/* Composer (quick prompts + textarea + send) --------------------- */}
       <div
-        style={{
-          position: "fixed",
-          left: 0,
-          right: 0,
-          bottom: composerOffset,
-          background: "hsl(var(--background))",
-          borderTop: "1px solid hsl(var(--border))",
-          zIndex: 9,
-        }}
-        className="lg:static lg:border-t-0 lg:mt-4"
+        style={
+          drawer
+            ? {
+                // Confined to the drawer column (no left:0/right:0 viewport
+                // bleed); sticks to the drawer bottom as the thread scrolls.
+                position: "sticky",
+                bottom: 0,
+                background: "hsl(var(--background))",
+                borderTop: "1px solid hsl(var(--border))",
+                zIndex: 1,
+              }
+            : {
+                position: "fixed",
+                left: 0,
+                right: 0,
+                bottom: composerOffset,
+                background: "hsl(var(--background))",
+                borderTop: "1px solid hsl(var(--border))",
+                zIndex: 9,
+              }
+        }
+        className={drawer ? undefined : "lg:static lg:border-t-0 lg:mt-4"}
       >
         <div
           style={{

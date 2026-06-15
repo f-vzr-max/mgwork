@@ -3,7 +3,7 @@
 // Mobile-first (designed in a 402x874 frame): sticky `CandAppBar` on top, a
 // scrollable main column with bottom padding for the fixed `CandTabBar`. At
 // `lg:` and above we switch to a 2-column shell: vertical `WebSidebar` on the
-// left (240px) and a centered main column capped at 720px.
+// left (240px) and a centered main column capped at 1440px.
 //
 // `{children}` is rendered EXACTLY ONCE in a single shared `<main>`. Only the
 // surrounding chrome is toggled by Tailwind responsive utilities — the mobile
@@ -12,13 +12,17 @@
 // Prisma) while delegating the interactive bits (drawer, `CandTabBar`,
 // `WebSidebar`) to their client implementations.
 //
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { type SidebarItem } from "@/components/mg";
+import { CandChatProvider } from "@/components/mg/cand-chat-context";
 import { CandWebSidebar } from "@/components/mg/cand-web-sidebar";
 import { CandMobileChrome } from "@/components/mg/cand-mobile-chrome";
+import { ChatPushShell } from "./chat/chat-drawer";
+import { ChatSearchParamsBridge } from "./_components/chat-search-params-bridge";
 
 // Locale-aware tab title. Without this the root layout's static (French)
 // metadata wins on every authed route, so the document title stays French
@@ -39,7 +43,6 @@ export default async function CandidateLayout({ children }: { children: React.Re
     { id: "docs", label: t("nav.documents"), icon: "file-text", href: "/candidate/documents" },
     { id: "jobs", label: t("nav.jobs"), icon: "briefcase", href: "/candidate/matches" },
     { id: "apps", label: t("nav.applications"), icon: "circle-dot", href: "/candidate/applications" },
-    { id: "chat", label: t("nav.chat"), icon: "message-circle", href: "/candidate/chat" },
   ];
 
   // Drawer nav for the mobile chrome (labels resolved here, server-side).
@@ -62,29 +65,39 @@ export default async function CandidateLayout({ children }: { children: React.Re
     : user.email;
 
   return (
-    <div
-      className="flex flex-col lg:flex-row"
-      style={{ minHeight: "100vh", background: "hsl(var(--background))" }}
-    >
-      {/* Desktop chrome: sidebar (hidden below lg). ---------------------- */}
-      <div className="hidden lg:flex">
-        <CandWebSidebar
-          role={t("role")}
-          items={NAV_ITEMS}
-          user={{ name: fullName, email: user.email }}
-          homeHref="/candidate"
-        />
-      </div>
+    <CandChatProvider>
+      <div
+        className="flex flex-col lg:flex-row"
+        style={{ minHeight: "100vh", background: "hsl(var(--background))" }}
+      >
+        {/* Desktop chrome: sidebar (hidden below lg). ---------------------- */}
+        <div className="hidden lg:flex">
+          <CandWebSidebar
+            role={t("role")}
+            items={NAV_ITEMS}
+            user={{ name: fullName, email: user.email }}
+            homeHref="/candidate"
+          />
+        </div>
 
-      {/* Mobile chrome: app-bar + drawer + tab-bar (hidden at lg+). ------ */}
-      <div className="lg:hidden">
-        <CandMobileChrome navItems={MOBILE_NAV} userName={fullName} />
-      </div>
+        {/* Mobile chrome: app-bar + drawer + tab-bar (hidden at lg+). ------ */}
+        <div className="lg:hidden">
+          <CandMobileChrome navItems={MOBILE_NAV} userName={fullName} />
+        </div>
 
-      {/* Single shared main column — `children` rendered exactly once. --- */}
-      <main className="flex-1 flex justify-center pb-20 lg:pb-0">
-        <div style={{ width: "100%", maxWidth: 720, padding: "32px 24px" }}>{children}</div>
-      </main>
-    </div>
+        {/* Push-shell: at lg+ it reflows into [content][chat 360] when the chat
+            drawer opens in push mode; below lg the drawer overlays. `children`
+            is still rendered exactly once, inside the single shared <main>. */}
+        <ChatPushShell>
+          <main className="flex justify-center pb-20 lg:pb-0">
+            <div style={{ width: "100%", maxWidth: 1440, padding: "32px 24px" }}>{children}</div>
+          </main>
+        </ChatPushShell>
+
+        <Suspense fallback={null}>
+          <ChatSearchParamsBridge />
+        </Suspense>
+      </div>
+    </CandChatProvider>
   );
 }

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Icon, type IconName } from "./icon";
+import { useCandChat } from "./cand-chat-context";
 
 export interface CandTab {
   id: string;
@@ -13,12 +14,14 @@ export interface CandTab {
   href: string;
 }
 
+// `chat` has no href — it opens the drawer (the /candidate/chat route is a
+// redirect). It is rendered as a <button>, not a <Link>.
 const TAB_DEFS: { id: string; icon: IconName; labelKey: string; href: string }[] = [
   { id: "home", icon: "home", labelKey: "tabs.home", href: "/candidate" },
   { id: "docs", icon: "file-text", labelKey: "tabs.docs", href: "/candidate/documents" },
   { id: "jobs", icon: "briefcase", labelKey: "tabs.jobs", href: "/candidate/matches" },
   { id: "apps", icon: "circle-dot", labelKey: "tabs.apps", href: "/candidate/applications" },
-  { id: "chat", icon: "message-circle", labelKey: "tabs.chat", href: "/candidate/chat" },
+  { id: "chat", icon: "message-circle", labelKey: "tabs.chat", href: "" },
 ];
 
 function isActive(tabHref: string, pathname: string): boolean {
@@ -30,9 +33,45 @@ export interface CandTabBarProps {
   tabs?: CandTab[];
 }
 
+const tabStyle = (active: boolean): React.CSSProperties => ({
+  flex: 1,
+  position: "relative",
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 4,
+  color: active ? "hsl(var(--primary))" : "hsl(var(--muted-foreground))",
+  textDecoration: "none",
+});
+
+function TabInner({ tab, active }: { tab: CandTab; active: boolean }) {
+  return (
+    <>
+      {active && (
+        <span
+          style={{
+            position: "absolute",
+            top: 0,
+            left: "50%",
+            transform: "translateX(-50%)",
+            width: 24,
+            height: 2,
+            background: "hsl(var(--primary))",
+            borderRadius: 2,
+          }}
+        />
+      )}
+      <Icon name={tab.icon} size={20} />
+      <span style={{ fontSize: 10.5, fontWeight: 600 }}>{tab.label}</span>
+    </>
+  );
+}
+
 export function CandTabBar({ tabs }: CandTabBarProps) {
   const t = useTranslations("app.candidate");
   const pathname = usePathname() ?? "/candidate";
+  const { open, toggleChat } = useCandChat();
   const items: CandTab[] =
     tabs ?? TAB_DEFS.map((d) => ({ id: d.id, icon: d.icon, href: d.href, label: t(d.labelKey) }));
   return (
@@ -52,40 +91,23 @@ export function CandTabBar({ tabs }: CandTabBarProps) {
       }}
     >
       {items.map((tab) => {
+        if (tab.id === "chat") {
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={toggleChat}
+              aria-pressed={open}
+              style={{ ...tabStyle(open), border: 0, background: "transparent", cursor: "pointer" }}
+            >
+              <TabInner tab={tab} active={open} />
+            </button>
+          );
+        }
         const active = isActive(tab.href, pathname);
         return (
-          <Link
-            key={tab.id}
-            href={tab.href}
-            aria-current={active ? "page" : undefined}
-            style={{
-              flex: 1,
-              position: "relative",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 4,
-              color: active ? "hsl(var(--primary))" : "hsl(var(--muted-foreground))",
-              textDecoration: "none",
-            }}
-          >
-            {active && (
-              <span
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  left: "50%",
-                  transform: "translateX(-50%)",
-                  width: 24,
-                  height: 2,
-                  background: "hsl(var(--primary))",
-                  borderRadius: 2,
-                }}
-              />
-            )}
-            <Icon name={tab.icon} size={20} />
-            <span style={{ fontSize: 10.5, fontWeight: 600 }}>{tab.label}</span>
+          <Link key={tab.id} href={tab.href} aria-current={active ? "page" : undefined} style={tabStyle(active)}>
+            <TabInner tab={tab} active={active} />
           </Link>
         );
       })}

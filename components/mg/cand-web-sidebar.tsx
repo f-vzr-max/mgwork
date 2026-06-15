@@ -8,6 +8,7 @@
 import * as React from "react";
 import { usePathname } from "next/navigation";
 import { WebSidebar, type SidebarItem, type SidebarUser } from "./web-sidebar";
+import { SidebarChatButton } from "./sidebar-chat-button";
 
 export interface CandWebSidebarProps {
   role?: string;
@@ -34,7 +35,16 @@ function pickActiveId(items: SidebarItem[], pathname: string): string | undefine
 export function CandWebSidebar({ role, user, items, homeHref }: CandWebSidebarProps) {
   const pathname = usePathname() ?? "";
   const activeId = pickActiveId(items, pathname);
-  return <WebSidebar role={role} user={user} items={items} homeHref={homeHref} activeId={activeId} />;
+  return (
+    <WebSidebar
+      role={role}
+      user={user}
+      items={items}
+      homeHref={homeHref}
+      activeId={activeId}
+      chatButton={<SidebarChatButton />}
+    />
+  );
 }
 
 export default CandWebSidebar;

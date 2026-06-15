@@ -152,6 +152,22 @@ body {
   .mg-vhairline { background: hsl(var(--border)); width: 1px; align-self: stretch; }
 }
 
+/* Chat-drawer push (lg only — mobile is overlay, untouched). When the push
+   shell carries [data-chat-open] the page side-rails hide and the dashboard
+   grid collapses to one column so the content reflows into the freed width
+   instead of fighting the 360px chat track. The @layer utilities + !important
+   is REQUIRED on the dash-grid collapse: a plain rule loses to Tailwind's
+   lg:grid-cols-[…] arbitrary utility under PostCSS layer ordering. */
+@media (min-width: 1024px) {
+  [data-chat-open] .cand-page-rail { display: none; }
+  [data-chat-open] .cand-dash-rail { display: none; }
+}
+@layer utilities {
+  @media (min-width: 1024px) {
+    [data-chat-open] .cand-dash-grid { grid-template-columns: minmax(0, 1fr) !important; }
+  }
+}
+
 /* Focus ring — applies everywhere inside the app */
 :focus-visible {
   outline: 2px solid hsl(var(--ring));

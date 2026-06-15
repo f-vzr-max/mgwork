@@ -226,5 +226,21 @@
   "status.INTERVIEW_DONE": "Entretien fait",
   "status.OFFER_MADE": "Offre envoyée",
   "status.DRAFT": "Brouillon",
-  "status.CLOSED": "Fermé"
+  "status.CLOSED": "Fermé",
+  "app.candidate.profile.rail.title": "[MG-TODO] Complétude du profil",
+  "app.candidate.profile.rail.score": "[MG-TODO] {score}% complété",
+  "app.candidate.profile.rail.photo": "[MG-TODO] Photo de profil",
+  "app.candidate.profile.rail.cv": "[MG-TODO] CV",
+  "app.candidate.profile.rail.done": "[MG-TODO] Fait",
+  "app.candidate.profile.rail.missing": "[MG-TODO] Manquant",
+  "app.candidate.documents.rail.title": "[MG-TODO] Documents requis",
+  "app.candidate.documents.rail.uploaded": "[MG-TODO] Téléversé",
+  "app.candidate.documents.rail.missing": "[MG-TODO] Non téléversé",
+  "app.candidate.applications.rail.title": "[MG-TODO] Résumé",
+  "app.candidate.applications.rail.total": "[MG-TODO] {n, plural, one {# candidature} other {# candidatures}}",
+  "app.candidate.chat.open": "[MG-TODO] Ouvrir la messagerie",
+  "app.candidate.chat.close": "[MG-TODO] Fermer la messagerie",
+  "app.candidate.chat.drawerTitle": "[MG-TODO] Messagerie conseiller",
+  "app.candidate.chat.loadingTranscript": "[MG-TODO] Chargement de la conversation…",
+  "app.candidate.chat.openChat": "[MG-TODO] Messagerie"
 }
