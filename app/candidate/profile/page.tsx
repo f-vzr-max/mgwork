@@ -12,6 +12,8 @@ import * as React from "react";
 import { useTranslations } from "next-intl";
 import { Avatar, Badge, Button, Card, Icon, Input, Stack, Textarea } from "@/components/mg";
 import ChannelLinksCard from "./channel-links-card";
+import GdprCard from "./gdpr-card";
+import { env } from "@/lib/config";
 
 type CandidateSelf = {
   id: string;
@@ -355,7 +357,10 @@ export default function CandidateProfilePage(): React.ReactElement {
         </Card>
 
         {/* Connected channels (WhatsApp / Messenger / Instagram) ---------- */}
-        <ChannelLinksCard />
+        {env.channelsEnabled() && <ChannelLinksCard />}
+
+        {/* GDPR self-service (export + deletion request) ------------------- */}
+        <GdprCard />
       </div>
 
       {/* Right rail: profile-completeness summary (lg+ only) */}

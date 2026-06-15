@@ -11,6 +11,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
+import { rateLimit } from "@/lib/rate-limit";
 
 function getIp(req: Request): string | null {
   const fwd = req.headers.get("x-forwarded-for");
@@ -26,6 +27,9 @@ export async function GET(req: Request) {
     where: { clerkId: clerkUserId },
   });
   if (!user) return new NextResponse("Not Found", { status: 404 });
+
+  if (!(await rateLimit(clerkUserId, "user.export", 3, 3600)))
+    return new NextResponse("Too Many Requests", { status: 429 });
 
   const candidate = await prisma.candidate.findUnique({
     where: { userId: user.id },
