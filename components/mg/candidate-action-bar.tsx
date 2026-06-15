@@ -267,7 +267,7 @@ export function CandidateActionBar({ candidateId, offers }: CandidateActionBarPr
           ))}
         </select>
       )}
-      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
         <Button
           variant="ghost"
           size="sm"

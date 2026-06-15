@@ -11,7 +11,7 @@ import { useTranslations } from "next-intl";
 import { Avatar, Icon, Stack } from "@/components/mg";
 import { ChatPanel, type ChatPanelMessage } from "@/components/chat/chat-panel";
 
-type ChatLang = "FR" | "EN" | "MG";
+export type ChatLang = "FR" | "EN" | "MG";
 
 export type ChatMessage = ChatPanelMessage;
 
@@ -25,9 +25,15 @@ const QUICK_PROMPT_KEYS = [
 export function CandChatPanel({
   initialMessages,
   lang,
+  drawer = false,
+  prefill,
 }: {
   initialMessages: ChatMessage[];
   lang: ChatLang;
+  // In drawer mode the composer goes sticky inside the drawer column (see
+  // ChatPanel) and the tab-bar offset no longer applies.
+  drawer?: boolean;
+  prefill?: string;
 }) {
   const t = useTranslations("app.candidate");
   const quickPrompts = QUICK_PROMPT_KEYS.map((k) => t(k));
@@ -67,7 +73,9 @@ export function CandChatPanel({
       namespace="app.candidate.chat"
       quickPrompts={quickPrompts}
       header={header}
-      composerOffset={64}
+      composerOffset={drawer ? 0 : 64}
+      drawer={drawer}
+      prefill={prefill}
     />
   );
 }

@@ -56,6 +56,15 @@ export function CandMobileChrome({ navItems, userName }: CandMobileChromeProps) 
     return () => document.removeEventListener("keydown", onKey);
   }, [open]);
 
+  // Single-open invariant: opening the chat drawer dismisses this nav drawer.
+  React.useEffect(() => {
+    function onCloseNav() {
+      setOpen(false);
+    }
+    window.addEventListener("mg:close-nav", onCloseNav);
+    return () => window.removeEventListener("mg:close-nav", onCloseNav);
+  }, []);
+
   function handleLogout() {
     setOpen(false);
     void signOut({ redirectUrl: "/" });
@@ -152,7 +161,7 @@ export function CandMobileChrome({ navItems, userName }: CandMobileChromeProps) 
         </div>
 
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginTop: 8 }}>
-          <LanguageMenu />
+          <LanguageMenu align="left" />
           <ThemeToggle />
         </div>
 

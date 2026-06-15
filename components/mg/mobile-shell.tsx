@@ -100,7 +100,7 @@ export function MobileShell({ navItems, homeHref = "/", onLogout }: MobileShellP
         <Link href={homeHref} style={{ textDecoration: "none" }}>
           <Wordmark size={16} />
         </Link>
-        <LanguageMenu />
+        <LanguageMenu align="left" />
       </div>
 
       {/* Scrim --------------------------------------------------------- */}

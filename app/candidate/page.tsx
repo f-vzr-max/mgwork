@@ -26,6 +26,7 @@ import {
   statusLabel,
   type IconName,
 } from "@/components/mg";
+import { CandChatCtaCard } from "./_components/cand-chat-cta-card";
 
 export const dynamic = "force-dynamic";
 
@@ -139,10 +140,19 @@ export default async function CandidateDashboard() {
   const enVerified = c.langScoreENVerifiedAt != null;
   const bothVerified = frVerified && enVerified;
 
+  // Desktop: lang-test + chat-CTA cards move to a 320px right rail via CSS
+  // grid placement (lg:col-start-2). DOM order is UNCHANGED so 402px mobile
+  // renders identically to before (greeting → profile → lang-test → docs →
+  // matches → chat-CTA). The cand-page-rail / cand-dash-rail classes are the
+  // hook for the Group-E data-chat-open cascade (Group E wires them; harmless
+  // until then).
   return (
-    <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 20 }}>
-      {/* Greeting ------------------------------------------------------- */}
-      <div>
+    <div
+      className="cand-dash-grid grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-6"
+      style={{ padding: 16 }}
+    >
+      {/* Greeting — col 1 ------------------------------------------------ */}
+      <div className="lg:col-start-1">
         <div className="mg-caption" style={{ color: "hsl(var(--muted-foreground))" }}>
           Manao ahoana,
         </div>
@@ -151,8 +161,8 @@ export default async function CandidateDashboard() {
         </h1>
       </div>
 
-      {/* Profile gauge card -------------------------------------------- */}
-      <Card padding={20}>
+      {/* Profile gauge card — col 1 --------------------------------------- */}
+      <Card padding={20} className="lg:col-start-1">
         <Stack dir="row" gap={20} align="center">
           <ScoreGauge value={c.profileScore} size={88} stroke={6} />
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -178,8 +188,11 @@ export default async function CandidateDashboard() {
         )}
       </Card>
 
-      {/* Language verification card ------------------------------------- */}
-      <Card padding={16}>
+      {/* Language verification card — right rail at lg+ ------------------- */}
+      <Card
+        padding={16}
+        className="cand-page-rail cand-dash-rail lg:col-start-2 lg:row-start-1"
+      >
         <Stack dir="row" gap={12} align="center">
           <div
             style={{
@@ -234,8 +247,8 @@ export default async function CandidateDashboard() {
         </Link>
       </Card>
 
-      {/* Documents strip ------------------------------------------------ */}
-      <div>
+      {/* Documents strip — col 1 ----------------------------------------- */}
+      <div className="lg:col-start-1">
         <Stack dir="row" justify="space-between" align="center" style={{ marginBottom: 10 }}>
           <h3 className="mg-h4" style={{ margin: 0 }}>{t("documents.title")}</h3>
           <Link
@@ -293,8 +306,8 @@ export default async function CandidateDashboard() {
         )}
       </div>
 
-      {/* Matches feed --------------------------------------------------- */}
-      <div>
+      {/* Matches feed — col 1 -------------------------------------------- */}
+      <div className="lg:col-start-1">
         <Stack dir="row" justify="space-between" align="center" style={{ marginBottom: 10 }}>
           <h3 className="mg-h4" style={{ margin: 0 }}>{t("matches.title")}</h3>
           <span className="mg-caption" style={{ color: "hsl(var(--muted-foreground))" }}>
@@ -339,34 +352,8 @@ export default async function CandidateDashboard() {
         )}
       </div>
 
-      {/* Chat CTA ------------------------------------------------------- */}
-      <Card padding={16} surface={2}>
-        <Stack dir="row" gap={12} align="center">
-          <div
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: 9999,
-              background: "var(--primary-bg)",
-              color: "hsl(var(--primary))",
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Icon name="message-circle" size={18} />
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div className="mg-body-sm" style={{ fontWeight: 600 }}>{t("chat.question")}</div>
-            <div className="mg-caption" style={{ color: "hsl(var(--muted-foreground))" }}>
-              {t("chat.responseTime")}
-            </div>
-          </div>
-          <Link href="/candidate/chat" style={{ textDecoration: "none" }}>
-            <Button variant="outline" size="sm" iconRight="arrow-right">{t("chat.writeCta")}</Button>
-          </Link>
-        </Stack>
-      </Card>
+      {/* Chat CTA — right rail at lg+; opens the chat drawer in place. ---- */}
+      <CandChatCtaCard className="cand-page-rail cand-dash-rail lg:col-start-2" />
     </div>
   );
 }

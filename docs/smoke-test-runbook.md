@@ -54,7 +54,7 @@ For an enterprise pass: sign up a second account, set role `ENTERPRISE`, walk st
 | 15 | candidate | Visit `/candidate` | Dashboard renders, profile-completion stat shows real number (not hardcoded 0). | |
 | 16 | candidate | Visit `/candidate/documents` → "Upload" → choose a small PDF, type=PASSPORT | Doc appears in list as PENDING. | |
 | 17 | candidate | Click the doc's "view" button | New tab opens with signed URL preview (PDF inline). | |
-| 18 | candidate | Visit `/candidate/chat` → send "I'm a chef with 5 years experience" | Streamed Claude reply appears. After 5s, refresh — Candidate.skills should include "chef". | |
+| 18 | candidate | Open the chat drawer from `/candidate` (chat icon in sidebar/tab-bar, or visit `/candidate?openChat=1`) → send "I'm a chef with 5 years experience" | Streamed Claude reply appears. After 5s, refresh — Candidate.skills should include "chef". | |
 | 19 | candidate | Visit `/candidate/matches` | Lists ranked offers (or empty if you skipped enterprise + offer steps). | |
 | 20 | candidate | Visit `/candidate/applications` | Empty list (no applications yet) — no crash. | |
 | 21 | candidate | GET `/api/me/data-export` | JSON download with profile + documents (no fileUrl). | |

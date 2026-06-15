@@ -34,6 +34,9 @@ export interface WebSidebarProps {
   items: SidebarItem[];
   activeId?: string;
   footer?: React.ReactNode;
+  /** Footer-region control rendered between LanguageMenu and ThemeToggle.
+   *  Candidate shell passes a chat-drawer toggle; other shells omit it. */
+  chatButton?: React.ReactNode;
   /** Override Wordmark anchor; defaults to "/" */
   homeHref?: string;
 }
@@ -44,6 +47,7 @@ export function WebSidebar({
   items,
   activeId,
   footer,
+  chatButton,
   homeHref = "/",
 }: WebSidebarProps) {
   return (
@@ -190,7 +194,8 @@ export function WebSidebar({
       </div>
       <Hairline />
       <div style={{ padding: 12, display: "flex", alignItems: "center", gap: 8 }}>
-        <LanguageMenu placement="up" />
+        <LanguageMenu placement="up" align="left" />
+        {chatButton}
         <ThemeToggle />
       </div>
     </aside>

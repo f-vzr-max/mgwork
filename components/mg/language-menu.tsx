@@ -12,9 +12,10 @@ const VISIBLE: readonly Lang[] = ["FR", "EN"] as const;
 export interface LanguageMenuProps {
   className?: string;
   placement?: "up" | "down";
+  align?: "left" | "right";
 }
 
-export function LanguageMenu({ className, placement = "down" }: LanguageMenuProps) {
+export function LanguageMenu({ className, placement = "down", align = "right" }: LanguageMenuProps) {
   const t = useTranslations();
   const locale = useLocale();
   const current: Lang = locale.toLowerCase() === "en" ? "EN" : "FR";
@@ -91,7 +92,7 @@ export function LanguageMenu({ className, placement = "down" }: LanguageMenuProp
             ...(placement === "up"
               ? { bottom: "calc(100% + 6px)" }
               : { top: "calc(100% + 6px)" }),
-            right: 0,
+            ...(align === "left" ? { left: 0 } : { right: 0 }),
             background: "hsl(var(--popover))",
             border: "1px solid hsl(var(--border))",
             borderRadius: 8,

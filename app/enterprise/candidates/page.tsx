@@ -162,18 +162,12 @@ export default async function BrowseCandidatesPage({
                 );
               })}
             </Stack>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 160px 2fr auto",
-                gap: 12,
-                alignItems: "center",
-              }}
-            >
-              <Input name="sector" defaultValue={sector} placeholder={t("candidates.filter.sectorPlaceholder")} />
+            <div className="grid grid-cols-1 sm:grid-cols-[1fr_160px_2fr_auto] gap-3 items-center">
+              <Input name="sector" defaultValue={sector} placeholder={t("candidates.filter.sectorPlaceholder")} className="w-full" />
               <select
                 name="lang"
                 defaultValue={lang}
+                className="w-full"
                 style={{
                   height: 40,
                   borderRadius: 8,
@@ -193,6 +187,7 @@ export default async function BrowseCandidatesPage({
                 name="skills"
                 defaultValue={skillsCsv}
                 placeholder={t("candidates.filter.skillsPlaceholder")}
+                className="w-full"
               />
               <Stack dir="row" gap={8}>
                 <Button type="submit" iconLeft="filter">
@@ -209,14 +204,7 @@ export default async function BrowseCandidatesPage({
         </Card>
 
         <Card padding={0}>
-          <div
-            style={{
-              padding: "14px 20px",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 py-[14px] px-5">
             <h3 className="mg-h4" style={{ margin: 0 }}>
               {t("candidates.list.countLabel", {
                 count: page.length,
@@ -246,11 +234,8 @@ export default async function BrowseCandidatesPage({
                 return (
                   <div
                     key={c.id}
+                    className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-4"
                     style={{
-                      display: "grid",
-                      gridTemplateColumns: "1fr auto",
-                      alignItems: "center",
-                      gap: 16,
                       padding: "14px 20px",
                       borderTop: i === 0 ? 0 : "1px solid hsl(var(--border))",
                     }}
