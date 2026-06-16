@@ -11,27 +11,24 @@
 // We accept Origin OR Referer (some legitimate clients strip Origin on
 // same-origin GETs; we only call this on POST/PUT/PATCH/DELETE anyway).
 
-const APP_URL_ENV_KEYS = [
-  "NEXT_PUBLIC_APP_URL",
-  "APP_URL",
-  // Vercel sets all three; we need all three:
-  //   VERCEL_URL                    — unique deployment URL (mgwork-abc123.vercel.app)
-  //   VERCEL_BRANCH_URL             — git-branch alias       (mgwork-git-<branch>-<team>.vercel.app)
-  //   VERCEL_PROJECT_PRODUCTION_URL — production alias       (mgwork-seven.vercel.app)
-  // Users hit the branch alias on preview deploys, not VERCEL_URL — without
-  // these two the same-origin POST from the page lands in a different host
-  // than what the lambda sees in env, and assertSameOrigin fails (audit F-002).
-  "VERCEL_URL",
-  "VERCEL_BRANCH_URL",
-  "VERCEL_PROJECT_PRODUCTION_URL",
-] as const;
+import { env, isProd } from "@/lib/config";
 
+// VERCEL_URL is the unique deployment URL; VERCEL_BRANCH_URL the git-branch
+// alias; VERCEL_PROJECT_PRODUCTION_URL the production alias. Users hit the
+// branch alias on preview deploys, not VERCEL_URL — without all three the
+// same-origin POST lands in a different host than the lambda's env (audit
+// F-002). Vercel-injected values are bare hosts; the rest carry a scheme.
 function getAllowedOrigins(): string[] {
   const out = new Set<string>();
-  for (const key of APP_URL_ENV_KEYS) {
-    const v = process.env[key];
+  const candidates = [
+    env.appUrl(),
+    env.appUrlLegacy(),
+    env.vercelUrl(),
+    env.vercelBranchUrl(),
+    env.vercelProjectProductionUrl(),
+  ];
+  for (const v of candidates) {
     if (!v) continue;
-    // VERCEL_URL is bare host
     const normalized = v.startsWith("http") ? v : `https://${v}`;
     try {
       out.add(new URL(normalized).origin);
@@ -39,8 +36,7 @@ function getAllowedOrigins(): string[] {
       // ignore malformed
     }
   }
-  // Always allow localhost in dev
-  if (process.env.NODE_ENV !== "production") {
+  if (!isProd()) {
     out.add("http://localhost:3000");
     out.add("http://127.0.0.1:3000");
   }
@@ -63,7 +59,7 @@ export function assertSameOrigin(req: Request): void {
   const allowed = getAllowedOrigins();
   if (allowed.length === 0) {
     // Fail closed in production; in dev we already injected localhost above.
-    if (process.env.NODE_ENV === "production") {
+    if (isProd()) {
       throw new CsrfError("CSRF: no allowed origins configured");
     }
     return;

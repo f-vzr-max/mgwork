@@ -1,3 +1,4 @@
+import { readFileSync } from "fs";
 import createNextIntlPlugin from "next-intl/plugin";
 import { withSentryConfig } from "@sentry/nextjs";
 
@@ -41,6 +42,24 @@ if (
       "ENFORCE_CLERK_PROD_KEYS=true. Either set pk_live_*/sk_live_* in this " +
       "Vercel environment, or unset ENFORCE_CLERK_PROD_KEYS to defer enforcement.",
   );
+}
+
+// Opt-in build-time guard against placeholder legal-entity values. Off by
+// default so deploys aren't blocked before the real BRN/capital/director/
+// address/incorporation date land in lib/legal-entity.ts. Set
+// ENFORCE_LEGAL_ENTITY=true ONLY after those values are supplied.
+if (process.env.ENFORCE_LEGAL_ENTITY === "true") {
+  const legal = readFileSync(
+    new URL("./lib/legal-entity.ts", import.meta.url),
+    "utf8",
+  );
+  if (legal.includes("__PLACEHOLDER_")) {
+    throw new Error(
+      "[mgwork] Refusing build: lib/legal-entity.ts still contains " +
+        "__PLACEHOLDER__ values while ENFORCE_LEGAL_ENTITY=true. Supply BRN, " +
+        "capital, director, address, incorporation date.",
+    );
+  }
 }
 
 // Sentry env names mirror `lib/config.ts` getters (sentryDsn, sentryOrg,

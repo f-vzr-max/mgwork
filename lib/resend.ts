@@ -10,6 +10,7 @@ export const EMAIL_TEMPLATES = [
   "interview-scheduled",
   "monthly-report",
   "invoice-issued",
+  "deletion-request",
 ] as const;
 
 export type EmailTemplate = (typeof EMAIL_TEMPLATES)[number];
@@ -53,6 +54,19 @@ const renderers = new Map<EmailTemplate, Renderer>();
 export function registerTemplate(name: EmailTemplate, renderer: Renderer): void {
   renderers.set(name, renderer);
 }
+
+// DPO notice for a GDPR Art.17 deletion request. The durable record is the
+// auditLog row; this email is a best-effort heads-up to the data-protection
+// officer.
+registerTemplate("deletion-request", async (props) => ({
+  subject: "[AsanaoConnect] Demande de suppression de compte (RGPD)",
+  html: `<p>Une demande de suppression de compte a été reçue.</p>
+<ul>
+<li>User id: <code>${props.userId ?? "?"}</code></li>
+<li>Email: <code>${props.email ?? "?"}</code></li>
+<li>Reçue le: ${props.requestedAt ?? new Date().toISOString()}</li>
+</ul>`,
+}));
 
 async function renderTemplate(
   template: EmailTemplate,

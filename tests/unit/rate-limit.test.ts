@@ -1,4 +1,12 @@
 import { _resetRateLimits, rateLimit, consume } from "@/lib/rate-limit";
+import { env } from "@/lib/config";
+
+jest.mock("@/lib/config", () => ({
+  env: {
+    upstashUrl: jest.fn(() => undefined),
+    upstashToken: jest.fn(() => undefined),
+  },
+}));
 
 beforeEach(() => {
   _resetRateLimits();
@@ -65,5 +73,42 @@ describe("consume", () => {
     const r2 = consume("k", 1, 1000);
     expect(r2.allowed).toBe(false);
     expect(r2.retryAfterMs).toBeGreaterThan(0);
+  });
+});
+
+describe("rateLimit (Upstash path)", () => {
+  const realFetch = global.fetch;
+
+  beforeEach(() => {
+    (env.upstashUrl as jest.Mock).mockReturnValue("https://upstash.test");
+    (env.upstashToken as jest.Mock).mockReturnValue("tok");
+  });
+
+  afterEach(() => {
+    (env.upstashUrl as jest.Mock).mockReturnValue(undefined);
+    (env.upstashToken as jest.Mock).mockReturnValue(undefined);
+    global.fetch = realFetch;
+  });
+
+  function mockIncr(count: number) {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => [{ result: count }, { result: 1 }],
+    }) as unknown as typeof fetch;
+  }
+
+  it("allows when the INCR count is within capacity", async () => {
+    mockIncr(2);
+    expect(await rateLimit("up1", "create", 3, 60)).toBe(true);
+  });
+
+  it("denies when the INCR count exceeds capacity", async () => {
+    mockIncr(4);
+    expect(await rateLimit("up2", "create", 3, 60)).toBe(false);
+  });
+
+  it("falls back to in-memory (allowed) when fetch throws/aborts", async () => {
+    global.fetch = jest.fn().mockRejectedValue(new Error("aborted")) as unknown as typeof fetch;
+    expect(await rateLimit("up3", "create", 3, 60)).toBe(true);
   });
 });

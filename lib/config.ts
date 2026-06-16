@@ -30,8 +30,19 @@ export const env = {
 
   // App
   appUrl: () => read("NEXT_PUBLIC_APP_URL") ?? "http://localhost:3000",
+  appUrlLegacy: () => read("APP_URL"),
   nodeEnv: () => read("NODE_ENV") ?? "development",
   vercelEnv: () => read("VERCEL_ENV"),
+
+  // Vercel-injected deployment URLs (bare hosts; consumers add the scheme).
+  vercelUrl: () => read("VERCEL_URL"),
+  vercelBranchUrl: () => read("VERCEL_BRANCH_URL"),
+  vercelProjectProductionUrl: () => read("VERCEL_PROJECT_PRODUCTION_URL"),
+
+  // Upstash Redis REST (distributed rate limiting). Optional; absence falls
+  // back to in-memory per-lambda limiting.
+  upstashUrl: () => read("UPSTASH_REDIS_REST_URL"),
+  upstashToken: () => read("UPSTASH_REDIS_REST_TOKEN"),
 
   // Meta / WhatsApp (M6 will use; declared here so M1 owns env access)
   metaAppId: () => read("META_APP_ID"),
@@ -44,6 +55,9 @@ export const env = {
   metaPageAccessToken: () => read("META_PAGE_ACCESS_TOKEN"),
   metaPageId: () => read("META_PAGE_ID"),
   whatsappBusinessNumber: () => read("WHATSAPP_BUSINESS_NUMBER"),
+  // Static read (not via read()) so Next inlines it into client bundles; gates
+  // the channel-links card until Meta App Review completes.
+  channelsEnabled: () => process.env.NEXT_PUBLIC_CHANNELS_ENABLED === "true",
 
   // Sentry (M13 — observability). All optional; absence triggers no-op init so
   // local dev stays clean. SENTRY_AUTH_TOKEN is build-time only (used by
