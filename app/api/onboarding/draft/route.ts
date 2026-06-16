@@ -168,6 +168,12 @@ export async function DELETE(req: Request) {
     });
   }
 
+  // Distinct action from PUT so the buckets don't share a limit.
+  const allowed = await rateLimit(clerkId, "onboarding.draft.delete", 5, 60);
+  if (!allowed) {
+    return NextResponse.json(err("RATE_LIMITED", "Slow down"), { status: 429 });
+  }
+
   const user = await resolveUser(clerkId);
   if (user) {
     await prisma.onboardingDraft.deleteMany({ where: { userId: user.id } });

@@ -8,7 +8,7 @@ const config: Config = {
   preset: "ts-jest",
   testEnvironment: "node",
   rootDir: ".",
-  testMatch: ["<rootDir>/tests/unit/**/*.test.ts", "<rootDir>/tests/unit/**/*.test.tsx"],
+  testMatch: ["<rootDir>/tests/unit/**/*.test.ts", "<rootDir>/tests/unit/**/*.test.tsx", "<rootDir>/scripts/**/*.test.ts"],
   moduleFileExtensions: ["ts", "tsx", "js", "json"],
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/$1",

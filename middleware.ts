@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import type { Role } from "@/lib/roles";
 import { canAccess } from "@/lib/roles";
+import { env } from "@/lib/config";
 
 const isPublic = createRouteMatcher([
   "/",
@@ -50,12 +51,12 @@ const isKnownProtected = createRouteMatcher([
 // remote origins. unsafe-inline / unsafe-eval are required by Next 14 dev runtime + Clerk.
 // upgrade-insecure-requests and HSTS are production-only: in dev the server is plain HTTP and
 // those headers would cause the browser to rewrite all fetches to https://, breaking everything.
-const isProd = process.env.NODE_ENV === "production";
+const isProd = env.nodeEnv() === "production";
 
 // VERCEL_ENV is set by Vercel: "production" | "preview" | "development".
 // We loosen CSP for the vercel.live feedback toolbar only on previews — it
 // would needlessly expand the production attack surface (audit F-006).
-const isVercelPreview = process.env.VERCEL_ENV === "preview";
+const isVercelPreview = env.vercelEnv() === "preview";
 
 function buildSecurityHeaders(): Record<string, string> {
   const scriptSrc = [

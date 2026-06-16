@@ -19,6 +19,7 @@ import { z } from "zod";
 
 import { prisma } from "@/lib/prisma";
 import { env } from "@/lib/config";
+import { logAuditByClerkId } from "@/lib/audit";
 import { rateLimit } from "@/lib/rate-limit";
 import { assertSameOrigin, CsrfError } from "@/lib/csrf";
 import { issueLinkToken, unlinkChannelIdentity } from "@/lib/social/identity";
@@ -147,6 +148,12 @@ export async function POST(req: Request): Promise<NextResponse> {
   if (!resolved.ok) return resolved.res;
 
   const { code, expiresAt } = await issueLinkToken(resolved.candidateId, parsed.data.platform);
+
+  await logAuditByClerkId(clerkId, {
+    action: "channel_link.token_issued",
+    resourceType: "channel_link",
+    resourceId: code,
+  });
 
   // Deep links: only when the human-gated env is configured; the card falls
   // back to showing the bare code. The wa.me text pre-fills "LINK <code>";

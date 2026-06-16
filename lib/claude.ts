@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import type { DocumentBlockParam } from "@anthropic-ai/sdk/resources/messages";
 import { env } from "./config";
 
 // Model policy: Haiku ("fast") is the default for every Claude call. Sonnet
@@ -179,4 +180,66 @@ type AllowedImageMime = (typeof ALLOWED_IMAGE_MIME)[number];
 function normalizeImageMime(mime: string): AllowedImageMime | null {
   const lower = mime.toLowerCase();
   return (ALLOWED_IMAGE_MIME as readonly string[]).includes(lower) ? (lower as AllowedImageMime) : null;
+}
+
+// ---------------------------------------------------------------------------
+// PDF extraction — separate path; does NOT go through normalizeImageMime.
+// Wired but inert until ANTHROPIC_API_KEY is set (no-key no-op).
+// ---------------------------------------------------------------------------
+
+export type PdfExtractParams = {
+  base64: string;
+  prompt: string;
+  model?: Extract<ModelTier, "fast">;
+  maxTokens?: number;
+  validate?: (r: ExtractSuccess) => boolean;
+};
+
+type InternalPdfExtractParams = Omit<PdfExtractParams, "model"> & { model?: ModelTier };
+
+async function extractPdfWithTier(params: InternalPdfExtractParams): Promise<ExtractResult> {
+  const c = client();
+  if (!c) return { error: "no-key" };
+  const model = MODELS[params.model ?? "fast"];
+  // DocumentBlockParam typed via SDK — no as-any needed.
+  const docBlock: DocumentBlockParam = {
+    type: "document",
+    source: { type: "base64", media_type: "application/pdf", data: params.base64 },
+  };
+  try {
+    const res = await c.messages.create({
+      model,
+      max_tokens: params.maxTokens ?? 2048,
+      messages: [
+        {
+          role: "user",
+          content: [docBlock, { type: "text", text: params.prompt }],
+        },
+      ],
+    });
+    const text = res.content
+      .filter((b) => b.type === "text")
+      .map((b) => (b as { type: "text"; text: string }).text)
+      .join("\n");
+    return { text, stopReason: res.stop_reason };
+  } catch (err) {
+    return { error: "api-error", message: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+export async function extractFromPdf(params: PdfExtractParams): Promise<ExtractResult> {
+  return extractPdfWithTier(params);
+}
+
+export async function extractPdfWithEscalation(
+  params: Omit<PdfExtractParams, "model">,
+): Promise<ExtractResult & { escalated: boolean }> {
+  const { validate, ...rest } = params;
+  const fast = await extractPdfWithTier({ ...rest, model: "fast" });
+  if ("error" in fast && fast.error === "no-key") return { ...fast, escalated: false };
+  const fastOk =
+    !("error" in fast) && fast.text.trim().length > 0 && (!validate || validate(fast));
+  if (fastOk) return { ...fast, escalated: false };
+  const smart = await extractPdfWithTier({ ...rest, model: "smart" });
+  return { ...smart, escalated: true };
 }

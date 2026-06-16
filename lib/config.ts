@@ -32,6 +32,7 @@ export const env = {
   appUrl: () => read("NEXT_PUBLIC_APP_URL") ?? "http://localhost:3000",
   appUrlLegacy: () => read("APP_URL"),
   nodeEnv: () => read("NODE_ENV") ?? "development",
+  vercelEnv: () => read("VERCEL_ENV"),
 
   // Vercel-injected deployment URLs (bare hosts; consumers add the scheme).
   vercelUrl: () => read("VERCEL_URL"),
