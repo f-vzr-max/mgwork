@@ -21,6 +21,7 @@ function resolveActiveId(pathname: string | null): string {
   if (pathname.startsWith("/admin/invoices")) return "invoices";
   if (pathname.startsWith("/admin/i18n")) return "i18n";
   if (pathname.startsWith("/admin/feature-flags")) return "flags";
+  if (pathname.startsWith("/admin/pending-deletions")) return "pendingDeletions";
   return "overview";
 }
 
@@ -44,6 +45,7 @@ export function AdminShell({ user, children }: AdminShellProps) {
     { id: "invoices", icon: "file-text", label: t("nav.invoices"), href: "/admin/invoices" },
     { id: "i18n", icon: "globe", label: t("nav.i18n"), href: "/admin/i18n" },
     { id: "flags", icon: "settings", label: t("nav.flags"), href: "/admin/feature-flags" },
+    { id: "pendingDeletions", icon: "user-x", label: t("nav.pendingDeletions"), href: "/admin/pending-deletions" },
   ];
 
   // MobileShell only needs label + href; project the nav items down to that shape.
