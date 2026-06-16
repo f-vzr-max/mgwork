@@ -31,6 +31,7 @@ export const env = {
   // App
   appUrl: () => read("NEXT_PUBLIC_APP_URL") ?? "http://localhost:3000",
   nodeEnv: () => read("NODE_ENV") ?? "development",
+  vercelEnv: () => read("VERCEL_ENV"),
 
   // Meta / WhatsApp (M6 will use; declared here so M1 owns env access)
   metaAppId: () => read("META_APP_ID"),

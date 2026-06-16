@@ -15,6 +15,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
+import { rateLimit } from "@/lib/rate-limit";
 import { assertSameOrigin, CsrfError } from "@/lib/csrf";
 
 type Params = { params: { id: string } };
@@ -57,6 +58,11 @@ export async function POST(req: Request, { params }: Params) {
     actor.role !== "SUPER_ADMIN"
   ) {
     return new NextResponse("Forbidden", { status: 403 });
+  }
+
+  // Placed after auth/role so forbidden callers don't consume the limiter.
+  if (!(await rateLimit(actor.id, "admin.erasure", 5, 60))) {
+    return new NextResponse("Too Many Requests", { status: 429 });
   }
 
   const ip = getIp(req);

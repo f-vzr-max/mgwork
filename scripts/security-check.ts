@@ -192,8 +192,15 @@ function checkApiRoute(relPath: string, source: string) {
     // logAuditByClerkId) or a direct `prisma.auditLog.create` /
     // `tx.auditLog.create` call as evidence that the mutation is audited.
     const audited =
-      /\blogAudit\w*\s*\(/.test(body) || /\bauditLog\.create\s*\(/.test(body);
-    if (!audited) {
+      /\blogAudit\w*\s*\(/.test(body) ||
+      /\bauditLog\.create\s*\(/.test(body) ||
+      // unlinkChannelIdentity audits internally (lib/social/identity.ts).
+      // matches the literal call; a comment naming the fn without '(' won't false-pass.
+      /\bunlinkChannelIdentity\s*\(/.test(body);
+    // Onboarding drafts are routine save-state, not security-relevant (see the
+    // route header comment). Exempt from the audit rule by name.
+    const auditExempt = relPath === "app/api/onboarding/draft/route.ts";
+    if (!audited && !auditExempt) {
       findings.push({
         level: "FAIL",
         rule: "missing-audit",
@@ -205,6 +212,23 @@ function checkApiRoute(relPath: string, source: string) {
   }
 }
 
+// Mutation handlers must throttle abuse via rateLimit(). Body-scoped: a route
+// with rateLimit on one verb but not another IS flagged. Webhooks (signature
+// auth) and crons (Bearer token + low external reach) are exempt by prefix.
+function checkMissingRateLimit(relPath: string, source: string) {
+  if (isWebhookRoute(relPath) || isCronRoute(relPath)) return;
+  for (const { verb, body, offset } of extractHandlerBodies(source)) {
+    if (/\brateLimit\s*\(/.test(body)) continue;
+    findings.push({
+      level: "FAIL",
+      rule: "missing-ratelimit",
+      file: relPath,
+      line: source.slice(0, offset).split("\n").length,
+      message: `${verb} handler does not call rateLimit() — mutation not throttled.`,
+    });
+  }
+}
+
 function checkProcessEnv(relPath: string, source: string) {
   if (isInLibDir(relPath)) return;
   // Tooling config files (jest.config.ts, playwright.config.ts, next.config.ts,
@@ -212,6 +236,14 @@ function checkProcessEnv(relPath: string, source: string) {
   // root and run before any `lib/config` is loaded. They legitimately read
   // env vars to configure the test/build harness.
   if (/^[a-zA-Z0-9.-]+\.config\.ts$/.test(relPath)) return;
+  // instrumentation.ts runs at cold-start before lib/config is loadable; it
+  // must read NEXT_RUNTIME/Sentry env directly. File-scoped on purpose — not a
+  // codebase-wide NEXT_RUNTIME exemption.
+  if (relPath === "instrumentation.ts") return;
+  // Test files seed mock env; the named dev script is never deployed. Narrow
+  // by design — not a blanket scripts/ exemption (a shipped script could leak).
+  if (/\.test\.tsx?$/.test(relPath)) return;
+  if (relPath === "scripts/fix-test-user-role.ts") return;
   // ignore comments-only matches by skipping leading "//" or "*"
   const lines = source.split("\n");
   for (let i = 0; i < lines.length; i++) {
@@ -297,6 +329,7 @@ async function main() {
 
     if (isApiRouteFile(r)) {
       checkApiRoute(r, source);
+      checkMissingRateLimit(r, source);
     }
     checkProcessEnv(r, source);
     checkQueryRaw(r, source);
@@ -328,7 +361,20 @@ async function main() {
   );
 }
 
-main().catch((err) => {
-  console.error("[security-check] crashed:", err);
-  process.exit(2);
-});
+// Only run the CLI when invoked directly (tsx scripts/security-check.ts), not
+// when imported by the unit test. require.main holds under both tsx and ts-jest.
+if (typeof require !== "undefined" && require.main === module) {
+  main().catch((err) => {
+    console.error("[security-check] crashed:", err);
+    process.exit(2);
+  });
+}
+
+export const _test = {
+  checkApiRoute,
+  checkMissingRateLimit,
+  findings,
+  reset: () => {
+    findings.length = 0;
+  },
+};
