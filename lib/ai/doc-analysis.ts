@@ -6,26 +6,23 @@
 //   - Persist `{ detectedType, expiryDate, mismatch, confidence, analyzedAt }`
 //     to Document.aiAnalysis (Json). Statuses are NEVER touched here — the
 //     verdict is a read-only flag for the staff review surfaces.
-//   - Model policy: Haiku ("fast") via `extractWithEscalation` only; Sonnet
-//     runs at most once as the escalation retry. Never Opus.
+//   - Model policy: Haiku ("fast") via escalation helpers only; Sonnet runs at
+//     most once as the escalation retry. Never Opus.
 //
 // Callers:
 //   - app/api/documents/route.ts  → best-effort background run on upload
 //     (wrapped in `analyzeDocumentSafely`, scheduled via waitUntil).
 //   - app/api/ai/analyze-doc      → staff-gated on-demand (re)run.
 //
-// PDFs/DOCX are skipped (`unsupported-mime`): lib/claude.ts only exposes
-// image content blocks today — same constraint as /api/ai/extract-cv.
-// ACCEPTED SCOPE CUT (2026-06-11 batch): plan 2d's "classify on upload" runs
-// for JPEG/PNG scans only. The Anthropic API does support PDF document blocks
-// (DOCX has no equivalent), so PDF coverage is a possible follow-up — it needs
-// page/token budgeting under the fast-tier policy, not just a new block type.
+// PDF wired but inert (no-key no-op); do not enable in prod until Anthropic
+// funded. Enablement is gated by ANTHROPIC_API_KEY presence — no feature flag.
+// DOCX remains unsupported-mime (Anthropic has no equivalent document block).
 
 import type { DocumentType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { parseStorageRef } from "@/lib/documents";
-import { extractWithEscalation } from "@/lib/claude";
+import { extractWithEscalation, extractPdfWithEscalation, type ExtractSuccess } from "@/lib/claude";
 import { DOCUMENT_TYPES } from "@/lib/validation/document";
 import { isExpired, isExpiringWithin } from "@/lib/dates";
 
@@ -55,8 +52,8 @@ export type DocAnalysisResult =
     };
 
 // Only MIME types both allowed for document uploads (lib/documents.ts) and
-// supported by lib/claude.ts image blocks.
-const ANALYZABLE_MIME = new Set(["image/jpeg", "image/png"]);
+// supported by lib/claude.ts content blocks (image or PDF document).
+const ANALYZABLE_MIME = new Set(["image/jpeg", "image/png", "application/pdf"]);
 
 export function isAnalyzableMime(mime: string | null | undefined): boolean {
   return Boolean(mime) && ANALYZABLE_MIME.has(String(mime).toLowerCase());
@@ -199,13 +196,12 @@ export async function analyzeDocumentImage(input: {
     return { ok: false, error: "unsupported-mime" };
   }
 
-  const r = await extractWithEscalation({
-    base64: input.base64,
-    mimeType: input.mimeType.toLowerCase(),
-    prompt: PROMPT,
-    maxTokens: 512,
-    validate: (res) => hasAnalysisBlock(res.text),
-  });
+  const mimeType = input.mimeType.toLowerCase();
+  const validate = (res: ExtractSuccess) => hasAnalysisBlock(res.text);
+  const r =
+    mimeType === "application/pdf"
+      ? await extractPdfWithEscalation({ base64: input.base64, prompt: PROMPT, maxTokens: 512, validate })
+      : await extractWithEscalation({ base64: input.base64, mimeType, prompt: PROMPT, maxTokens: 512, validate });
 
   if ("error" in r) {
     if (r.error === "no-key") return { ok: false, error: "no-key" };

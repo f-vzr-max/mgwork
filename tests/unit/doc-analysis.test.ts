@@ -175,12 +175,12 @@ describe("docAiFlag", () => {
 });
 
 describe("isAnalyzableMime", () => {
-  it("accepts JPEG/PNG regardless of case", () => {
+  it("accepts JPEG/PNG/PDF (case-insensitive)", () => {
     expect(isAnalyzableMime("image/jpeg")).toBe(true);
     expect(isAnalyzableMime("IMAGE/PNG")).toBe(true);
+    expect(isAnalyzableMime("application/pdf")).toBe(true);
   });
-  it("rejects PDFs, DOCX, and empties", () => {
-    expect(isAnalyzableMime("application/pdf")).toBe(false);
+  it("rejects DOCX and empties", () => {
     expect(
       isAnalyzableMime(
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
