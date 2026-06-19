@@ -19,9 +19,9 @@ export const env = {
   supabaseAnonKey: () => read("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
   supabaseServiceKey: () => read("SUPABASE_SERVICE_ROLE_KEY"),
 
-  // Resend
-  resendKey: () => read("RESEND_API_KEY"),
-  resendFrom: () => read("RESEND_FROM_EMAIL") ?? "AsanaoConnect <noreply@mgwork.io>",
+  // Brevo (transactional email)
+  brevoKey: () => read("BREVO_API_KEY"),
+  emailFrom: () => read("BREVO_FROM_EMAIL") ?? "AsanaoConnect <noreply@mgwork.io>",
 
   // Clerk (server-side reads only)
   clerkSecret: () => read("CLERK_SECRET_KEY"),

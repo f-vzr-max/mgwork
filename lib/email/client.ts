@@ -1,7 +1,10 @@
-import { Resend } from "resend";
-import { env } from "./config";
+import { env } from "../config";
 
-// All known templates. Add new ones here as M10 templates land.
+// Transactional email transport (Brevo) + a lazy template registry. Templates
+// render to HTML on demand; `lib/email/templates.ts` wires the React-Email
+// components in via `registerTemplate`. Sends no-op (and log) when BREVO_API_KEY
+// is absent so dev/preview don't fail without a key.
+
 export const EMAIL_TEMPLATES = [
   "welcome",
   "document-expiry",
@@ -30,23 +33,15 @@ export type SendResult =
   | { error: "send-error"; message: string }
   | { id: string };
 
-let cached: Resend | null | undefined;
+const BREVO_ENDPOINT = "https://api.brevo.com/v3/smtp/email";
 
-function client(): Resend | null {
-  if (cached !== undefined) return cached;
-  const key = env.resendKey();
-  cached = key ? new Resend(key) : null;
-  return cached;
+// Brevo wants sender as { name, email }; our config stores "Name <email>".
+function parseSender(from: string): { email: string; name?: string } {
+  const m = from.match(/^\s*(.*?)\s*<([^>]+)>\s*$/);
+  if (m) return { name: m[1] || undefined, email: m[2] };
+  return { email: from.trim() };
 }
 
-// Reset the cached client. Test-only.
-export function _resetResendClient(): void {
-  cached = undefined;
-}
-
-// Templates render to HTML lazily. M10 ships the React-Email components and
-// registers them via `registerTemplate`. Until then, missing templates
-// fall back to a plain placeholder so envelopes still send in dev/preview.
 type Renderer = (props: Record<string, unknown>, lang: EmailLang) => Promise<{ subject: string; html: string }>;
 
 const renderers = new Map<EmailTemplate, Renderer>();
@@ -75,45 +70,43 @@ async function renderTemplate(
 ): Promise<{ subject: string; html: string }> {
   const renderer = renderers.get(template);
   if (renderer) return renderer(props, lang);
-  // Placeholder body — keeps `send()` callable before M10 lands.
   return {
     subject: `[AsanaoConnect] ${template}`,
     html: `<p>Template <code>${template}</code> not yet implemented (${lang}).</p>`,
   };
 }
 
-// Send an email. Returns a no-op + console.log when RESEND_API_KEY is absent
-// so dev environments don't fail without a key.
 export async function send<P extends Record<string, unknown>>(params: SendParams<P>): Promise<SendResult> {
   const lang: EmailLang = params.lang ?? "FR";
-  const c = client();
+  const key = env.brevoKey();
   const { subject, html } = await renderTemplate(params.template, params.props, lang);
   const finalSubject = params.subject ?? subject;
   const recipients = Array.isArray(params.to) ? params.to : [params.to];
 
-  if (!c) {
+  if (!key) {
     // eslint-disable-next-line no-console
-    console.log("[resend:noop]", {
-      template: params.template,
-      to: recipients,
-      lang,
-      subject: finalSubject,
-    });
+    console.log("[email:noop]", { template: params.template, to: recipients, lang, subject: finalSubject });
     return { error: "no-key", logged: true };
   }
 
   try {
-    const result = await c.emails.send({
-      from: env.resendFrom(),
-      to: recipients,
-      subject: finalSubject,
-      html,
-      replyTo: params.replyTo,
+    const res = await fetch(BREVO_ENDPOINT, {
+      method: "POST",
+      headers: { "api-key": key, "content-type": "application/json", accept: "application/json" },
+      body: JSON.stringify({
+        sender: parseSender(env.emailFrom()),
+        to: recipients.map((email) => ({ email })),
+        subject: finalSubject,
+        htmlContent: html,
+        ...(params.replyTo ? { replyTo: { email: params.replyTo } } : {}),
+      }),
     });
-    if (result.error) {
-      return { error: "send-error", message: result.error.message };
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      return { error: "send-error", message: `brevo ${res.status}: ${body.slice(0, 200)}` };
     }
-    return { id: result.data?.id ?? "" };
+    const data = (await res.json().catch(() => ({}))) as { messageId?: string };
+    return { id: data.messageId ?? "" };
   } catch (err) {
     return { error: "send-error", message: err instanceof Error ? err.message : String(err) };
   }

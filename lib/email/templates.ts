@@ -1,20 +1,20 @@
 // Email template registry.
 //
-// Maps template keys (declared in `lib/resend.ts`) to React Email components,
+// Maps template keys (declared in `lib/email/client.ts`) to React Email components,
 // renders them to HTML, and registers each via `registerTemplate(...)` from
-// `lib/resend.ts`. Side-effecting on import: calling `registerEmailTemplates()`
+// `lib/email/client.ts`. Side-effecting on import: calling `registerEmailTemplates()`
 // (idempotent) wires every template into the registry.
 //
 // Why a side-effecting init function rather than module-load registration?
-//   - Tests / scripts that import `lib/resend.ts` shouldn't have to pay the
+//   - Tests / scripts that import `lib/email/client.ts` shouldn't have to pay the
 //     cost of pulling React Email + every template eagerly.
 //   - Server entry points (route handlers, cron) call this once, then use
-//     `send({ template, ... })` from `lib/resend.ts`.
+//     `send({ template, ... })` from `lib/email/client.ts`.
 
 import * as React from "react";
 import { render } from "@react-email/components";
 
-import { registerTemplate, type EmailLang, type EmailTemplate } from "@/lib/resend";
+import { registerTemplate, type EmailLang, type EmailTemplate } from "./client";
 
 import WelcomeEmail, { WelcomeEmailSubjects } from "@/emails/WelcomeEmail";
 import DocumentExpiryEmail, {

@@ -14,7 +14,7 @@ import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
 import { env } from "@/lib/config";
-import { send, type EmailLang } from "@/lib/resend";
+import { send, type EmailLang } from "@/lib/email/client";
 import { registerEmailTemplates } from "@/lib/email/templates";
 
 const ALERT_DAYS = [30, 15, 7] as const;
