@@ -12,7 +12,7 @@ import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { assertSameOrigin, CsrfError } from "@/lib/csrf";
 import { rateLimit } from "@/lib/rate-limit";
-import { send } from "@/lib/resend";
+import { send } from "@/lib/email/client";
 import { LEGAL_ENTITY } from "@/lib/legal-entity";
 
 export async function POST(req: Request) {

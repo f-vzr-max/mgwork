@@ -7,7 +7,7 @@
 //      checkpoints + alert counts.
 //   2. Asks Claude (fast tier, one-shot smart escalation) for a short,
 //      neutral status summary.
-//   3. Emails the contact via lib/resend.ts using the `monthly-report` template.
+//   3. Emails the contact via lib/email/client.ts using the `monthly-report` template.
 //   4. Audits a single `cron.monthly_report_run` event under a system actor.
 //
 // Returns 200 with a JSON summary so Francky can hit the URL by hand to smoke.
@@ -18,7 +18,7 @@ import { prisma } from "@/lib/prisma";
 import { env } from "@/lib/config";
 import { logAudit } from "@/lib/audit";
 import { chatWithEscalation } from "@/lib/claude";
-import { send } from "@/lib/resend";
+import { send } from "@/lib/email/client";
 
 type Summary = {
   enterprisesScanned: number;
