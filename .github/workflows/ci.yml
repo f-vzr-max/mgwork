@@ -18,7 +18,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
 
       - name: Install dependencies
@@ -36,7 +36,9 @@ jobs:
       - name: Build
         env:
           # CI-only stub values; real keys come from Vercel env in deployed branches.
-          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_ci_stub
+          # Clerk pk must be a format-valid key (decodes "clerk.example.com$") — Clerk
+          # validates the key shape during static prerender; it makes no network call.
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_Y2xlcmsuZXhhbXBsZS5jb20k
           CLERK_SECRET_KEY: sk_test_ci_stub
           NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ci_stub_anon
