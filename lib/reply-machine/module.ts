@@ -24,7 +24,9 @@ export class MgworkRoutingModule implements RoutingModule {
     };
   }
 
-  async retrieveContext(_query: string, _opts: { topK: number }): Promise<ContextChunk[]> {
+  async retrieveContext(query: string, opts: { topK: number }): Promise<ContextChunk[]> {
+    void query;
+    void opts;
     // TODO(human): wire to existing lib/social/memory.ts / help content (import read-only).
     return [];
   }
