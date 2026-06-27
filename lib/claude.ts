@@ -1,5 +1,10 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { DocumentBlockParam } from "@anthropic-ai/sdk/resources/messages";
+import type {
+  DocumentBlockParam,
+  MessageParam,
+  Tool,
+  ContentBlock,
+} from "@anthropic-ai/sdk/resources/messages";
 import { env } from "./config";
 
 // Model policy: Haiku ("fast") is the default for every Claude call. Sonnet
@@ -229,6 +234,44 @@ async function extractPdfWithTier(params: InternalPdfExtractParams): Promise<Ext
 
 export async function extractFromPdf(params: PdfExtractParams): Promise<ExtractResult> {
   return extractPdfWithTier(params);
+}
+
+// ---------------------------------------------------------------------------
+// Tool-use chat — returns the model's RAW content blocks (text + tool_use) so a
+// caller can run a bounded tool-execution loop. Haiku-only by policy: the smart
+// tier stays reachable solely through the *WithEscalation helpers. `tools` is
+// optional — omit it for a forced final text turn after the tool budget is up.
+// ---------------------------------------------------------------------------
+
+export type ToolChatResult =
+  | { error: "no-key" }
+  | { error: "api-error"; message: string }
+  | { content: ContentBlock[]; stopReason: string | null; usage: { input: number; output: number } };
+
+export async function chatWithTools(params: {
+  system: string;
+  messages: MessageParam[];
+  tools?: Tool[];
+  maxTokens?: number;
+}): Promise<ToolChatResult> {
+  const c = client();
+  if (!c) return { error: "no-key" };
+  try {
+    const res = await c.messages.create({
+      model: MODELS.fast,
+      system: params.system,
+      max_tokens: params.maxTokens ?? 1024,
+      ...(params.tools && params.tools.length > 0 ? { tools: params.tools } : {}),
+      messages: params.messages,
+    });
+    return {
+      content: res.content,
+      stopReason: res.stop_reason,
+      usage: { input: res.usage.input_tokens, output: res.usage.output_tokens },
+    };
+  } catch (err) {
+    return { error: "api-error", message: err instanceof Error ? err.message : String(err) };
+  }
 }
 
 export async function extractPdfWithEscalation(

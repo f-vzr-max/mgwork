@@ -9,6 +9,7 @@ import type {
 } from "./contract";
 import { CONTRACT_VERSION } from "./contract";
 import { MGWORK_TOOLS, callMgworkTool } from "./tools";
+import { searchHelp } from "./help";
 
 /**
  * mgwork (AsanaoConnect) Routing Module — thin, read-only adapter to the Universal Reply Engine.
@@ -25,10 +26,10 @@ export class MgworkRoutingModule implements RoutingModule {
   }
 
   async retrieveContext(query: string, opts: { topK: number }): Promise<ContextChunk[]> {
-    void query;
-    void opts;
-    // TODO(human): wire to existing lib/social/memory.ts / help content (import read-only).
-    return [];
+    // Read-only keyword search over the static help corpus. Candidate-specific
+    // memory is injected by the route/pipeline (which holds ctx), since this
+    // contract signature carries no ctx.
+    return searchHelp(query, opts.topK);
   }
 
   listTools(): ToolSpec[] {

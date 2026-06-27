@@ -29,6 +29,10 @@ export interface ToolSpec {
 export interface CallContext {
   projectId: string;
   channel: string;
+  // Server-resolved identity of the signed-in candidate (when any). Set by the
+  // route from the session — NEVER from the request body or the model. Tools
+  // that read candidate-scoped data MUST use this, not a model-supplied id.
+  candidateId?: string;
 }
 
 export interface ToolResult {
