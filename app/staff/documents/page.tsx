@@ -81,6 +81,14 @@ const TYPE_ICON: Record<string, IconName> = {
   OTHER: "file-text",
 };
 
+function staffHref(params: { type?: string; priority?: string }): string {
+  const qs = new URLSearchParams();
+  if (params.type) qs.set("type", params.type);
+  if (params.priority) qs.set("priority", params.priority);
+  const s = qs.toString();
+  return "/staff/documents" + (s ? "?" + s : "");
+}
+
 function formatAge(d: Date, t: Awaited<ReturnType<typeof getTranslations>>): string {
   const ms = Date.now() - d.getTime();
   const m = Math.floor(ms / 60_000);
@@ -92,7 +100,11 @@ function formatAge(d: Date, t: Awaited<ReturnType<typeof getTranslations>>): str
   return t("documents.age.days", { days });
 }
 
-export default async function StaffDocumentsQueuePage() {
+export default async function StaffDocumentsQueuePage({
+  searchParams,
+}: {
+  searchParams: { type?: string; priority?: string };
+}) {
   const { userId: clerkId } = await auth();
   if (!clerkId) redirect("/sign-in");
 
@@ -125,12 +137,21 @@ export default async function StaffDocumentsQueuePage() {
 
   const pinnedCount = rows.filter((r) => r.pinned).length;
 
-  // Per-type buckets for the filter chips. Chips are non-functional links —
-  // the underlying queue is FIFO and filter wiring lives in a follow-up.
+  // Per-type buckets drive the filter chips (clickable, `?type=`).
   const typeCounts: Record<string, number> = {};
   for (const r of rows) {
     typeCounts[r.doc.type] = (typeCounts[r.doc.type] ?? 0) + 1;
   }
+
+  // Active filters narrow the displayed queue; KPIs/chip counts stay totals.
+  const typeFilter = (searchParams?.type ?? "").trim();
+  const priorityOnly = searchParams?.priority === "1";
+  const displayRows = rows.filter((r) => {
+    if (typeFilter && r.doc.type !== typeFilter) return false;
+    if (priorityOnly && !r.pinned) return false;
+    return true;
+  });
+  const nextDocId = displayRows[0]?.doc.id;
 
   // 7-day "processed" approximation — count document.approve|reject from audit.
   const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
@@ -149,10 +170,26 @@ export default async function StaffDocumentsQueuePage() {
         subtitle={t("documents.subtitle")}
         action={
           <Stack dir="row" gap={8}>
-            <Button variant="outline" iconLeft="filter">
-              {t("documents.actions.advancedFilters")}
-            </Button>
-            <Button iconLeft="check-circle-2">{t("documents.actions.claimNext")}</Button>
+            <Link
+              href={staffHref({
+                type: typeFilter || undefined,
+                priority: priorityOnly ? undefined : "1",
+              })}
+              style={{ textDecoration: "none" }}
+            >
+              <Button variant={priorityOnly ? undefined : "outline"} iconLeft="filter">
+                {t("documents.actions.advancedFilters")}
+              </Button>
+            </Link>
+            {nextDocId ? (
+              <Link href={`/staff/documents/${nextDocId}`} style={{ textDecoration: "none" }}>
+                <Button iconLeft="check-circle-2">{t("documents.actions.claimNext")}</Button>
+              </Link>
+            ) : (
+              <Button iconLeft="check-circle-2" disabled>
+                {t("documents.actions.claimNext")}
+              </Button>
+            )}
           </Stack>
         }
       />
@@ -196,19 +233,44 @@ export default async function StaffDocumentsQueuePage() {
           flexWrap: "wrap",
         }}
       >
-        <Badge tone="primary" size="md">
-          {t("documents.chips.all", { count: rows.length })}
-        </Badge>
+        <Link
+          href={staffHref({ priority: priorityOnly ? "1" : undefined })}
+          style={{ textDecoration: "none" }}
+        >
+          <Badge tone={!typeFilter ? "primary" : "neutral"} size="md">
+            {t("documents.chips.all", { count: rows.length })}
+          </Badge>
+        </Link>
         {pinnedCount > 0 && (
-          <Badge tone="warning" size="md" icon="alert-triangle">
-            {t("documents.chips.priority", { count: pinnedCount })}
-          </Badge>
+          <Link
+            href={staffHref({
+              type: typeFilter || undefined,
+              priority: priorityOnly ? undefined : "1",
+            })}
+            style={{ textDecoration: "none" }}
+          >
+            <Badge tone={priorityOnly ? "primary" : "warning"} size="md" icon="alert-triangle">
+              {t("documents.chips.priority", { count: pinnedCount })}
+            </Badge>
+          </Link>
         )}
-        {Object.entries(typeCounts).map(([type, n]) => (
-          <Badge key={type} tone="neutral" size="md">
-            {t("documents.chips.typeCount", { label: tc(`docType.${type}`), count: n })}
-          </Badge>
-        ))}
+        {Object.entries(typeCounts).map(([type, n]) => {
+          const active = typeFilter === type;
+          return (
+            <Link
+              key={type}
+              href={staffHref({
+                type: active ? undefined : type,
+                priority: priorityOnly ? "1" : undefined,
+              })}
+              style={{ textDecoration: "none" }}
+            >
+              <Badge tone={active ? "primary" : "neutral"} size="md">
+                {t("documents.chips.typeCount", { label: tc(`docType.${type}`), count: n })}
+              </Badge>
+            </Link>
+          );
+        })}
       </div>
 
       {/* Queue table */}
@@ -233,7 +295,7 @@ export default async function StaffDocumentsQueuePage() {
             <span>{t("documents.table.colPriority")}</span>
             <span style={{ textAlign: "right" }}>{t("documents.table.colAction")}</span>
           </div>
-          {rows.length === 0 ? (
+          {displayRows.length === 0 ? (
             <div
               style={{
                 padding: 40,
@@ -245,7 +307,7 @@ export default async function StaffDocumentsQueuePage() {
               {t("documents.table.empty")}
             </div>
           ) : (
-            rows.map(({ doc, pinned }, i) => {
+            displayRows.map(({ doc, pinned }, i) => {
               const ownerLabel = doc.candidate
                 ? `${doc.candidate.firstName} ${doc.candidate.lastName}`
                 : doc.enterprise?.companyName ?? "—";

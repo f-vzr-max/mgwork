@@ -178,9 +178,11 @@ export default async function EnterpriseDashboardPage() {
         subtitle={t("dashboard.subtitle", { companyName, planLabel, days: 47 })}
         action={
           <Stack dir="row" gap={8}>
-            <Button variant="outline" iconLeft="download">
-              {t("dashboard.exportButton")}
-            </Button>
+            <a href="/api/me/data-export" style={{ textDecoration: "none" }}>
+              <Button variant="outline" iconLeft="download">
+                {t("dashboard.exportButton")}
+              </Button>
+            </a>
             <Link href="/enterprise/offers/new" style={{ textDecoration: "none" }}>
               <Button iconLeft="plus">{t("dashboard.newOfferButton")}</Button>
             </Link>
