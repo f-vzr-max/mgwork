@@ -2,6 +2,7 @@
 // resolved. Server component pulls real Checkpoint rows and a 30d resolved
 // window so the "Résolus" column is actually populated.
 
+import Link from "next/link";
 import {
   PageHeader,
   Button,
@@ -57,7 +58,7 @@ const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
 type LoadResult = { columns: Column[]; open: number; priority: number };
 
-async function loadColumns(t: T): Promise<LoadResult> {
+async function loadColumns(t: T, priorityOnly: boolean): Promise<LoadResult> {
   const [openRows, resolvedRows] = await Promise.all([
     prisma.checkpoint.findMany({
       where: { status: "INTERVENTION_REQUIRED" },
@@ -106,11 +107,13 @@ async function loadColumns(t: T): Promise<LoadResult> {
       priority: daysSince(r.date) <= 2,
       attachments: r._count.disputeAttachments,
     };
+    if (priorityOnly && !card.priority) continue;
     if (card.days <= 3) newCol.push(card);
     else progCol.push(card);
   }
 
-  const resolvedCol: DisputeCard[] = resolvedRows.map((r) => ({
+  // Priority view is about open, time-sensitive disputes; resolved is hidden.
+  const resolvedCol: DisputeCard[] = priorityOnly ? [] : resolvedRows.map((r) => ({
     id: r.id,
     name: maskName(r.candidate?.firstName, r.candidate?.lastName, t),
     co: r.application?.jobOffer?.enterprise?.companyName ?? "—",
@@ -133,10 +136,15 @@ async function loadColumns(t: T): Promise<LoadResult> {
   };
 }
 
-export default async function AdminDisputesPage() {
+export default async function AdminDisputesPage({
+  searchParams,
+}: {
+  searchParams: { priority?: string };
+}) {
   const t = await getTranslations("app.admin");
   const tStatus = await getTranslations("status");
-  const { columns, open, priority } = await loadColumns(t);
+  const priorityOnly = searchParams?.priority === "1";
+  const { columns, open, priority } = await loadColumns(t, priorityOnly);
 
   return (
     <>
@@ -144,12 +152,14 @@ export default async function AdminDisputesPage() {
         title={t("disputes.title")}
         subtitle={`${t("disputes.subtitle.dossiers", { open })} · ${t("disputes.subtitle.priority", { priority })}`}
         action={
-          <Stack dir="row" gap={8}>
-            <Button variant="outline" iconLeft="filter">
+          <Link
+            href={priorityOnly ? "/admin/disputes" : "/admin/disputes?priority=1"}
+            style={{ textDecoration: "none" }}
+          >
+            <Button variant={priorityOnly ? undefined : "outline"} iconLeft="filter">
               {t("disputes.actions.filter")}
             </Button>
-            <Button iconLeft="plus">{t("disputes.actions.newFile")}</Button>
-          </Stack>
+          </Link>
         }
       />
 
