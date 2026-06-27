@@ -17,6 +17,12 @@ import type {
 
 const DEFAULT_MAX_TOOL_CALLS = 4;
 
+// A model turn can end with no text block — only a tool_use block truncated by
+// max_tokens, or an empty forced-final turn — which makes finalText() "". Never
+// surface an empty reply to the client (blank chat bubble).
+const FALLBACK_REPLY =
+  "Desole, je n'ai pas pu formuler de reponse. Reformulez votre question, s'il vous plait.";
+
 export type ReplyResult =
   | { ok: true; reply: string; toolCalls: number }
   | { ok: false; error: "no-key" | "api-error"; message?: string };
@@ -67,7 +73,7 @@ export async function runReply(params: {
     }
     const toolUses = res.content.filter((b): b is ToolUseBlock => b.type === "tool_use");
     if (res.stopReason !== "tool_use" || toolUses.length === 0) {
-      return { ok: true, reply: finalText(res.content), toolCalls };
+      return { ok: true, reply: finalText(res.content) || FALLBACK_REPLY, toolCalls };
     }
     messages.push({ role: "assistant", content: res.content });
     const results: ToolResultBlockParam[] = [];
@@ -93,5 +99,5 @@ export async function runReply(params: {
   if ("error" in final) {
     return { ok: false, error: final.error, message: "message" in final ? final.message : undefined };
   }
-  return { ok: true, reply: finalText(final.content), toolCalls };
+  return { ok: true, reply: finalText(final.content) || FALLBACK_REPLY, toolCalls };
 }

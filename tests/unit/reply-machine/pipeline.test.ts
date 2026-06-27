@@ -101,4 +101,25 @@ describe("runReply", () => {
     expect(sys).toContain("sys");
     expect(sys).toContain("HELPDOC");
   });
+
+  it("never returns an empty reply (text-less turn falls back)", async () => {
+    mockChatWithTools.mockResolvedValueOnce({ content: [], stopReason: "end_turn", usage: { input: 1, output: 1 } });
+    const r = await runReply({ ctx, module: fakeModule(), incomingText: "salut" });
+    expect(r.ok).toBe(true);
+    expect((r as { reply: string }).reply.length).toBeGreaterThan(0);
+  });
+
+  it("does not surface an empty reply when cut off mid tool_use (max_tokens), and skips the truncated tool", async () => {
+    mockChatWithTools.mockResolvedValueOnce({
+      content: [{ type: "tool_use", id: "t1", name: "get_candidate_status", input: {} }],
+      stopReason: "max_tokens",
+      usage: { input: 1, output: 1 },
+    });
+    const callTool = jest.fn().mockResolvedValue({ ok: true, data: {} });
+    const m = fakeModule({ callTool });
+    const r = await runReply({ ctx, module: m, incomingText: "statut?" });
+    expect(r).toMatchObject({ ok: true, toolCalls: 0 });
+    expect((r as { reply: string }).reply.length).toBeGreaterThan(0);
+    expect(callTool).not.toHaveBeenCalled();
+  });
 });
